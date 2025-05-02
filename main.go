@@ -1,0 +1,106 @@
+package main
+
+import (
+	"embed"
+	"fmt"
+	"github.com/armadakv/console/backend/api"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"go.uber.org/zap"
+	"io/fs"
+	"net/http"
+	"os"
+)
+
+const (
+	defaultPort      = "8080"
+	staticDir        = "frontend/dist"
+	defaultArmadaURL = "http://localhost:5001"
+)
+
+//go:embed frontend/dist
+var frontendFS embed.FS
+
+type zapAdapter struct {
+	logger *zap.Logger
+}
+
+func (z zapAdapter) Print(v ...interface{}) {
+	z.logger.Info(fmt.Sprint(v...))
+}
+
+func main() {
+	// Initialize zap logger
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		fmt.Printf("Failed to create logger: %v\n", err)
+		os.Exit(1)
+	}
+	defer logger.Sync() // flushes buffer, if any
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = defaultPort
+	}
+
+	armadaURL := os.Getenv("ARMADA_URL")
+	if armadaURL == "" {
+		armadaURL = defaultArmadaURL
+	}
+
+	// Get the frontend filesystem
+	frontendRoot, err := fs.Sub(frontendFS, staticDir)
+	if err != nil {
+		logger.Fatal("Failed to get frontend filesystem", zap.Error(err))
+	}
+
+	// Create a new Chi router
+	// Chi is a lightweight, idiomatic and composable router for building Go HTTP services.
+	// It's built on top of the standard library's net/http package and provides a simple
+	// and elegant API for building HTTP services.
+	// See https://github.com/go-chi/chi for more information.
+	r := chi.NewRouter()
+
+	// Use Chi middleware
+	// Logger middleware logs the start and end of each request with the elapsed processing time
+	middleware.DefaultLogger = middleware.RequestLogger(&middleware.DefaultLogFormatter{
+		Logger: &zapAdapter{logger: logger}, NoColor: true},
+	)
+	r.Use(middleware.Logger)
+	// Recoverer middleware recovers from panics, logs the panic, and returns a 500 Internal Server Error response
+	r.Use(middleware.Recoverer)
+
+	// Register API routes
+	apiHandler := api.NewHandler(armadaURL, logger)
+	apiHandler.RegisterRoutes(r)
+
+	// Create a file server from the embedded filesystem
+	fileServer := http.FileServer(http.FS(frontendRoot))
+
+	// Serve frontend files and handle SPA routes
+	r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
+		// Try to serve the file directly
+		path := r.URL.Path
+		_, err := fs.Stat(frontendRoot, path[1:]) // Remove leading slash
+
+		// If path doesn't exist, serve index.html for SPA client-side routing
+		if os.IsNotExist(err) {
+			// Rewrite to index.html for client-side routing
+			r.URL.Path = "/"
+		}
+
+		fileServer.ServeHTTP(w, r)
+	})
+
+	// Start the server
+	addr := ":" + port
+	server := &http.Server{
+		Addr:    addr,
+		Handler: r,
+	}
+
+	logger.Info("Starting Armada Dashboard server", zap.String("port", port))
+	logger.Info("Connecting to Armada server", zap.String("url", armadaURL))
+	logger.Info("Server ready", zap.String("url", "http://localhost:"+port))
+	logger.Fatal("Server stopped", zap.Error(server.ListenAndServe()))
+}
