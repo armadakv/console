@@ -42,11 +42,13 @@ type ArmadaClient interface {
 	// It returns a slice of Table objects.
 	GetTables(ctx context.Context) ([]Table, error)
 
-	// GetKeyValuePairs retrieves key-value pairs with the given prefix.
-	// The table parameter specifies which table to query.
+	// GetKeyValuePairs retrieves key-value pairs from the specified table.
+	// The filtering can be done in two ways:
+	// 1. By prefix: if prefix is non-empty, returns all key-value pairs with keys starting with prefix
+	// 2. By range: if start and end are non-empty, returns all key-value pairs with keys in [start, end)
 	// The limit parameter controls the maximum number of pairs to return.
 	// It returns a slice of KeyValuePair objects.
-	GetKeyValuePairs(ctx context.Context, table, prefix string, limit int) ([]KeyValuePair, error)
+	GetKeyValuePairs(ctx context.Context, table string, prefix string, start string, end string, limit int) ([]KeyValuePair, error)
 
 	// PutKeyValue stores a key-value pair in the Armada server.
 	// The table parameter specifies which table to store the key-value pair in.
@@ -463,34 +465,55 @@ func (c *client) GetMetrics(ctx context.Context) (*Metrics, error) {
 	}, nil
 }
 
-// GetKeyValuePairs retrieves key-value pairs with the given prefix from the Armada server.
+// GetKeyValuePairs retrieves key-value pairs from the specified table.
 // It calls the Range method of the KV gRPC service to fetch the key-value pairs.
+// The filtering can be done in two ways:
+// 1. By prefix: if prefix is non-empty, returns all key-value pairs with keys starting with prefix
+// 2. By range: if start and end are non-empty, returns all key-value pairs with keys in [start, end)
 //
 // Parameters:
 //   - ctx: The context for the request.
 //   - table: The table to query.
-//   - prefix: The prefix to filter the keys.
+//   - prefix: The prefix to filter the keys (used if non-empty).
+//   - start: The start key for range filtering (used if prefix is empty and both start and end are non-empty).
+//   - end: The end key for range filtering (used if prefix is empty and both start and end are non-empty).
 //   - limit: The maximum number of key-value pairs to return.
 //
 // Returns:
 //   - A slice of KeyValuePair objects.
 //   - An error if the request fails.
-func (c *client) GetKeyValuePairs(ctx context.Context, table, prefix string, limit int) ([]KeyValuePair, error) {
+func (c *client) GetKeyValuePairs(ctx context.Context, table, prefix, start, end string, limit int) ([]KeyValuePair, error) {
+	var rangeStart, rangeEnd string
+	filterType := "none"
+
+	// Determine filtering type and set appropriate parameters
+	if prefix != "" {
+		// Prefix filtering
+		rangeStart = prefix
+		rangeEnd = incrementLastByte(prefix)
+		filterType = "prefix"
+	} else if start != "" && end != "" {
+		// Range filtering
+		rangeStart = start
+		rangeEnd = end
+		filterType = "range"
+	} else {
+		// No filtering, get all keys
+		rangeStart = string([]byte{0x00})
+		rangeEnd = string([]byte{0x00})
+		filterType = "all"
+	}
+
 	c.logger.Info("Getting key-value pairs",
-		zap.String("prefix", prefix),
+		zap.String("filter", filterType),
 		zap.String("table", table),
 		zap.String("address", c.address),
 		zap.Int("limit", limit))
 
-	// Create a range request with the prefix
-	rangeEnd := incrementLastByte(prefix)
-	if prefix == "" {
-		prefix = string([]byte{0x00})
-		rangeEnd = string([]byte{0x00})
-	}
+	// Create a range request with the appropriate parameters
 	req := &regattapb.RangeRequest{
 		Table:    []byte(table),
-		Key:      []byte(prefix),
+		Key:      []byte(rangeStart),
 		RangeEnd: []byte(rangeEnd),
 		Limit:    int64(limit),
 	}
@@ -501,7 +524,7 @@ func (c *client) GetKeyValuePairs(ctx context.Context, table, prefix string, lim
 		c.logger.Error("Failed to get key-value pairs from Armada server",
 			zap.Error(err),
 			zap.String("table", table),
-			zap.String("prefix", prefix))
+			zap.String("filter", filterType))
 		return nil, err
 	}
 

@@ -38,11 +38,17 @@ export const getTables = async (): Promise<Table[]> => {
 
 export const getKeyValuePairs = async (
   table: string,
-  prefix: string = ''
+  prefix: string = '',
+  start: string = '',
+  end: string = ''
 ): Promise<KeyValuePair[]> => {
   const url = new URL(`${API_URL}/kv/${table}`, window.location.origin);
   if (prefix) {
     url.searchParams.append('prefix', prefix);
+  }
+  if (start && end) {
+    url.searchParams.append('start', start);
+    url.searchParams.append('end', end);
   }
   
   const response = await fetch(url.toString());

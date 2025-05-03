@@ -7,7 +7,7 @@ export const queryKeys = {
     clusterInfo: ['clusterInfo'],
     metrics: ['metrics'],
     tables: ['tables'],
-    keyValuePairs: (table: string, prefix: string = '') => ['keyValuePairs', table, prefix],
+    keyValuePairs: (table: string, prefix: string = '', start: string = '', end: string = '') => ['keyValuePairs', table, prefix, start, end],
 };
 
 // Status hook
@@ -37,10 +37,10 @@ export const useTables = () => {
 };
 
 // Key-value pairs hook
-export const useKeyValuePairs = (table: string, prefix: string = '') => {
+export const useKeyValuePairs = (table: string, prefix: string = '', start: string = '', end: string = '') => {
     return useQuery(
-        queryKeys.keyValuePairs(table, prefix),
-        () => api.getKeyValuePairs(table, prefix),
+        queryKeys.keyValuePairs(table, prefix, start, end),
+        () => api.getKeyValuePairs(table, prefix, start, end),
         {
             enabled: !!table, // Only run the query if table is provided
         }

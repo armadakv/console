@@ -201,15 +201,39 @@ func (h *Handler) handleGetKeyValue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get key-value pairs
+	// Get filtering parameters from query
 	prefix := r.URL.Query().Get("prefix")
+	start := r.URL.Query().Get("start")
+	end := r.URL.Query().Get("end")
 	limit := 100 // Default limit
-	pairs, err := client.GetKeyValuePairs(r.Context(), table, prefix, limit)
+
+	// Validate parameters - we either need a prefix OR a start-end range (or neither for all keys)
+	if prefix != "" && (start != "" || end != "") {
+		http.Error(w, "Cannot specify both prefix and start/end range", http.StatusBadRequest)
+		return
+	}
+
+	// If start is specified but end is not, return an error
+	if start != "" && end == "" {
+		http.Error(w, "Must provide both start and end for range filtering", http.StatusBadRequest)
+		return
+	}
+
+	// If end is specified but start is not, return an error
+	if end != "" && start == "" {
+		http.Error(w, "Must provide both start and end for range filtering", http.StatusBadRequest)
+		return
+	}
+
+	// Get key-value pairs with the specified filtering
+	pairs, err := client.GetKeyValuePairs(r.Context(), table, prefix, start, end, limit)
 	if err != nil {
 		h.logger.Error("Failed to get key-value pairs",
 			zap.Error(err),
 			zap.String("table", table),
-			zap.String("prefix", prefix))
+			zap.String("prefix", prefix),
+			zap.String("start", start),
+			zap.String("end", end))
 		http.Error(w, "Failed to get key-value pairs", http.StatusInternalServerError)
 		return
 	}

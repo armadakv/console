@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {Component} from 'react';
 import { 
   Card, 
   CardContent, 
@@ -10,7 +10,7 @@ import {
   Grid,
   Chip
 } from '@mui/material';
-import { useStatus } from '../hooks/useApi';
+import { useStatus } from '../../hooks/useApi';
 
 const Dashboard: React.FC = () => {
   const { data, isLoading, isError, error, refetch } = useStatus();
