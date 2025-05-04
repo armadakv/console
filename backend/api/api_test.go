@@ -150,7 +150,7 @@ func TestHandleStatus(t *testing.T) {
 	}
 
 	// Check the content type
-	expectedContentType := "application/json"
+	expectedContentType := "application/json; charset=utf-8"
 	if contentType := rr.Header().Get("Content-Type"); contentType != expectedContentType {
 		t.Errorf("handler returned wrong content type: got %v want %v",
 			contentType, expectedContentType)
@@ -236,7 +236,7 @@ func TestHandleCluster(t *testing.T) {
 	}
 
 	// Check the content type
-	expectedContentType := "application/json"
+	expectedContentType := "application/json; charset=utf-8"
 	if contentType := rr.Header().Get("Content-Type"); contentType != expectedContentType {
 		t.Errorf("handler returned wrong content type: got %v want %v",
 			contentType, expectedContentType)
@@ -283,7 +283,7 @@ func TestHandleMetrics(t *testing.T) {
 	}
 
 	// Check the content type
-	expectedContentType := "application/json"
+	expectedContentType := "application/json; charset=utf-8"
 	if contentType := rr.Header().Get("Content-Type"); contentType != expectedContentType {
 		t.Errorf("handler returned wrong content type: got %v want %v",
 			contentType, expectedContentType)
@@ -330,7 +330,7 @@ func TestHandleTables(t *testing.T) {
 	}
 
 	// Check the content type
-	expectedContentType := "application/json"
+	expectedContentType := "application/json; charset=utf-8"
 	if contentType := rr.Header().Get("Content-Type"); contentType != expectedContentType {
 		t.Errorf("handler returned wrong content type: got %v want %v",
 			contentType, expectedContentType)
@@ -386,7 +386,7 @@ func TestHandleCreateTable(t *testing.T) {
 	}
 
 	// Check the content type
-	expectedContentType := "application/json"
+	expectedContentType := "application/json; charset=utf-8"
 	if contentType := rr.Header().Get("Content-Type"); contentType != expectedContentType {
 		t.Errorf("handler returned wrong content type: got %v want %v",
 			contentType, expectedContentType)
@@ -440,7 +440,7 @@ func TestHandleDeleteTable(t *testing.T) {
 	}
 
 	// Check the content type
-	expectedContentType := "application/json"
+	expectedContentType := "application/json; charset=utf-8"
 	if contentType := rr.Header().Get("Content-Type"); contentType != expectedContentType {
 		t.Errorf("handler returned wrong content type: got %v want %v",
 			contentType, expectedContentType)
@@ -475,7 +475,7 @@ func TestHandleServers(t *testing.T) {
 	}
 
 	// Check the content type
-	expectedContentType := "application/json"
+	expectedContentType := "application/json; charset=utf-8"
 	if contentType := rr.Header().Get("Content-Type"); contentType != expectedContentType {
 		t.Errorf("handler returned wrong content type: got %v want %v",
 			contentType, expectedContentType)
@@ -530,7 +530,7 @@ func TestHandleKeyValue(t *testing.T) {
 		}
 
 		// Check the content type
-		expectedContentType := "application/json"
+		expectedContentType := "application/json; charset=utf-8"
 		if contentType := rr.Header().Get("Content-Type"); contentType != expectedContentType {
 			t.Errorf("handler returned wrong content type: got %v want %v",
 				contentType, expectedContentType)

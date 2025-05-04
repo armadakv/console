@@ -17,10 +17,11 @@ import (
 
 // ServerStatus represents the status of a single server
 type ServerStatus struct {
-	ID      string `json:"id"`
-	Name    string `json:"name"`
-	Status  string `json:"status"`
-	Message string `json:"message"`
+	ID      string                 `json:"id"`
+	Name    string                 `json:"name"`
+	Status  string                 `json:"status"`
+	Message string                 `json:"message"`
+	Config  map[string]interface{} `json:"config,omitempty"`
 }
 
 // StatusResponse represents the response for the status API endpoint
@@ -176,6 +177,7 @@ func (h *Handler) handleStatus(w http.ResponseWriter, r *http.Request) {
 				Name:    server.Name,
 				Status:  status.Status,
 				Message: status.Message,
+				Config:  status.Config, // Include the config data
 			})
 		}
 	}
