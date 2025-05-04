@@ -1,19 +1,33 @@
-# Armada Dashboard
+# ArmadaKV Console
 
-A UI console/dashboard for the [Armada](https://github.com/armadakv/armada) project.
+A web-based dashboard for managing and monitoring the [ArmadaKV](https://github.com/armadakv/armada) distributed key-value store.
 
 ## Overview
 
-This dashboard provides a web-based interface for interacting with and monitoring the Armada project. It allows users to visualize data, manage resources, and perform operations without needing to use the command line.
+ArmadaKV Console provides an intuitive interface for interacting with and monitoring ArmadaKV clusters. It allows users to visualize data, manage key-value pairs, monitor cluster resources, and perform administrative operations through a modern web interface.
 
 ## Features
 
-- Web-based dashboard accessible from any browser
-- Real-time monitoring of Armada resources
-- User-friendly interface for common operations
-- API endpoints for integration with other tools
-- Key-value store management interface
-- Cluster information and metrics visualization
+- **Data Management**: Browse, add, edit, and delete key-value pairs across tables
+- **Cluster Monitoring**: Real-time monitoring of ArmadaKV nodes and resources
+- **Table Administration**: Create, configure, and manage data tables
+- **User-Friendly Interface**: Modern React-based UI with intuitive navigation
+- **RESTful API**: Backend API endpoints for integration with other tools
+- **Performance Metrics**: Visualization of system performance and usage statistics
+
+## Technology Stack
+
+### Backend
+- **Language**: Go 1.24+
+- **Web Framework**: Chi router
+- **Logging**: Zap (structured logging)
+- **Communication**: gRPC client for ArmadaKV interaction
+
+### Frontend
+- **Framework**: React with TypeScript
+- **Build Tool**: Vite
+- **Package Manager**: pnpm
+- **UI Structure**: Component-based architecture with hooks
 
 ## Getting Started
 
@@ -22,7 +36,7 @@ This dashboard provides a web-based interface for interacting with and monitorin
 - Go 1.20 or later
 - Node.js 16.x or later
 - pnpm 8.x or later
-- Access to the Armada project (expected to be in the same parent directory)
+- Access to an ArmadaKV instance
 
 ### Installation
 
@@ -53,11 +67,16 @@ This dashboard provides a web-based interface for interacting with and monitorin
    go build            # Build the Go application
    ```
 
-### Running the Dashboard
+### Running the Console
 
-1. Start the dashboard server:
+1. Start the console server:
    ```
    ./console
+   ```
+
+   Or use the Makefile command:
+   ```
+   make run
    ```
 
 2. Open your browser and navigate to:
@@ -65,114 +84,95 @@ This dashboard provides a web-based interface for interacting with and monitorin
    http://localhost:8080
    ```
 
+3. Configure connection to your ArmadaKV server by setting the `ARMADA_URL` environment variable:
+   ```
+   ARMADA_URL=http://your-armada-server:5001 ./console
+   ```
+   Default is `http://localhost:5001`.
+
 ## Project Structure
 
 - `main.go` - Entry point for the application
 - `frontend/` - React frontend application
   - `src/` - React source code
-    - `components/` - React components
-    - `styles/` - CSS styles
-  - `dist/` - Compiled frontend assets (generated during build)
+    - `components/` - Reusable UI components
+    - `routes/` - Page-level components
+    - `hooks/` - Custom React hooks
+    - `api/` - API client for backend communication
+    - `types/` - TypeScript type definitions
 - `backend/` - Go packages for backend functionality
-  - `api/` - API endpoints for the dashboard
-  - `armada/` - gRPC client for interacting with the Armada server
+  - `api/` - REST API endpoints for the dashboard
+  - `armada/` - gRPC client for interacting with the ArmadaKV server
     - `pb/` - Generated Protocol Buffers code
 - `proto/` - Protocol Buffers definition files
-- `hack/` - Scripts for code generation and other utilities
+- `hack/` - Helper scripts for development and code generation
 
 ## Development
 
 ### Development Mode with Hot Reloading
 
-The project supports a development mode where both frontend and backend are automatically reloaded when code changes are detected.
-
-1. Start the development mode:
+1. Start development mode:
    ```
    make dev
    ```
 
-   This will:
-   - Start the frontend development server with hot reloading at http://localhost:3000
-   - Start the backend with hot reloading using [Air](https://github.com/air-verse/air)
-   - Proxy API requests from the frontend to the backend
+   This runs:
+   - Frontend development server with hot reloading (http://localhost:3000)
+   - Backend with hot reloading using Air
+   - API requests from frontend to backend are automatically proxied
 
-2. Make changes to the frontend or backend code, and they will be automatically reloaded.
-
-### Adding New Features
-
-1. For backend changes, add new Go packages in the `pkg/` directory
-2. For frontend changes, modify or add files in the `frontend/src/` directory:
-   - Add new React components in `frontend/src/components/`
-   - Add new styles in `frontend/src/styles/`
+2. Make changes to the code, and they will be automatically reflected.
 
 ### Frontend Development
 
-1. Install frontend dependencies:
-   ```
-   cd frontend
-   pnpm install
-   ```
-
-2. Start the development server:
-   ```
-   pnpm start
-   ```
-   This will start a development server with hot reloading at http://localhost:3000
-
-3. Build the frontend for production:
-   ```
-   pnpm run build
-   ```
-   This will create optimized production files in the `frontend/dist/` directory
+```
+cd frontend
+pnpm install
+pnpm run dev
+```
 
 ### Building for Production
-
-To build the entire application for production (both frontend and backend):
 
 ```
 make prod
 ```
 
-This will:
-1. Install frontend dependencies
-2. Build the frontend with production optimizations
-3. Build the Go application with optimized flags
+This creates an optimized production build with:
+- Minified frontend assets
+- Compiled Go binary with optimized flags
 
-### Armada gRPC Client
+### Available Make Commands
 
-The dashboard includes a gRPC client for communicating with the Armada server. The client is implemented in the `backend/armada` package and provides the following features:
+- `make build` - Build the project (frontend and backend)
+- `make clean` - Clean all build artifacts
+- `make run` - Build and run the application
+- `make dev` - Run in development mode with hot reloading
+- `make test` - Run all tests
+- `make fmt` - Format code
+- `make deps` - Update dependencies
+- `make proto` - Generate Protocol Buffer code
+- `make help` - Display available commands
 
-- **Server Status**: Retrieve the current status of the Armada server
-- **Cluster Information**: Get information about the Armada cluster, including node IDs, addresses, and Raft information
-- **Metrics**: Retrieve performance metrics from the Armada server
-- **Key-Value Operations**: Perform key-value operations such as get, put, and delete
+## API Endpoints
 
-#### Protocol Buffers
+The console provides RESTful API endpoints for:
 
-The client uses Protocol Buffers for communication with the Armada server. The Protocol Buffers definition files are located in the `proto/` directory, and the generated Go code is in the `backend/armada/pb/` directory.
+- Getting cluster information
+- Managing key-value data
+- Retrieving system metrics
+- Table administration
 
-To regenerate the Protocol Buffers code after making changes to the `.proto` files, run:
+API documentation is available at `/api/docs` when running the console.
 
-```
-make proto
-```
+## Environment Variables
 
-This will use the script in `hack/generate-proto.sh` to generate the Go code from the Protocol Buffers definition files.
-
-
-
-#### Configuration
-
-The dashboard can be configured to connect to a specific Armada server by setting the `ARMADA_URL` environment variable. By default, it connects to `http://localhost:8081`.
-
-```
-ARMADA_URL=http://armada-server:8081 ./console
-```
-
-## License
-
-This project is licensed under the same license as the Armada project.
+- `PORT`: HTTP server port (default: 8080)
+- `ARMADA_URL`: ArmadaKV server URL (default: http://localhost:5001)
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Please refer to [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines on contributing to this project.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
