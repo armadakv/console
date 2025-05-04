@@ -7,13 +7,14 @@ package armada
 import (
 	"context"
 	"crypto/tls"
+	"strings"
+	"sync"
+
 	regattapb "github.com/armadakv/console/backend/armada/pb"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
-	"strings"
-	"sync"
 )
 
 // ArmadaClient is the interface for interacting with the Armada server.
@@ -80,6 +81,10 @@ type Status struct {
 
 	// Message is a human-readable message describing the status.
 	Message string `json:"message"`
+
+	// Config contains the server configuration values.
+	// It is a map of configuration keys to their values.
+	Config map[string]interface{} `json:"config,omitempty"`
 }
 
 // ClusterInfo represents information about the Armada cluster.
@@ -327,8 +332,10 @@ func (c *client) GetStatus(ctx context.Context, serverAddress string) (*Status, 
 		}, nil
 	}
 
-	// Call the Status method of the Cluster service
-	resp, err := clusterClient.Status(ctx, &regattapb.StatusRequest{})
+	// Call the Status method of the Cluster service with config flag enabled
+	resp, err := clusterClient.Status(ctx, &regattapb.StatusRequest{
+		Config: true, // Request config data
+	})
 	if err != nil {
 		c.logger.Error("Failed to get status from Armada server", zap.Error(err))
 		return &Status{
@@ -337,10 +344,17 @@ func (c *client) GetStatus(ctx context.Context, serverAddress string) (*Status, 
 		}, nil
 	}
 
+	// Convert the config from structpb to map[string]interface{}
+	var configMap map[string]interface{}
+	if resp.Config != nil {
+		configMap = resp.Config.AsMap()
+	}
+
 	// Convert the response to our Status type
 	return &Status{
 		Status:  "ok",
 		Message: resp.Version + " - " + resp.Info,
+		Config:  configMap,
 	}, nil
 }
 

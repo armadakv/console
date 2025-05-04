@@ -398,7 +398,7 @@ func TestGetKeyValuePairs(t *testing.T) {
 
 	// Call the method
 	ctx := context.Background()
-	pairs, err := client.GetKeyValuePairs(ctx, "test_table", "key", 10)
+	pairs, err := client.GetKeyValuePairs(ctx, "test_table", "key", "", "", 10)
 
 	// Check for errors
 	if err != nil {
