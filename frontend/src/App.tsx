@@ -11,12 +11,12 @@ import {
 } from '@mui/material';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
-import Dashboard from './routes/dashboard/Dashboard';
-import Data from './routes/data/Data';
+import DashboardPage from './routes/dashboard/DashboardPage';
+import DataPage from './routes/data/DataPage';
 import AddKeyValuePage from './routes/data/AddKeyValuePage';
 import EditKeyValuePage from './routes/data/EditKeyValuePage';
-import Resources from './routes/resources/Resources';
-import Settings from './routes/settings/Settings';
+import ResourcesPage from './routes/resources/ResourcesPage';
+import SettingsPage from './routes/settings/SettingsPage';
 import Footer from './components/Footer';
 
 // Drawer width for the sidebar
@@ -97,13 +97,13 @@ const App: React.FC = () => {
         <Toolbar /> {/* This adds spacing below the app bar */}
         <Container sx={{ flexGrow: 1, py: 3 }}>
           <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/data" element={<Data />} />
-            <Route path="/data/:table" element={<Data />} />
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/data" element={<DataPage />} />
+            <Route path="/data/:table" element={<DataPage />} />
             <Route path="/data/:table/add" element={<AddKeyValuePage />} />
             <Route path="/data/:table/edit/:key" element={<EditKeyValuePage />} />
-            <Route path="/resources" element={<Resources />} />
-            <Route path="/settings" element={<Settings />} />
+            <Route path="/resources" element={<ResourcesPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
           </Routes>
         </Container>
         <Footer />

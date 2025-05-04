@@ -14,7 +14,7 @@ import ErrorState from '../../components/shared/ErrorState';
 import CardWithHeader from '../../components/shared/CardWithHeader';
 import RefreshButton from '../../components/shared/RefreshButton';
 
-const Resources: React.FC = () => {
+const ResourcesPage: React.FC = () => {
   const theme = useTheme();
   const { data, isLoading, isError, error, refetch } = useMetrics();
 
@@ -210,4 +210,4 @@ const Resources: React.FC = () => {
   );
 };
 
-export default Resources;
+export default ResourcesPage;

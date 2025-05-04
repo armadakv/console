@@ -48,7 +48,7 @@ function a11yProps(index: number) {
   };
 }
 
-const Settings: React.FC = () => {
+const SettingsPage: React.FC = () => {
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === 'dark';
   const [value, setValue] = React.useState(0);
@@ -147,4 +147,4 @@ const Settings: React.FC = () => {
   );
 };
 
-export default Settings;
+export default SettingsPage;

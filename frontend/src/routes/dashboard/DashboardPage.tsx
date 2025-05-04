@@ -17,7 +17,7 @@ import CardWithHeader from '../../components/shared/CardWithHeader';
 import StatusChip from '../../components/shared/StatusChip';
 import RefreshButton from '../../components/shared/RefreshButton';
 
-const Dashboard: React.FC = () => {
+const DashboardPage: React.FC = () => {
   const theme = useTheme();
   const { data, isLoading, isError, error, refetch } = useStatus();
 
@@ -181,4 +181,4 @@ const Dashboard: React.FC = () => {
   );
 };
 
-export default Dashboard;
+export default DashboardPage;

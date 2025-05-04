@@ -19,7 +19,7 @@ import AddIcon from '@mui/icons-material/Add';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
 
-const Data: React.FC = () => {
+const DataPage: React.FC = () => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const { table } = useParams<{ table: string }>();
@@ -183,4 +183,4 @@ const Data: React.FC = () => {
     );
 };
 
-export default Data;
+export default DataPage;
