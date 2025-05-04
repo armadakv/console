@@ -4,6 +4,7 @@ export interface ServerStatus {
   name: string;
   status: string;
   message: string;
+  config?: Record<string, any>;
 }
 
 export interface StatusResponse {

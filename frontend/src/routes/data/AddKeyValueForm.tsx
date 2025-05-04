@@ -1,15 +1,13 @@
 import React, { useState } from 'react';
 import {
-  Card,
-  CardContent,
-  Typography,
   TextField,
   Button,
   Grid,
-  Alert,
   CircularProgress
 } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
 import { useAddKeyValuePair } from '../../hooks/useApi';
+import ErrorState from '../../components/shared/ErrorState';
 
 interface AddKeyValueFormProps {
   selectedTable: string;
@@ -45,66 +43,77 @@ const AddKeyValueForm: React.FC<AddKeyValueFormProps> = ({ selectedTable }) => {
   };
 
   return (
-    <Card>
-      <CardContent>
-        <Typography variant="h5" component="h2" gutterBottom>
-          Add New Key-Value Pair
-        </Typography>
-        
-        {!selectedTable && (
-          <Alert severity="info" sx={{ mb: 2 }}>
-            Please select a table first to add key-value pairs.
-          </Alert>
-        )}
-        
-        {addMutation.isError && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {addMutation.error instanceof Error 
-              ? addMutation.error.message 
-              : 'Failed to add key-value pair. Please try again.'}
-          </Alert>
-        )}
-        
-        <form onSubmit={addKeyValuePair}>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={5}>
-              <TextField
-                label="Key"
-                variant="outlined"
-                value={newKey}
-                onChange={(e) => setNewKey(e.target.value)}
-                required
-                disabled={!selectedTable}
-                fullWidth
-              />
-            </Grid>
-            <Grid item xs={12} sm={5}>
-              <TextField
-                label="Value"
-                variant="outlined"
-                value={newValue}
-                onChange={(e) => setNewValue(e.target.value)}
-                required
-                disabled={!selectedTable}
-                fullWidth
-              />
-            </Grid>
-            <Grid item xs={12} sm={2}>
-              <Button
-                type="submit"
-                variant="contained"
-                color="primary"
-                disabled={!selectedTable || addMutation.isLoading}
-                fullWidth
-                sx={{ height: '100%' }}
-              >
-                {addMutation.isLoading ? <CircularProgress size={24} /> : 'Add'}
-              </Button>
-            </Grid>
+    <>
+      {!selectedTable && (
+        <ErrorState
+          title="No Table Selected"
+          message="Please select a table first to add key-value pairs."
+          sx={{ mb: 2 }}
+        />
+      )}
+      
+      {addMutation.isError && (
+        <ErrorState
+          error={addMutation.error}
+          message="Failed to add key-value pair. Please try again."
+          sx={{ mb: 2 }}
+        />
+      )}
+
+      {addMutation.isSuccess && (
+        <ErrorState
+          title="Success"
+          message="Key-value pair added successfully!"
+          sx={{ mb: 2 }}
+          severity="success"
+        />
+      )}
+      
+      <form onSubmit={addKeyValuePair}>
+        <Grid container spacing={2}>
+          <Grid item xs={12} sm={5}>
+            <TextField
+              label="Key"
+              variant="outlined"
+              value={newKey}
+              onChange={(e) => setNewKey(e.target.value)}
+              required
+              disabled={!selectedTable || addMutation.isLoading}
+              fullWidth
+              size="medium"
+            />
           </Grid>
-        </form>
-      </CardContent>
-    </Card>
+          <Grid item xs={12} sm={5}>
+            <TextField
+              label="Value"
+              variant="outlined"
+              value={newValue}
+              onChange={(e) => setNewValue(e.target.value)}
+              required
+              disabled={!selectedTable || addMutation.isLoading}
+              fullWidth
+              size="medium"
+              multiline
+              minRows={1}
+              maxRows={3}
+            />
+          </Grid>
+          <Grid item xs={12} sm={2}>
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              disabled={!selectedTable || !newKey || !newValue || addMutation.isLoading}
+              fullWidth
+              sx={{ height: '100%' }}
+              startIcon={addMutation.isLoading ? <CircularProgress size={20} /> : <AddIcon />}
+            >
+              {addMutation.isLoading ? 'Adding...' : 'Add'}
+            </Button>
+          </Grid>
+        </Grid>
+      </form>
+    </>
   );
 };
 

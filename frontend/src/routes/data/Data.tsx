@@ -1,24 +1,36 @@
-import React, {useState} from 'react';
-import {Box, Card, CardContent, Grid, SelectChangeEvent, Typography} from '@mui/material';
-import {useDeleteKeyValuePair} from '../../hooks/useApi';
+import React, { useState, useEffect } from 'react';
+import { 
+    Box, 
+    Grid, 
+    Button,
+    Fab,
+    Tooltip,
+    useTheme,
+    useMediaQuery,
+    Typography
+} from '@mui/material';
+import { useDeleteKeyValuePair } from '../../hooks/useApi';
 import TableSelector from './TableSelector';
 import KeyValueFilter from './KeyValueFilter';
 import KeyValueTable from './KeyValueTable';
-import AddKeyValueForm from './AddKeyValueForm';
+import PageHeader from '../../components/shared/PageHeader';
+import CardWithHeader from '../../components/shared/CardWithHeader';
+import AddIcon from '@mui/icons-material/Add';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
 
 const Data: React.FC = () => {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+    const { table } = useParams<{ table: string }>();
+    const navigate = useNavigate();
+    
     // State for form inputs
     const [prefix, setPrefix] = useState<string>('');
     const [start, setStart] = useState<string>('');
     const [end, setEnd] = useState<string>('');
     const [filterMode, setFilterMode] = useState<'prefix' | 'range'>('prefix');
-    const [selectedTable, setSelectedTable] = useState<string>('');
     const deleteMutation = useDeleteKeyValuePair();
-
-    // Handle table selection change
-    const handleTableChange = (event: SelectChangeEvent<string>) => {
-        setSelectedTable(event.target.value);
-    };
 
     // Handle filter mode change
     const handleFilterModeChange = (mode: 'prefix' | 'range') => {
@@ -32,15 +44,44 @@ const Data: React.FC = () => {
         }
     };
 
+    // Handle table selection
+    const handleTableChange = (tableName: string) => {
+        navigate(`/data/${tableName}`);
+    };
+
+    // Table selection page
+    if (!table) {
+        return (
+            <>
+                <PageHeader title="Key-Value Data" />
+
+                <Grid container spacing={3}>
+                    <Grid item xs={12}>
+                        <CardWithHeader 
+                            title="Tables"
+                            sx={{ 
+                                borderRadius: 2,
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+                            }}
+                        >
+                            <Box sx={{ p: 2 }}>
+                                <TableSelector
+                                    selectedTable=""
+                                    onTableChange={handleTableChange}
+                                />
+                            </Box>
+                        </CardWithHeader>
+                    </Grid>
+                </Grid>
+            </>
+        );
+    }
+
     // Delete a key-value pair
     const deleteKeyValuePair = async (key: string) => {
-        if (!selectedTable) {
-            return;
-        }
-
         try {
             await deleteMutation.mutateAsync({
-                table: selectedTable,
+                table,
                 key,
             });
         } catch (error) {
@@ -48,62 +89,97 @@ const Data: React.FC = () => {
         }
     };
 
+    // Table data page (with specified table)
     return (
-        <Grid container spacing={3}>
-            <Grid item xs={12}>
-                <Card>
-                    <CardContent>
+        <>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Button
+                        component={RouterLink}
+                        to="/data"
+                        startIcon={<ArrowBackIcon />}
+                        sx={{ mr: 2, textTransform: 'none' }}
+                    >
+                        Tables
+                    </Button>
+                    <PageHeader title={`Table: ${table}`} />
+                </Box>
+                
+                <Button
+                    component={RouterLink}
+                    to={`/data/${table}/add`}
+                    variant="contained"
+                    color="primary"
+                    startIcon={<AddIcon />}
+                    sx={{ 
+                        borderRadius: 1,
+                        textTransform: 'none',
+                        display: { xs: 'none', sm: 'flex' }
+                    }}
+                >
+                    Add Key-Value Pair
+                </Button>
+            </Box>
+
+            <Grid container spacing={3}>
+                <Grid item xs={12}>
+                    <CardWithHeader 
+                        title="Browse Data"
+                        sx={{ 
+                            borderRadius: 2,
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+                        }}
+                    >
                         <Grid container spacing={3}>
                             <Grid item xs={12}>
-
-                                <Typography variant="h5" component="h2" gutterBottom>
-                                    Key-Value Data
-                                </Typography>
-
-                                {/* Table selection */}
-                                <Box sx={{mb: 3}}>
-                                    <TableSelector
-                                        selectedTable={selectedTable}
-                                        onTableChange={handleTableChange}
+                                {/* Filter form */}
+                                <Box sx={{ px: 3, py: 2 }}>
+                                    <KeyValueFilter
+                                        prefix={prefix}
+                                        setPrefix={setPrefix}
+                                        start={start}
+                                        setStart={setStart}
+                                        end={end}
+                                        setEnd={setEnd}
+                                        filterMode={filterMode}
+                                        onFilterModeChange={handleFilterModeChange}
+                                        onFilter={() => {/* refetch happens automatically on dependencies change */}}
+                                        disabled={false}
                                     />
                                 </Box>
 
-                                {/* Filter form */}
-                                <KeyValueFilter
-                                    prefix={prefix}
-                                    setPrefix={setPrefix}
-                                    start={start}
-                                    setStart={setStart}
-                                    end={end}
-                                    setEnd={setEnd}
-                                    filterMode={filterMode}
-                                    onFilterModeChange={handleFilterModeChange}
-                                    onFilter={() => {/* refetch happens automatically on dependencies change */
-                                    }}
-                                    disabled={!selectedTable}
-                                />
-
                                 {/* Data table */}
-                                {selectedTable && (
-                                    <KeyValueTable
-                                        table={selectedTable}
-                                        prefix={filterMode === 'prefix' ? prefix : ''}
-                                        start={filterMode === 'range' ? start : ''}
-                                        end={filterMode === 'range' ? end : ''}
-                                        onDeletePair={deleteKeyValuePair}
-                                    />
-                                )}
-
-                            </Grid>
-                            {/* Add new key-value pair form */}
-                            <Grid item xs={12}>
-                                <AddKeyValueForm selectedTable={selectedTable}/>
+                                <KeyValueTable
+                                    table={table}
+                                    prefix={filterMode === 'prefix' ? prefix : ''}
+                                    start={filterMode === 'range' ? start : ''}
+                                    end={filterMode === 'range' ? end : ''}
+                                    onDeletePair={deleteKeyValuePair}
+                                />
                             </Grid>
                         </Grid>
-                    </CardContent>
-                </Card>
+                    </CardWithHeader>
+                </Grid>
             </Grid>
-        </Grid>
+            
+            {/* Floating action button for mobile */}
+            {isMobile && (
+                <Tooltip title="Add Key-Value Pair">
+                    <Fab
+                        color="primary"
+                        component={RouterLink}
+                        to={`/data/${table}/add`}
+                        sx={{
+                            position: 'fixed',
+                            bottom: theme.spacing(2),
+                            right: theme.spacing(2),
+                        }}
+                    >
+                        <AddIcon />
+                    </Fab>
+                </Tooltip>
+            )}
+        </>
     );
 };
 

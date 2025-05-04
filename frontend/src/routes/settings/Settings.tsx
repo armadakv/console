@@ -1,6 +1,19 @@
 import React from 'react';
-import { Box, Typography, Tab, Tabs } from '@mui/material';
+import { 
+  Box, 
+  Tab, 
+  Tabs, 
+  Paper, 
+  Card, 
+  Typography,
+  useTheme
+} from '@mui/material';
+import TableChartIcon from '@mui/icons-material/TableChart';
+import SettingsSystemDaydreamIcon from '@mui/icons-material/SettingsSystemDaydream';
+import PersonIcon from '@mui/icons-material/Person';
 import TableManagement from './TableManagement';
+import ServerConfig from './ServerConfig';
+import PageHeader from '../../components/shared/PageHeader';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -20,7 +33,7 @@ function TabPanel(props: TabPanelProps) {
       {...other}
     >
       {value === index && (
-        <Box sx={{ p: 3 }}>
+        <Box sx={{ p: 0 }}>
           {children}
         </Box>
       )}
@@ -36,6 +49,7 @@ function a11yProps(index: number) {
 }
 
 const Settings: React.FC = () => {
+  const theme = useTheme();
   const [value, setValue] = React.useState(0);
 
   const handleChange = (event: React.SyntheticEvent, newValue: number) => {
@@ -43,31 +57,83 @@ const Settings: React.FC = () => {
   };
 
   return (
-    <Box sx={{ width: '100%' }}>
-      <Typography variant="h4" gutterBottom>
-        Settings
-      </Typography>
+    <>
+      <PageHeader title="Settings" />
       
-      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-        <Tabs value={value} onChange={handleChange} aria-label="settings tabs">
-          <Tab label="Tables" {...a11yProps(0)} />
-          <Tab label="System" {...a11yProps(1)} />
-          <Tab label="User Preferences" {...a11yProps(2)} />
-        </Tabs>
-      </Box>
-      
-      <TabPanel value={value} index={0}>
-        <TableManagement />
-      </TabPanel>
-      
-      <TabPanel value={value} index={1}>
-        System settings coming soon
-      </TabPanel>
-      
-      <TabPanel value={value} index={2}>
-        User preferences coming soon
-      </TabPanel>
-    </Box>
+      <Card>
+        <Box 
+          sx={{ 
+            borderBottom: '1px solid', 
+            borderColor: 'divider', 
+            bgcolor: 'background.default',
+          }}
+        >
+          <Tabs 
+            value={value} 
+            onChange={handleChange} 
+            aria-label="settings tabs"
+            textColor="primary"
+            indicatorColor="primary"
+            variant="scrollable"
+            scrollButtons="auto"
+            sx={{ 
+              px: 2, 
+              '& .MuiTab-root': {
+                py: 1.5,
+                px: 2,
+                textTransform: 'none',
+              }
+            }}
+          >
+            <Tab 
+              icon={<TableChartIcon />} 
+              iconPosition="start" 
+              label="Tables" 
+              {...a11yProps(0)} 
+            />
+            <Tab 
+              icon={<SettingsSystemDaydreamIcon />} 
+              iconPosition="start" 
+              label="System" 
+              {...a11yProps(1)} 
+            />
+            <Tab 
+              icon={<PersonIcon />} 
+              iconPosition="start" 
+              label="User Preferences" 
+              {...a11yProps(2)} 
+            />
+          </Tabs>
+        </Box>
+        
+        <TabPanel value={value} index={0}>
+          <TableManagement />
+        </TabPanel>
+        
+        <TabPanel value={value} index={1}>
+          <ServerConfig />
+        </TabPanel>
+        
+        <TabPanel value={value} index={2}>
+          <Box sx={{ p: 3 }}>
+            <Typography variant="subtitle1" sx={{ mb: 2 }}>User Preferences</Typography>
+            <Paper 
+              variant="outlined" 
+              sx={{ 
+                p: 3, 
+                textAlign: 'center', 
+                borderLeft: 4,
+                borderLeftColor: 'primary.light' 
+              }}
+            >
+              <Typography variant="body2" color="text.secondary">
+                User preferences settings coming soon.
+              </Typography>
+            </Paper>
+          </Box>
+        </TabPanel>
+      </Card>
+    </>
   );
 };
 

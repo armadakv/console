@@ -1,20 +1,20 @@
 import React from 'react';
 import {
     Box,
-    CircularProgress,
     IconButton,
-    Paper,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
     TableRow,
-    Typography
+    TableCell,
+    Typography,
+    Tooltip
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
+import { Link as RouterLink } from 'react-router-dom';
 import {useKeyValuePairs} from '../../hooks/useApi';
 import KeyValueCells from "./KeyValueCells";
+import LoadingState from '../../components/shared/LoadingState';
+import ErrorState from '../../components/shared/ErrorState';
+import StyledTable from '../../components/shared/StyledTable';
 
 interface KeyValueTableProps {
     table: string;
@@ -25,37 +25,40 @@ interface KeyValueTableProps {
 }
 
 const KeyValueTable: React.FC<KeyValueTableProps> = ({
-                                                         table, prefix, start, end, onDeletePair
-                                                     }) => {
-    const {data: keyValuePairs, isLoading, isError} = useKeyValuePairs(
+    table, prefix, start, end, onDeletePair
+}) => {
+    const {data: keyValuePairs, isLoading, isError, refetch} = useKeyValuePairs(
         table,
         prefix,
         start,
         end,
     );
 
+    // Define table columns
+    const columns = [
+        { id: 'key', label: 'Key', minWidth: 150 },
+        { id: 'value', label: 'Value', minWidth: 200 },
+        { id: 'actions', label: 'Actions', align: 'center' as const, minWidth: 140 },
+    ];
+
     if (isLoading) {
-        return (
-            <Box sx={{display: 'flex', justifyContent: 'center', p: 3}}>
-                <CircularProgress/>
-            </Box>
-        );
+        return <LoadingState message="Loading key-value pairs..." height={150} />;
     }
 
     if (isError) {
         return (
-            <Box sx={{p: 2}}>
-                <Typography color="error">
-                    Error loading key-value pairs. Please try again.
-                </Typography>
-            </Box>
+            <ErrorState 
+                message="Error loading key-value pairs." 
+                onRetry={refetch} 
+                sx={{ mt: 2 }}
+            />
         );
     }
 
     if (!keyValuePairs || keyValuePairs.length === 0) {
         return (
-            <Box sx={{p: 2}}>
-                <Typography>
+            <Box sx={{p: 2, mt: 2, textAlign: 'center'}}>
+                <Typography color="text.secondary">
                     No key-value pairs found with the current filter.
                 </Typography>
             </Box>
@@ -63,33 +66,38 @@ const KeyValueTable: React.FC<KeyValueTableProps> = ({
     }
 
     return (
-        <TableContainer component={Paper} sx={{mt: 2}}>
-            <Table>
-                <TableHead>
-                    <TableRow>
-                        <TableCell width="40%"><strong>Key</strong></TableCell>
-                        <TableCell width="50%"><strong>Value</strong></TableCell>
-                        <TableCell width="10%" align="center"><strong>Actions</strong></TableCell>
+        <Box sx={{ mt: 2 }}>
+            <StyledTable columns={columns}>
+                {keyValuePairs.map((pair) => (
+                    <TableRow key={pair.key} hover>
+                        <KeyValueCells keyName={pair.key} value={pair.value}/>
+                        <TableCell align="center">
+                            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+                                <Tooltip title="Edit value">
+                                    <IconButton
+                                        component={RouterLink}
+                                        to={`/data/${table}/edit/${encodeURIComponent(pair.key)}`}
+                                        size="small"
+                                        color="primary"
+                                    >
+                                        <EditIcon />
+                                    </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Delete key-value pair">
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => onDeletePair(pair.key)}
+                                        color="error"
+                                    >
+                                        <DeleteIcon />
+                                    </IconButton>
+                                </Tooltip>
+                            </Box>
+                        </TableCell>
                     </TableRow>
-                </TableHead>
-                <TableBody>
-                    {keyValuePairs.map((pair) => (
-                        <TableRow key={pair.key} hover>
-                            <KeyValueCells keyName={pair.key} value={pair.value}/>
-                            <TableCell align="center">
-                                <IconButton
-                                    size="small"
-                                    onClick={() => onDeletePair(pair.key)}
-                                    color="error"
-                                >
-                                    <DeleteIcon/>
-                                </IconButton>
-                            </TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-        </TableContainer>
+                ))}
+            </StyledTable>
+        </Box>
     );
 };
 

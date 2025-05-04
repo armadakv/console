@@ -1,20 +1,59 @@
 import React from 'react';
-import { AppBar, Toolbar, Typography, Container } from '@mui/material';
+import { 
+  AppBar, 
+  Toolbar, 
+  Typography, 
+  IconButton, 
+  Box,
+  useMediaQuery,
+  useTheme
+} from '@mui/material';
+import MenuIcon from '@mui/icons-material/Menu';
+import ThemeToggle from './ThemeToggle';
 
-const Header: React.FC = () => {
+interface HeaderProps {
+  drawerWidth: number;
+  onDrawerToggle: () => void;
+}
+
+const Header: React.FC<HeaderProps> = ({ drawerWidth, onDrawerToggle }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
   return (
-    <AppBar position="static">
-      <Container>
-        <Toolbar disableGutters>
-          <Typography
-            variant="h6"
-            component="h1"
-            sx={{ flexGrow: 1, fontWeight: 'bold' }}
+    <AppBar
+      position="fixed"
+      elevation={1}
+      sx={{
+        width: { md: `calc(100% - ${drawerWidth}px)` },
+        ml: { md: `${drawerWidth}px` },
+        bgcolor: 'background.paper',
+        color: 'text.primary',
+      }}
+    >
+      <Toolbar>
+        {isMobile && (
+          <IconButton
+            color="inherit"
+            aria-label="open drawer"
+            edge="start"
+            onClick={onDrawerToggle}
+            sx={{ mr: 2 }}
           >
-            Armada Dashboard
+            <MenuIcon />
+          </IconButton>
+        )}
+        
+        <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
+          <Typography variant="h6" noWrap component="div">
+            {isMobile ? 'Armada Console' : 'Dashboard'}
           </Typography>
-        </Toolbar>
-      </Container>
+          
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <ThemeToggle />
+          </Box>
+        </Box>
+      </Toolbar>
     </AppBar>
   );
 };

@@ -8,6 +8,7 @@ export const queryKeys = {
     metrics: ['metrics'],
     tables: ['tables'],
     keyValuePairs: (table: string, prefix: string = '', start: string = '', end: string = '') => ['keyValuePairs', table, prefix, start, end],
+    keyValuePair: (table: string, key: string) => ['keyValuePair', table, key],
 };
 
 // Status hook
@@ -47,6 +48,32 @@ export const useKeyValuePairs = (table: string, prefix: string = '', start: stri
     );
 };
 
+// Individual key-value pair hook
+export const useKeyValuePair = (table: string, key: string) => {
+    return useQuery(
+        queryKeys.keyValuePair(table, key),
+        async () => {
+            // Get a single key-value pair
+            if (!table || !key) {
+                return null;
+            }
+            
+            // Use the key as both start and end to get exactly this key
+            const pairs = await api.getKeyValuePairs(table, '', key, key);
+            const pair = pairs.find(p => p.key === key);
+            
+            if (!pair) {
+                throw new Error(`Key-value pair not found: ${key}`);
+            }
+            
+            return pair;
+        },
+        {
+            enabled: !!table && !!key,
+        }
+    );
+};
+
 // Add/update key-value pair hook
 export const useAddKeyValuePair = () => {
     const queryClient = useQueryClient();
@@ -55,9 +82,11 @@ export const useAddKeyValuePair = () => {
         ({table, key, value}: { table: string; key: string; value: string }) =>
             api.putKeyValuePair(table, key, value),
         {
-            onSuccess: (_, {table}) => {
+            onSuccess: (_, {table, key}) => {
                 // Invalidate the key-value pairs query to refetch the data
                 queryClient.invalidateQueries(queryKeys.keyValuePairs(table));
+                // Also invalidate the specific key-value pair if editing
+                queryClient.invalidateQueries(queryKeys.keyValuePair(table, key));
             },
         }
     );
