@@ -45,16 +45,30 @@ This document outlines the design language and UI patterns used throughout the A
 - **Info**: Light Blue (`#2196f3`) - Used for informational content, hints
 
 ### Background Colors
-- Main background: White (`#ffffff`)
-- Panel backgrounds: White (`#ffffff`) 
-- Secondary backgrounds: Light gray (`background.default`, `#f5f5f5`)
-- Dividers: Light gray (`divider`, `rgba(0, 0, 0, 0.12)`)
+- Main background: White (`#ffffff`) in light mode, dark gray in dark mode
+- Panel backgrounds: White (`#ffffff`) in light mode, darker shades in dark mode 
+- Secondary backgrounds: Light gray (`background.default`, `#f5f5f5`) in light mode
+- Dividers: Light gray (`divider`, `rgba(0, 0, 0, 0.12)`) in light mode
 
 ### Color Usage Patterns
 - Color-coded status indicators (success/error)
 - Border accents for visual hierarchy (left borders)
 - Background tints for information hierarchy
 - Consistent use of primary color for interactive elements
+- Theme-aware styling to ensure visibility in both light and dark modes
+
+### Theme-Aware Color Application
+Components should adapt based on theme mode (light/dark) for optimal visibility:
+
+- **Light Mode**:
+  - Text: Dark gray to black (`text.primary`)
+  - Accents: Primary dark (`primary.dark`)
+  - Card headers: Subtle dark overlay (`rgba(0, 0, 0, 0.03)`)
+
+- **Dark Mode**:
+  - Text: Light gray to white (`text.primary`)
+  - Accents: Primary light (`primary.light`)
+  - Card headers: Subtle light overlay (`rgba(255, 255, 255, 0.05)`)
 
 ## Components
 
@@ -63,7 +77,7 @@ This document outlines the design language and UI patterns used throughout the A
   - Rounded corners (`borderRadius: 2`)
   - Optional border (`variant="outlined"`)
   - Subtle shadow (`boxShadow: theme.shadows[1]`)
-  - Header area with distinct background (`bgcolor: 'background.default'`)
+  - Header area with distinct, theme-aware background
   - Content area with proper padding (`p: 2-3`)
 
 ```jsx
@@ -73,9 +87,21 @@ This document outlines the design language and UI patterns used throughout the A
     py: 2,
     borderBottom: '1px solid',
     borderColor: 'divider',
-    bgcolor: 'background.default',
+    bgcolor: theme.palette.mode === 'dark' 
+      ? 'rgba(255, 255, 255, 0.05)' 
+      : 'rgba(0, 0, 0, 0.03)',
   }}>
-    <Typography variant="h6">Card Title</Typography>
+    <Typography 
+      variant="h6"
+      sx={{ 
+        color: theme.palette.mode === 'dark'
+          ? theme.palette.primary.light
+          : theme.palette.primary.dark,
+        fontWeight: 500
+      }}
+    >
+      Card Title
+    </Typography>
   </Box>
   <CardContent>
     {/* Card content goes here */}
@@ -114,25 +140,51 @@ This document outlines the design language and UI patterns used throughout the A
 - Text with icon (icon position: "start")
 - Non-capitalized text (`textTransform: 'none'`)
 - Scrollable on smaller screens
+- Theme-aware styling for optimal visibility
 - Primary color indicator
 
 ```jsx
-<Tabs 
-  value={value} 
-  onChange={handleChange} 
-  textColor="primary"
-  indicatorColor="primary"
-  variant="scrollable"
-  scrollButtons="auto"
-  sx={{ 
-    '& .MuiTab-root': {
-      textTransform: 'none',
-      fontSize: '0.95rem',
-    }
+<Box
+  sx={{
+    borderBottom: '1px solid', 
+    borderColor: 'divider', 
+    bgcolor: theme.palette.mode === 'dark' 
+      ? 'rgba(255, 255, 255, 0.05)' 
+      : 'rgba(0, 0, 0, 0.03)',
   }}
 >
-  <Tab icon={<Icon />} iconPosition="start" label="Tab Label" />
-</Tabs>
+  <Tabs 
+    value={value} 
+    onChange={handleChange} 
+    textColor="primary"
+    indicatorColor="primary"
+    variant="scrollable"
+    scrollButtons="auto"
+    sx={{ 
+      '& .MuiTab-root': {
+        textTransform: 'none',
+        fontSize: '0.95rem',
+        color: theme.palette.mode === 'dark' 
+          ? theme.palette.text.secondary 
+          : theme.palette.text.primary,
+        '&.Mui-selected': {
+          color: theme.palette.mode === 'dark'
+            ? theme.palette.primary.light
+            : theme.palette.primary.dark,
+          fontWeight: 500,
+        },
+        '&:hover': {
+          color: theme.palette.mode === 'dark'
+            ? theme.palette.primary.light
+            : theme.palette.primary.dark,
+          opacity: 0.8
+        }
+      }
+    }}
+  >
+    <Tab icon={<Icon />} iconPosition="start" label="Tab Label" />
+  </Tabs>
+</Box>
 ```
 
 ### Buttons
@@ -231,6 +283,35 @@ This document outlines the design language and UI patterns used throughout the A
   size="small"
 />
 ```
+
+## Dark Mode Considerations
+
+The application supports both light and dark modes. When implementing UI components:
+
+1. **Use theme-aware styling**:
+   ```jsx
+   const theme = useTheme();
+   const isDarkMode = theme.palette.mode === 'dark';
+   
+   // Apply conditional styling
+   sx={{ 
+     color: isDarkMode ? theme.palette.primary.light : theme.palette.primary.dark,
+     bgcolor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)'
+   }}
+   ```
+
+2. **Ensure sufficient contrast**:
+   - Use lighter primary colors (`primary.light`) for emphasis in dark mode
+   - Use darker primary colors (`primary.dark`) for emphasis in light mode
+   - Text should have adequate contrast against backgrounds in both modes
+
+3. **Test in both modes**:
+   - Component styles should be verified in both light and dark modes
+   - Pay special attention to interactive elements and status indicators
+
+4. **Consistent Component Presentation**:
+   - Headers, cards, and tabs should maintain visual hierarchy in both modes
+   - Interactive elements should be easily recognizable regardless of mode
 
 ## Visual Patterns
 

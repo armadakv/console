@@ -50,6 +50,7 @@ function a11yProps(index: number) {
 
 const Settings: React.FC = () => {
   const theme = useTheme();
+  const isDarkMode = theme.palette.mode === 'dark';
   const [value, setValue] = React.useState(0);
 
   const handleChange = (event: React.SyntheticEvent, newValue: number) => {
@@ -65,7 +66,7 @@ const Settings: React.FC = () => {
           sx={{ 
             borderBottom: '1px solid', 
             borderColor: 'divider', 
-            bgcolor: 'background.default',
+            bgcolor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
           }}
         >
           <Tabs 
@@ -82,6 +83,15 @@ const Settings: React.FC = () => {
                 py: 1.5,
                 px: 2,
                 textTransform: 'none',
+                color: isDarkMode ? theme.palette.text.secondary : theme.palette.text.primary,
+                '&.Mui-selected': {
+                  color: isDarkMode ? theme.palette.primary.light : theme.palette.primary.dark,
+                  fontWeight: 500,
+                },
+                '&:hover': {
+                  color: isDarkMode ? theme.palette.primary.light : theme.palette.primary.dark,
+                  opacity: 0.8
+                }
               }
             }}
           >

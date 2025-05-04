@@ -1,5 +1,5 @@
 import React, { ReactNode } from 'react';
-import { Box, Card, CardContent, Typography } from '@mui/material';
+import { Box, Card, CardContent, Typography, useTheme } from '@mui/material';
 
 interface CardWithHeaderProps {
   title: string;
@@ -19,6 +19,9 @@ const CardWithHeader: React.FC<CardWithHeaderProps> = ({
   contentSx = {},
   sx = {},
 }) => {
+  const theme = useTheme();
+  const isDarkMode = theme.palette.mode === 'dark';
+  
   return (
     <Card sx={{ ...sx }}>
       <Box
@@ -27,13 +30,21 @@ const CardWithHeader: React.FC<CardWithHeaderProps> = ({
           py: 2,
           borderBottom: '1px solid',
           borderColor: 'divider',
-          bgcolor: 'background.default',
+          bgcolor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
         }}
       >
-        <Typography variant="h6">{title}</Typography>
+        <Typography 
+          variant="h6" 
+          sx={{ 
+            color: isDarkMode ? theme.palette.primary.light : theme.palette.primary.dark,
+            fontWeight: 500
+          }}
+        >
+          {title}
+        </Typography>
         {action && <Box>{action}</Box>}
       </Box>
       <CardContent sx={contentSx}>
