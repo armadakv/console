@@ -78,3 +78,33 @@ export const useDeleteKeyValuePair = () => {
         }
     );
 };
+
+// Create table hook
+export const useCreateTable = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation(
+        (name: string) => api.createTable(name),
+        {
+            onSuccess: () => {
+                // Invalidate the tables query to refetch the data
+                queryClient.invalidateQueries(queryKeys.tables);
+            },
+        }
+    );
+};
+
+// Delete table hook
+export const useDeleteTable = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation(
+        (name: string) => api.deleteTable(name),
+        {
+            onSuccess: () => {
+                // Invalidate the tables query to refetch the data
+                queryClient.invalidateQueries(queryKeys.tables);
+            },
+        }
+    );
+};

@@ -1,4 +1,4 @@
-// API response types
+// Server status types
 export interface ServerStatus {
   id: string;
   name: string;
@@ -10,6 +10,7 @@ export interface StatusResponse {
   servers: ServerStatus[];
 }
 
+// Cluster info types
 export interface ClusterInfo {
   nodeId: string;
   nodeAddress: string;
@@ -18,6 +19,7 @@ export interface ClusterInfo {
   term: number;
 }
 
+// Metrics types
 export interface Metrics {
   requestCount: number;
   keyCount: number;
@@ -27,18 +29,23 @@ export interface Metrics {
   requestLatency: number;
 }
 
+// Table types
+export interface Table {
+  id: string;
+  name: string;
+}
+
+// Key-value pair types
 export interface KeyValuePair {
   key: string;
   value: string;
 }
 
-export interface Table {
+// Table management types
+export interface CreateTableRequest {
   name: string;
-  id: string;
 }
 
-// API error type
-export interface ApiError {
-  message: string;
-  status?: number;
+export interface CreateTableResponse {
+  id: string;
 }

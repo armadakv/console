@@ -42,6 +42,14 @@ type ArmadaClient interface {
 	// It returns a slice of Table objects.
 	GetTables(ctx context.Context) ([]Table, error)
 
+	// CreateTable creates a new table in the Armada server.
+	// It returns the ID of the newly created table.
+	CreateTable(ctx context.Context, tableName string) (string, error)
+
+	// DeleteTable deletes a table from the Armada server.
+	// It returns an error if the operation fails.
+	DeleteTable(ctx context.Context, tableName string) error
+
 	// GetKeyValuePairs retrieves key-value pairs from the specified table.
 	// The filtering can be done in two ways:
 	// 1. By prefix: if prefix is non-empty, returns all key-value pairs with keys starting with prefix
@@ -663,6 +671,69 @@ func (c *client) GetTables(ctx context.Context) ([]Table, error) {
 	}
 
 	return tables, nil
+}
+
+// CreateTable creates a new table in the Armada server.
+// It calls the Create method of the Tables gRPC service to create the table.
+//
+// Parameters:
+//   - ctx: The context for the request.
+//   - tableName: The name of the table to create.
+//
+// Returns:
+//   - The ID of the newly created table.
+//   - An error if the operation fails.
+func (c *client) CreateTable(ctx context.Context, tableName string) (string, error) {
+	c.logger.Info("Creating table",
+		zap.String("tableName", tableName),
+		zap.String("address", c.address))
+
+	// Create a create table request
+	req := &regattapb.CreateTableRequest{
+		Name: tableName,
+	}
+
+	// Call the Create method of the Tables service
+	resp, err := c.tablesClient.Create(ctx, req)
+	if err != nil {
+		c.logger.Error("Failed to create table",
+			zap.Error(err),
+			zap.String("tableName", tableName))
+		return "", err
+	}
+
+	return resp.GetId(), nil
+}
+
+// DeleteTable deletes a table from the Armada server.
+// It calls the Delete method of the Tables gRPC service to delete the table.
+//
+// Parameters:
+//   - ctx: The context for the request.
+//   - tableName: The name of the table to delete.
+//
+// Returns:
+//   - An error if the operation fails.
+func (c *client) DeleteTable(ctx context.Context, tableName string) error {
+	c.logger.Info("Deleting table",
+		zap.String("tableName", tableName),
+		zap.String("address", c.address))
+
+	// Create a delete table request
+	req := &regattapb.DeleteTableRequest{
+		Name: tableName,
+	}
+
+	// Call the Delete method of the Tables service
+	_, err := c.tablesClient.Delete(ctx, req)
+	if err != nil {
+		c.logger.Error("Failed to delete table",
+			zap.Error(err),
+			zap.String("tableName", tableName))
+		return err
+	}
+
+	return nil
 }
 
 // GetAllServers retrieves information about all servers in the Armada cluster.

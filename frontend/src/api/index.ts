@@ -86,3 +86,23 @@ export const deleteKeyValuePair = async (
   
   return handleApiError(response);
 };
+
+export const createTable = async (name: string): Promise<{ id: string }> => {
+  const response = await fetch(`${API_URL}/tables`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ name }),
+  });
+  
+  return handleApiError(response);
+};
+
+export const deleteTable = async (name: string): Promise<void> => {
+  const response = await fetch(`${API_URL}/tables/${name}`, {
+    method: 'DELETE',
+  });
+  
+  return handleApiError(response);
+};

@@ -149,6 +149,20 @@ func (s *mockServer) List(ctx context.Context, req *regattapb.ListTablesRequest)
 	}, nil
 }
 
+// Create implements the Create method of the TablesServer interface
+func (s *mockServer) Create(ctx context.Context, req *regattapb.CreateTableRequest) (*regattapb.CreateTableResponse, error) {
+	// Return a mock create table response
+	return &regattapb.CreateTableResponse{
+		Id: "table_" + req.Name,
+	}, nil
+}
+
+// Delete implements the Delete method of the TablesServer interface
+func (s *mockServer) Delete(ctx context.Context, req *regattapb.DeleteTableRequest) (*regattapb.DeleteTableResponse, error) {
+	// Return a mock delete table response
+	return &regattapb.DeleteTableResponse{}, nil
+}
+
 // bufDialer is a helper function for creating a gRPC connection to the mock server
 func bufDialer(context.Context, string) (net.Conn, error) {
 	return lis.Dial()
@@ -434,6 +448,43 @@ func TestDeleteKey(t *testing.T) {
 	// Check for errors
 	if err != nil {
 		t.Fatalf("DeleteKey failed: %v", err)
+	}
+}
+
+// TestCreateTable tests the CreateTable method
+func TestCreateTable(t *testing.T) {
+	// Set up the test
+	client, cleanup := setupTest(t)
+	defer cleanup()
+
+	// Call the method
+	ctx := context.Background()
+	tableID, err := client.CreateTable(ctx, "new_table")
+
+	// Check for errors
+	if err != nil {
+		t.Fatalf("CreateTable failed: %v", err)
+	}
+
+	// Check the response
+	if tableID != "table_new_table" {
+		t.Errorf("Expected tableID 'table_new_table', got '%s'", tableID)
+	}
+}
+
+// TestDeleteTable tests the DeleteTable method
+func TestDeleteTable(t *testing.T) {
+	// Set up the test
+	client, cleanup := setupTest(t)
+	defer cleanup()
+
+	// Call the method
+	ctx := context.Background()
+	err := client.DeleteTable(ctx, "test_table")
+
+	// Check for errors
+	if err != nil {
+		t.Fatalf("DeleteTable failed: %v", err)
 	}
 }
 

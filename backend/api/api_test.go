@@ -59,7 +59,8 @@ func (m *mockArmadaClient) GetMetrics(ctx context.Context) (*armada.Metrics, err
 	}, nil
 }
 
-func (m *mockArmadaClient) GetKeyValuePairs(ctx context.Context, table, prefix string, limit int) ([]armada.KeyValuePair, error) {
+// Add the GetKeyValuePairs method with the new signature
+func (m *mockArmadaClient) GetKeyValuePairs(ctx context.Context, table, prefix, start, end string, limit int) ([]armada.KeyValuePair, error) {
 	if m.kvPairs != nil {
 		return m.kvPairs, nil
 	}
@@ -82,6 +83,16 @@ func (m *mockArmadaClient) GetTables(ctx context.Context) ([]armada.Table, error
 		{Name: "table1", ID: "1"},
 		{Name: "table2", ID: "2"},
 	}, nil
+}
+
+// Adding CreateTable method to satisfy the interface
+func (m *mockArmadaClient) CreateTable(ctx context.Context, tableName string) (string, error) {
+	return "table_" + tableName, nil
+}
+
+// Adding DeleteTable method to satisfy the interface
+func (m *mockArmadaClient) DeleteTable(ctx context.Context, tableName string) error {
+	return nil
 }
 
 // Adding GetAllServers method to satisfy the interface
@@ -335,6 +346,104 @@ func TestHandleTables(t *testing.T) {
 	if len(response) != 2 {
 		t.Errorf("handler returned unexpected number of tables: got %v want %v",
 			len(response), 2)
+	}
+}
+
+func TestHandleCreateTable(t *testing.T) {
+	// Create a new API handler with a mock client
+	handler := createTestHandler()
+
+	// Create request body
+	reqBody := CreateTableRequest{
+		Name: "new_table",
+	}
+	reqBodyBytes, err := json.Marshal(reqBody)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a request to pass to our handler
+	req, err := http.NewRequest("POST", "/api/tables", bytes.NewReader(reqBodyBytes))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a context with the Armada client
+	ctx := context.WithValue(req.Context(), "armadaClient", handler.client)
+	req = req.WithContext(ctx)
+
+	// Create a ResponseRecorder to record the response
+	rr := httptest.NewRecorder()
+	handlerFunc := http.HandlerFunc(handler.handleCreateTable)
+
+	// Call the handler function directly and pass our request and ResponseRecorder
+	handlerFunc.ServeHTTP(rr, req)
+
+	// Check the status code
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+
+	// Check the content type
+	expectedContentType := "application/json"
+	if contentType := rr.Header().Get("Content-Type"); contentType != expectedContentType {
+		t.Errorf("handler returned wrong content type: got %v want %v",
+			contentType, expectedContentType)
+	}
+
+	// Parse the response body
+	var response CreateTableResponse
+	if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
+		t.Errorf("Failed to parse response body: %v", err)
+	}
+
+	// Check the response fields
+	expectedID := "table_new_table"
+	if response.ID != expectedID {
+		t.Errorf("handler returned unexpected table ID: got %v want %v",
+			response.ID, expectedID)
+	}
+}
+
+func TestHandleDeleteTable(t *testing.T) {
+	// Create a new API handler with a mock client
+	handler := createTestHandler()
+
+	// Create a request to pass to our handler
+	req, err := http.NewRequest("DELETE", "/api/tables/test_table", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a context with the Armada client
+	ctx := context.WithValue(req.Context(), "armadaClient", handler.client)
+
+	// Add URL parameters to the context
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("name", "test_table")
+	ctx = context.WithValue(ctx, chi.RouteCtxKey, rctx)
+
+	req = req.WithContext(ctx)
+
+	// Create a ResponseRecorder to record the response
+	rr := httptest.NewRecorder()
+	handlerFunc := http.HandlerFunc(handler.handleDeleteTable)
+
+	// Call the handler function directly and pass our request and ResponseRecorder
+	handlerFunc.ServeHTTP(rr, req)
+
+	// Check the status code
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+
+	// Check the content type
+	expectedContentType := "application/json"
+	if contentType := rr.Header().Get("Content-Type"); contentType != expectedContentType {
+		t.Errorf("handler returned wrong content type: got %v want %v",
+			contentType, expectedContentType)
 	}
 }
 

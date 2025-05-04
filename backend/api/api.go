@@ -1,14 +1,17 @@
 package api
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"net/http"
+	"slices"
 	"sync"
 	"time"
 
 	"github.com/armadakv/console/backend/armada"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-rat/chix"
 	"go.uber.org/zap"
 )
 
@@ -23,6 +26,16 @@ type ServerStatus struct {
 // StatusResponse represents the response for the status API endpoint
 type StatusResponse struct {
 	Servers []ServerStatus `json:"servers"`
+}
+
+// CreateTableRequest represents the request for the create table API endpoint
+type CreateTableRequest struct {
+	Name string `json:"name"`
+}
+
+// CreateTableResponse represents the response for the create table API endpoint
+type CreateTableResponse struct {
+	ID string `json:"id"`
 }
 
 // Handler is the main API handler that registers all API routes
@@ -91,7 +104,13 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	apiRouter.Get("/cluster", h.handleCluster)
 	apiRouter.Get("/servers", h.handleServers)
 	apiRouter.Get("/metrics", h.handleMetrics)
-	apiRouter.Get("/tables", h.handleTables)
+
+	// Tables management
+	apiRouter.Route("/tables", func(r chi.Router) {
+		r.Get("/", h.handleTables)
+		r.Post("/", h.handleCreateTable)
+		r.Delete("/{name}", h.handleDeleteTable)
+	})
 
 	// Group related KV routes
 	apiRouter.Route("/kv", func(r chi.Router) {
@@ -112,6 +131,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 func (h *Handler) handleStatus(w http.ResponseWriter, r *http.Request) {
 	// Get the Armada client from the request context
 	client := getArmadaClientFromContext(r)
+	render := chix.NewRender(w)
 
 	// Get all servers from the Armada cluster
 	servers, err := client.GetAllServers(r.Context())
@@ -159,20 +179,17 @@ func (h *Handler) handleStatus(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 	}
-
-	// Set content type and encode response as JSON
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-		return
-	}
+	slices.SortFunc(response.Servers, func(e ServerStatus, e2 ServerStatus) int {
+		return cmp.Compare(e.Name, e2.Name)
+	})
+	render.JSON(response)
 }
 
 // handleTables handles the tables API endpoint
 func (h *Handler) handleTables(w http.ResponseWriter, r *http.Request) {
 	// Get the Armada client from the request context
 	client := getArmadaClientFromContext(r)
-
+	render := chix.NewRender(w)
 	// Get the tables from the Armada server
 	tables, err := client.GetTables(r.Context())
 	if err != nil {
@@ -181,19 +198,74 @@ func (h *Handler) handleTables(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Set content type and encode response as JSON
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(tables); err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	render.JSON(tables)
+}
+
+// handleCreateTable handles the create table API endpoint
+func (h *Handler) handleCreateTable(w http.ResponseWriter, r *http.Request) {
+	// Get the Armada client from the request context
+	client := getArmadaClientFromContext(r)
+	render := chix.NewRender(w)
+
+	// Parse the request body
+	var req CreateTableRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
+
+	// Validate the table name
+	if req.Name == "" {
+		http.Error(w, "Table name is required", http.StatusBadRequest)
+		return
+	}
+
+	// Create the table
+	tableID, err := client.CreateTable(r.Context(), req.Name)
+	if err != nil {
+		h.logger.Error("Failed to create table",
+			zap.Error(err),
+			zap.String("tableName", req.Name))
+		http.Error(w, "Failed to create table: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Return the table ID
+	render.JSON(CreateTableResponse{ID: tableID})
+}
+
+// handleDeleteTable handles the delete table API endpoint
+func (h *Handler) handleDeleteTable(w http.ResponseWriter, r *http.Request) {
+	// Get the Armada client from the request context
+	client := getArmadaClientFromContext(r)
+	render := chix.NewRender(w)
+
+	// Get the table name from the URL parameters
+	tableName := chi.URLParam(r, "name")
+	if tableName == "" {
+		http.Error(w, "Table name is required", http.StatusBadRequest)
+		return
+	}
+
+	// Delete the table
+	err := client.DeleteTable(r.Context(), tableName)
+	if err != nil {
+		h.logger.Error("Failed to delete table",
+			zap.Error(err),
+			zap.String("tableName", tableName))
+		http.Error(w, "Failed to delete table: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Return an empty response
+	render.JSON(make(map[string]any))
 }
 
 // handleGetKeyValue handles the GET method for the key-value API endpoint
 func (h *Handler) handleGetKeyValue(w http.ResponseWriter, r *http.Request) {
 	// Get the Armada client from the request context
 	client := getArmadaClientFromContext(r)
-
+	render := chix.NewRender(w, r)
 	// Get the table from the URL parameters
 	table := chi.URLParam(r, "table")
 	if table == "" {
@@ -238,19 +310,14 @@ func (h *Handler) handleGetKeyValue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Set content type and encode response as JSON
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(pairs); err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-		return
-	}
+	render.JSON(pairs)
 }
 
 // handlePutKeyValue handles the PUT method for the key-value API endpoint
 func (h *Handler) handlePutKeyValue(w http.ResponseWriter, r *http.Request) {
 	// Get the Armada client from the request context
 	client := getArmadaClientFromContext(r)
-
+	render := chix.NewRender(w)
 	// Get the table from the URL parameters
 	table := chi.URLParam(r, "table")
 	if table == "" {
@@ -274,18 +341,14 @@ func (h *Handler) handlePutKeyValue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(make(map[string]any)); err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-		return
-	}
+	render.JSON(make(map[string]any))
 }
 
 // handleDeleteKey handles the DELETE method for the key-value API endpoint
 func (h *Handler) handleDeleteKey(w http.ResponseWriter, r *http.Request) {
 	// Get the Armada client from the request context
 	client := getArmadaClientFromContext(r)
-
+	render := chix.NewRender(w)
 	// Get the table and key from the URL parameters
 	table := chi.URLParam(r, "table")
 	if table == "" {
@@ -308,18 +371,14 @@ func (h *Handler) handleDeleteKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(make(map[string]any)); err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-		return
-	}
+	render.JSON(make(map[string]any))
 }
 
 // handleCluster handles the cluster API endpoint
 func (h *Handler) handleCluster(w http.ResponseWriter, r *http.Request) {
 	// Get the Armada client from the request context
 	client := getArmadaClientFromContext(r)
-
+	render := chix.NewRender(w)
 	// Get the cluster info from the Armada server
 	clusterInfo, err := client.GetClusterInfo(r.Context())
 	if err != nil {
@@ -328,19 +387,14 @@ func (h *Handler) handleCluster(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Set content type and encode response as JSON
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(clusterInfo); err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-		return
-	}
+	render.JSON(clusterInfo)
 }
 
 // handleMetrics handles the metrics API endpoint
 func (h *Handler) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	// Get the Armada client from the request context
 	client := getArmadaClientFromContext(r)
-
+	render := chix.NewRender(w)
 	// Get the metrics from the Armada server
 	metrics, err := client.GetMetrics(r.Context())
 	if err != nil {
@@ -349,19 +403,14 @@ func (h *Handler) handleMetrics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Set content type and encode response as JSON
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(metrics); err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-		return
-	}
+	render.JSON(metrics)
 }
 
 // handleServers handles the servers API endpoint
 func (h *Handler) handleServers(w http.ResponseWriter, r *http.Request) {
 	// Get the Armada client from the request context
 	client := getArmadaClientFromContext(r)
-
+	render := chix.NewRender(w)
 	// Get all servers from the Armada cluster
 	servers, err := client.GetAllServers(r.Context())
 	if err != nil {
@@ -370,12 +419,7 @@ func (h *Handler) handleServers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Set content type and encode response as JSON
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(servers); err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-		return
-	}
+	render.JSON(servers)
 }
 
 // getClient returns the Armada client, creating it if necessary
