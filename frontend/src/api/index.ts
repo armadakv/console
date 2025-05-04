@@ -55,6 +55,14 @@ export const getKeyValuePairs = async (
   return handleApiError(response);
 };
 
+export const getKeyValue = async (
+  table: string,
+  key: string
+): Promise<KeyValuePair> => {
+  const response = await fetch(`${API_URL}/kv/${table}/${encodeURIComponent(key)}`);
+  return handleApiError(response);
+};
+
 export const putKeyValuePair = async (
   table: string,
   key: string,

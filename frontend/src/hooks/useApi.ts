@@ -58,15 +58,12 @@ export const useKeyValuePair = (table: string, key: string) => {
                 return null;
             }
             
-            // Use the key as both start and end to get exactly this key
-            const pairs = await api.getKeyValuePairs(table, '', key, key);
-            const pair = pairs.find(p => p.key === key);
-            
-            if (!pair) {
+            // Use our new direct API function to get a specific key-value pair
+            try {
+                return await api.getKeyValue(table, key);
+            } catch (error) {
                 throw new Error(`Key-value pair not found: ${key}`);
             }
-            
-            return pair;
         },
         {
             enabled: !!table && !!key,

@@ -419,6 +419,27 @@ func TestGetKeyValuePairs(t *testing.T) {
 	}
 }
 
+// TestGetKeyValue tests the GetKeyValue method
+func TestGetKeyValue(t *testing.T) {
+	// Set up the test
+	client, cleanup := setupTest(t)
+	defer cleanup()
+
+	// Call the method
+	ctx := context.Background()
+	pair, err := client.GetKeyValue(ctx, "test_table", "key1")
+
+	// Check for errors
+	if err != nil {
+		t.Fatalf("GetKeyValue failed: %v", err)
+	}
+
+	// Check the response
+	if pair.Key != "key1" || pair.Value != "value1" {
+		t.Errorf("Expected pair {key1, value1}, got {%s, %s}", pair.Key, pair.Value)
+	}
+}
+
 // TestPutKeyValue tests the PutKeyValue method
 func TestPutKeyValue(t *testing.T) {
 	// Set up the test

@@ -121,6 +121,8 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 			r.Put("/", h.handlePutKeyValue)
 			// URL parameter extraction for key
 			r.Delete("/", h.handleDeleteKey)
+			// Get a specific key-value pair by key
+			r.Get("/{key}", h.handleGetSpecificKeyValue)
 		})
 	})
 
@@ -374,6 +376,39 @@ func (h *Handler) handleDeleteKey(w http.ResponseWriter, r *http.Request) {
 	}
 
 	render.JSON(make(map[string]any))
+}
+
+// handleGetSpecificKeyValue handles the GET method for retrieving a specific key-value pair
+func (h *Handler) handleGetSpecificKeyValue(w http.ResponseWriter, r *http.Request) {
+	// Get the Armada client from the request context
+	client := getArmadaClientFromContext(r)
+	render := chix.NewRender(w)
+
+	// Get the table and key from the URL parameters
+	table := chi.URLParam(r, "table")
+	if table == "" {
+		http.Error(w, "Table is required", http.StatusBadRequest)
+		return
+	}
+
+	key := chi.URLParam(r, "key")
+	if key == "" {
+		http.Error(w, "Key is required", http.StatusBadRequest)
+		return
+	}
+
+	// Get the specific key-value pair
+	pair, err := client.GetKeyValue(r.Context(), table, key)
+	if err != nil {
+		h.logger.Error("Failed to get key-value pair",
+			zap.Error(err),
+			zap.String("table", table),
+			zap.String("key", key))
+		http.Error(w, "Failed to get key-value pair: "+err.Error(), http.StatusNotFound)
+		return
+	}
+
+	render.JSON(pair)
 }
 
 // handleCluster handles the cluster API endpoint

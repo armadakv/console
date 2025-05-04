@@ -7,6 +7,7 @@ package armada
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"strings"
 	"sync"
 
@@ -58,6 +59,10 @@ type ArmadaClient interface {
 	// The limit parameter controls the maximum number of pairs to return.
 	// It returns a slice of KeyValuePair objects.
 	GetKeyValuePairs(ctx context.Context, table string, prefix string, start string, end string, limit int) ([]KeyValuePair, error)
+
+	// GetKeyValue retrieves a specific key-value pair from the specified table.
+	// It returns the key-value pair if found, or an error if not found or if the operation fails.
+	GetKeyValue(ctx context.Context, table string, key string) (*KeyValuePair, error)
 
 	// PutKeyValue stores a key-value pair in the Armada server.
 	// The table parameter specifies which table to store the key-value pair in.
@@ -578,6 +583,54 @@ func incrementLastByte(s string) string {
 	bytes := []byte(s)
 	bytes[len(bytes)-1]++
 	return string(bytes)
+}
+
+// GetKeyValue retrieves a specific key-value pair from the specified table.
+// It returns the key-value pair if found, or an error if not found or if the operation fails.
+//
+// Parameters:
+//   - ctx: The context for the request.
+//   - table: The table to query.
+//   - key: The key to look up.
+//
+// Returns:
+//   - The key-value pair if found.
+//   - An error if not found or if the operation fails.
+func (c *client) GetKeyValue(ctx context.Context, table, key string) (*KeyValuePair, error) {
+	c.logger.Info("Getting specific key-value pair",
+		zap.String("table", table),
+		zap.String("key", key),
+		zap.String("address", c.address))
+
+	// Create a range request with exact key match (no range)
+	req := &regattapb.RangeRequest{
+		Table: []byte(table),
+		Key:   []byte(key),
+		// Leave RangeEnd empty for exact key lookup
+		Limit: 1, // We only need one key
+	}
+
+	// Call the Range method of the KV service
+	resp, err := c.kvClient.Range(ctx, req)
+	if err != nil {
+		c.logger.Error("Failed to get key-value pair from Armada server",
+			zap.Error(err),
+			zap.String("table", table),
+			zap.String("key", key))
+		return nil, err
+	}
+
+	// Check if we got any results
+	if len(resp.Kvs) == 0 {
+		return nil, fmt.Errorf("key not found: %s", key)
+	}
+
+	// Convert the response to our KeyValuePair type
+	kv := resp.Kvs[0]
+	return &KeyValuePair{
+		Key:   string(kv.Key),
+		Value: string(kv.Value),
+	}, nil
 }
 
 // PutKeyValue stores a key-value pair in the Armada server.
