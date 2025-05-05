@@ -15,13 +15,72 @@ import (
 	"go.uber.org/zap"
 )
 
+// ArmadaClient is the interface for interacting with the Armada server.
+// It provides methods for retrieving server status, cluster information,
+// and performing key-value operations.
+type ArmadaClient interface {
+	// GetStatus retrieves the current status of the Armada server.
+	// If serverAddress is provided, it will connect to that server to get the status.
+	// Otherwise, it will use the client's default server address.
+	// It returns a Status object containing the status and a message.
+	GetStatus(ctx context.Context, serverAddress string) (*armada.Status, error)
+
+	// GetClusterInfo retrieves information about the Armada cluster.
+	// It returns a ClusterInfo object containing node IDs, addresses, and raft information.
+	GetClusterInfo(ctx context.Context) (*armada.ClusterInfo, error)
+
+	// GetAllServers retrieves information about all servers in the Armada cluster.
+	// It returns a slice of Server objects containing server IDs, names, and URLs.
+	GetAllServers(ctx context.Context) ([]armada.Server, error)
+
+	// GetTables retrieves a list of all tables in the Armada server.
+	// It returns a slice of Table objects.
+	GetTables(ctx context.Context) ([]armada.Table, error)
+
+	// CreateTable creates a new table in the Armada server.
+	// It returns the ID of the newly created table.
+	CreateTable(ctx context.Context, tableName string) (string, error)
+
+	// DeleteTable deletes a table from the Armada server.
+	// It returns an error if the operation fails.
+	DeleteTable(ctx context.Context, tableName string) error
+
+	// GetKeyValuePairs retrieves key-value pairs from the specified table.
+	// The filtering can be done in two ways:
+	// 1. By prefix: if prefix is non-empty, returns all key-value pairs with keys starting with prefix
+	// 2. By range: if start and end are non-empty, returns all key-value pairs with keys in [start, end)
+	// The limit parameter controls the maximum number of pairs to return.
+	// It returns a slice of KeyValuePair objects.
+	GetKeyValuePairs(ctx context.Context, table string, prefix string, start string, end string, limit int) ([]armada.KeyValuePair, error)
+
+	// GetKeyValue retrieves a specific key-value pair from the specified table.
+	// It returns the key-value pair if found, or an error if not found or if the operation fails.
+	GetKeyValue(ctx context.Context, table string, key string) (*armada.KeyValuePair, error)
+
+	// PutKeyValue stores a key-value pair in the Armada server.
+	// The table parameter specifies which table to store the key-value pair in.
+	// It returns an error if the operation fails.
+	PutKeyValue(ctx context.Context, table, key, value string) error
+
+	// DeleteKey deletes a key from the Armada server.
+	// The table parameter specifies which table to delete the key from.
+	// It returns an error if the operation fails.
+	DeleteKey(ctx context.Context, table, key string) error
+
+	// Close closes the connection to the Armada server.
+	// It should be called when the client is no longer needed.
+	Close() error
+}
+
 // ServerStatus represents the status of a single server
 type ServerStatus struct {
-	ID      string                 `json:"id"`
-	Name    string                 `json:"name"`
-	Status  string                 `json:"status"`
-	Message string                 `json:"message"`
-	Config  map[string]interface{} `json:"config,omitempty"`
+	ID      string                        `json:"id"`
+	Name    string                        `json:"name"`
+	Status  string                        `json:"status"`
+	Message string                        `json:"message"`
+	Config  map[string]interface{}        `json:"config,omitempty"`
+	Tables  map[string]armada.TableStatus `json:"tables,omitempty"`
+	Errors  []string                      `json:"errors,omitempty"`
 }
 
 // StatusResponse represents the response for the status API endpoint
@@ -41,7 +100,7 @@ type CreateTableResponse struct {
 
 // Handler is the main API handler that registers all API routes
 type Handler struct {
-	client     armada.ArmadaClient
+	client     ArmadaClient
 	clientLock sync.RWMutex
 	armadaURL  string
 	logger     *zap.Logger
@@ -78,8 +137,8 @@ func (h *Handler) withArmadaClient(next http.Handler) http.Handler {
 }
 
 // getArmadaClientFromContext retrieves the Armada client from the request context
-func getArmadaClientFromContext(r *http.Request) armada.ArmadaClient {
-	return r.Context().Value("armadaClient").(armada.ArmadaClient)
+func getArmadaClientFromContext(r *http.Request) ArmadaClient {
+	return r.Context().Value("armadaClient").(ArmadaClient)
 }
 
 // RegisterRoutes registers all API routes with the provided router
@@ -104,7 +163,6 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	apiRouter.Get("/status", h.handleStatus)
 	apiRouter.Get("/cluster", h.handleCluster)
 	apiRouter.Get("/servers", h.handleServers)
-	apiRouter.Get("/metrics", h.handleMetrics)
 
 	// Tables management
 	apiRouter.Route("/tables", func(r chi.Router) {
@@ -180,6 +238,8 @@ func (h *Handler) handleStatus(w http.ResponseWriter, r *http.Request) {
 				Status:  status.Status,
 				Message: status.Message,
 				Config:  status.Config, // Include the config data
+				Tables:  status.Tables, // Include the tables data
+				Errors:  status.Errors, // Include the errors data
 			})
 		}
 	}
@@ -427,22 +487,6 @@ func (h *Handler) handleCluster(w http.ResponseWriter, r *http.Request) {
 	render.JSON(clusterInfo)
 }
 
-// handleMetrics handles the metrics API endpoint
-func (h *Handler) handleMetrics(w http.ResponseWriter, r *http.Request) {
-	// Get the Armada client from the request context
-	client := getArmadaClientFromContext(r)
-	render := chix.NewRender(w)
-	// Get the metrics from the Armada server
-	metrics, err := client.GetMetrics(r.Context())
-	if err != nil {
-		h.logger.Error("Failed to get metrics from Armada server", zap.Error(err))
-		http.Error(w, "Failed to get metrics", http.StatusInternalServerError)
-		return
-	}
-
-	render.JSON(metrics)
-}
-
 // handleServers handles the servers API endpoint
 func (h *Handler) handleServers(w http.ResponseWriter, r *http.Request) {
 	// Get the Armada client from the request context
@@ -460,7 +504,7 @@ func (h *Handler) handleServers(w http.ResponseWriter, r *http.Request) {
 }
 
 // getClient returns the Armada client, creating it if necessary
-func (h *Handler) getClient() (armada.ArmadaClient, error) {
+func (h *Handler) getClient() (ArmadaClient, error) {
 	h.clientLock.RLock()
 	client := h.client
 	h.clientLock.RUnlock()
