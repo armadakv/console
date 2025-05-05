@@ -153,6 +153,24 @@ This creates an optimized production build with:
 - `make proto` - Generate Protocol Buffer code
 - `make help` - Display available commands
 
+### Frontend Linting and Formatting
+
+The frontend codebase uses ESLint and Prettier for code quality and consistent formatting:
+
+```bash
+# Run linter
+cd frontend
+pnpm lint
+
+# Fix linting issues automatically
+pnpm lint:fix
+
+# Format code with Prettier
+pnpm format
+```
+
+This ensures code consistency across the project. The linting configuration follows modern React and TypeScript best practices with rules defined in the `eslint.config.js` file.
+
 ## API Endpoints
 
 The console provides RESTful API endpoints for:

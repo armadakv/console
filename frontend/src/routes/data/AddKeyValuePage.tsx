@@ -1,8 +1,10 @@
+import { Alert } from '@mui/material';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+
 import PageHeader from '../../components/shared/PageHeader';
+
 import KeyValueForm from './KeyValueForm';
-import { Alert } from '@mui/material';
 
 const AddKeyValuePage: React.FC = () => {
   const { table } = useParams<{ table: string }>();

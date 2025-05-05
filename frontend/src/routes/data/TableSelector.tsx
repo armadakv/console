@@ -1,4 +1,6 @@
-import React from 'react';
+import AddIcon from '@mui/icons-material/Add';
+import SearchIcon from '@mui/icons-material/Search';
+import TableChartIcon from '@mui/icons-material/TableChart';
 import {
   Box,
   CircularProgress,
@@ -15,11 +17,10 @@ import {
   InputAdornment,
   TextField,
 } from '@mui/material';
-import { useTables } from '../../hooks/useApi';
-import TableChartIcon from '@mui/icons-material/TableChart';
-import SearchIcon from '@mui/icons-material/Search';
+import React from 'react';
 import { Link as RouterLink } from 'react-router-dom';
-import AddIcon from '@mui/icons-material/Add';
+
+import { useTables } from '../../hooks/useApi';
 
 interface TableSelectorProps {
   selectedTable: string;

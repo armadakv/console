@@ -1,9 +1,10 @@
-import React from 'react';
-import { Box, Typography, Button, Card, CardContent } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import { Link as RouterLink } from 'react-router-dom';
-import { useTables } from '../../hooks/useApi';
 import TableChartIcon from '@mui/icons-material/TableChart';
+import { Box, Typography, Button, Card, CardContent } from '@mui/material';
+import React from 'react';
+import { Link as RouterLink } from 'react-router-dom';
+
+import { useTables } from '../../hooks/useApi';
 
 const NoTableSelected: React.FC = () => {
   const { data: tables, isLoading } = useTables();

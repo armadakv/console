@@ -1,5 +1,5 @@
-import React from 'react';
 import { Chip, ChipProps } from '@mui/material';
+import React from 'react';
 
 type StatusType = 'success' | 'error' | 'warning' | 'info' | 'default';
 

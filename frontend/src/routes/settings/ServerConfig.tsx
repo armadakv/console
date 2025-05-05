@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useStatus } from '../../hooks/useApi';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import StorageIcon from '@mui/icons-material/Storage';
 import {
   Box,
   Typography,
@@ -11,14 +11,15 @@ import {
   Paper,
   useTheme,
 } from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import StorageIcon from '@mui/icons-material/Storage';
-import LoadingState from '../../components/shared/LoadingState';
-import ErrorState from '../../components/shared/ErrorState';
+import React, { useState } from 'react';
+
 import CardWithHeader from '../../components/shared/CardWithHeader';
-import StyledTable from '../../components/shared/StyledTable';
-import StatusChip from '../../components/shared/StatusChip';
+import ErrorState from '../../components/shared/ErrorState';
+import LoadingState from '../../components/shared/LoadingState';
 import RefreshButton from '../../components/shared/RefreshButton';
+import StatusChip from '../../components/shared/StatusChip';
+import StyledTable from '../../components/shared/StyledTable';
+import { useStatus } from '../../hooks/useApi';
 
 const ServerConfig: React.FC = () => {
   const theme = useTheme();

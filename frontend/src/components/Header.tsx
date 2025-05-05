@@ -1,4 +1,4 @@
-import React from 'react';
+import MenuIcon from '@mui/icons-material/Menu';
 import {
   AppBar,
   Toolbar,
@@ -8,7 +8,8 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
+import React from 'react';
+
 import ThemeToggle from './ThemeToggle';
 
 interface HeaderProps {

@@ -1,13 +1,15 @@
-import React from 'react';
-import { Box, IconButton, TableRow, TableCell, Typography, Tooltip } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
+import { Box, IconButton, TableRow, TableCell, Typography, Tooltip } from '@mui/material';
+import React from 'react';
 import { Link as RouterLink } from 'react-router-dom';
-import { useKeyValuePairs } from '../../hooks/useApi';
-import KeyValueCells from './KeyValueCells';
-import LoadingState from '../../components/shared/LoadingState';
+
 import ErrorState from '../../components/shared/ErrorState';
+import LoadingState from '../../components/shared/LoadingState';
 import StyledTable from '../../components/shared/StyledTable';
+import { useKeyValuePairs } from '../../hooks/useApi';
+
+import KeyValueCells from './KeyValueCells';
 
 interface KeyValueTableProps {
   table: string;

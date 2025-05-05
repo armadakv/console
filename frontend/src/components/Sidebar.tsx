@@ -1,6 +1,11 @@
 // filepath: /Users/jakubcoufal/Projects/oss/armadakv/console/frontend/src/components/Sidebar.tsx
-import React, { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import ExpandLess from '@mui/icons-material/ExpandLess';
+import ExpandMore from '@mui/icons-material/ExpandMore';
+import MemoryIcon from '@mui/icons-material/Memory';
+import SettingsIcon from '@mui/icons-material/Settings';
+import StorageIcon from '@mui/icons-material/Storage';
+import TableChartIcon from '@mui/icons-material/TableChart';
 import {
   Box,
   Collapse,
@@ -13,14 +18,10 @@ import {
   Toolbar,
   Typography,
 } from '@mui/material';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import StorageIcon from '@mui/icons-material/Storage';
-import MemoryIcon from '@mui/icons-material/Memory';
-import SettingsIcon from '@mui/icons-material/Settings';
-import TableChartIcon from '@mui/icons-material/TableChart';
-import ExpandLess from '@mui/icons-material/ExpandLess';
-import ExpandMore from '@mui/icons-material/ExpandMore';
 import { styled } from '@mui/material/styles';
+import React, { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+
 import { useTables } from '../hooks/useApi';
 
 // Logo styling

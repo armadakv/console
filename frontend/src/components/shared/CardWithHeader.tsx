@@ -1,5 +1,5 @@
-import React, { ReactNode } from 'react';
 import { Box, Card, CardContent, Typography, useTheme } from '@mui/material';
+import React, { ReactNode } from 'react';
 
 interface CardWithHeaderProps {
   title: string;

@@ -1,12 +1,13 @@
+import { Typography, Box, Grid, Paper, useTheme, Divider } from '@mui/material';
 import React from 'react';
-import { CardContent, Typography, Box, Grid, Chip, Paper, useTheme, Divider } from '@mui/material';
-import { useStatus } from '../../hooks/useApi';
-import PageHeader from '../../components/shared/PageHeader';
-import LoadingState from '../../components/shared/LoadingState';
-import ErrorState from '../../components/shared/ErrorState';
+
 import CardWithHeader from '../../components/shared/CardWithHeader';
-import StatusChip from '../../components/shared/StatusChip';
+import ErrorState from '../../components/shared/ErrorState';
+import LoadingState from '../../components/shared/LoadingState';
+import PageHeader from '../../components/shared/PageHeader';
 import RefreshButton from '../../components/shared/RefreshButton';
+import StatusChip from '../../components/shared/StatusChip';
+import { useStatus } from '../../hooks/useApi';
 
 const DashboardPage: React.FC = () => {
   const theme = useTheme();

@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { ThemeProvider as MuiThemeProvider, CssBaseline } from '@mui/material';
 import { createTheme } from '@mui/material/styles';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+
 import { getTheme } from './theme';
 
 // Theme mode type

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
 import {
   Box,
   Button,
@@ -19,16 +20,16 @@ import {
   CircularProgress,
   Stack,
 } from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
-import AddIcon from '@mui/icons-material/Add';
+import React, { useState } from 'react';
+
+import CardWithHeader from '../../components/shared/CardWithHeader';
+import ErrorState from '../../components/shared/ErrorState';
+import LoadingState from '../../components/shared/LoadingState';
+import RefreshButton from '../../components/shared/RefreshButton';
+import StyledTable from '../../components/shared/StyledTable';
+import SuccessState from '../../components/shared/SuccessState';
 import { useTables, useCreateTable, useDeleteTable } from '../../hooks/useApi';
 import type { Table as TableType } from '../../types';
-import CardWithHeader from '../../components/shared/CardWithHeader';
-import StyledTable from '../../components/shared/StyledTable';
-import LoadingState from '../../components/shared/LoadingState';
-import ErrorState from '../../components/shared/ErrorState';
-import SuccessState from '../../components/shared/SuccessState';
-import RefreshButton from '../../components/shared/RefreshButton';
 
 const TableManagement: React.FC = () => {
   // State for form and dialogs

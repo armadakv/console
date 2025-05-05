@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Box,
   Button,
@@ -10,6 +9,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import React from 'react';
 
 interface KeyValueFilterProps {
   prefix: string;
@@ -25,11 +25,11 @@ interface KeyValueFilterProps {
 }
 
 const KeyValueFilter: React.FC<KeyValueFilterProps> = ({
-  prefix,
+  prefix: _prefix,
   setPrefix,
-  start,
+  start: _start,
   setStart,
-  end,
+  end: _end,
   setEnd,
   filterMode,
   onFilterModeChange,
@@ -69,7 +69,7 @@ const KeyValueFilter: React.FC<KeyValueFilterProps> = ({
             <TextField
               fullWidth
               label="Key Prefix"
-              value={prefix}
+              value={_prefix}
               onChange={(e) => setPrefix(e.target.value)}
               placeholder="Enter key prefix to filter"
               disabled={disabled}
@@ -82,7 +82,7 @@ const KeyValueFilter: React.FC<KeyValueFilterProps> = ({
               <TextField
                 fullWidth
                 label="Start Key"
-                value={start}
+                value={_start}
                 onChange={(e) => setStart(e.target.value)}
                 placeholder="Enter start key (inclusive)"
                 disabled={disabled}
@@ -93,7 +93,7 @@ const KeyValueFilter: React.FC<KeyValueFilterProps> = ({
               <TextField
                 fullWidth
                 label="End Key"
-                value={end}
+                value={_end}
                 onChange={(e) => setEnd(e.target.value)}
                 placeholder="Enter end key (exclusive)"
                 disabled={disabled}

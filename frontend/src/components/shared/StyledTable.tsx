@@ -1,4 +1,3 @@
-import React, { ReactNode } from 'react';
 import {
   TableContainer,
   Table,
@@ -8,6 +7,7 @@ import {
   TableBody,
   Paper,
 } from '@mui/material';
+import React, { ReactNode } from 'react';
 
 interface Column {
   id: string;

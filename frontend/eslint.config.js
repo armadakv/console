@@ -30,13 +30,32 @@ export default defineConfig([
                     jsx: true,
                 },
             },
+            globals: {
+                // Add browser globals
+                window: 'readonly',
+                document: 'readonly',
+                navigator: 'readonly',
+                fetch: 'readonly',
+                console: 'readonly',
+                setTimeout: 'readonly',
+                clearTimeout: 'readonly',
+                setInterval: 'readonly',
+                clearInterval: 'readonly',
+                localStorage: 'readonly',
+                URL: 'readonly',
+                Response: 'readonly',
+                HTMLElement: 'readonly',
+                HTMLInputElement: 'readonly'
+            }
         },
         settings: {
             react: {
                 version: 'detect',
             },
             'import/resolver': {
-                typescript: {},
+                node: {
+                    extensions: ['.js', '.jsx', '.ts', '.tsx']
+                }
             },
         },
         rules: {

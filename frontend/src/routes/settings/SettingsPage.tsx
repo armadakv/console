@@ -1,11 +1,13 @@
-import React from 'react';
-import { Box, Tab, Tabs, Paper, Card, Typography, useTheme } from '@mui/material';
-import TableChartIcon from '@mui/icons-material/TableChart';
-import SettingsSystemDaydreamIcon from '@mui/icons-material/SettingsSystemDaydream';
 import PersonIcon from '@mui/icons-material/Person';
-import TableManagement from './TableManagement';
-import ServerConfig from './ServerConfig';
+import SettingsSystemDaydreamIcon from '@mui/icons-material/SettingsSystemDaydream';
+import TableChartIcon from '@mui/icons-material/TableChart';
+import { Box, Tab, Tabs, Paper, Card, Typography, useTheme } from '@mui/material';
+import React from 'react';
+
 import PageHeader from '../../components/shared/PageHeader';
+
+import ServerConfig from './ServerConfig';
+import TableManagement from './TableManagement';
 
 interface TabPanelProps {
   children?: React.ReactNode;

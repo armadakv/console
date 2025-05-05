@@ -1,5 +1,3 @@
-import React, { useState } from 'react';
-import { Route, Routes } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -9,15 +7,18 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
+import React, { useState } from 'react';
+import { Route, Routes } from 'react-router-dom';
+
+import Footer from './components/Footer';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import DashboardPage from './routes/dashboard/DashboardPage';
-import DataPage from './routes/data/DataPage';
 import AddKeyValuePage from './routes/data/AddKeyValuePage';
+import DataPage from './routes/data/DataPage';
 import EditKeyValuePage from './routes/data/EditKeyValuePage';
 import ResourcesPage from './routes/resources/ResourcesPage';
 import SettingsPage from './routes/settings/SettingsPage';
-import Footer from './components/Footer';
 
 // Drawer width for the sidebar
 const drawerWidth = 240;

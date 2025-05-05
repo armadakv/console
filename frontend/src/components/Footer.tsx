@@ -1,5 +1,5 @@
-import React from 'react';
 import { Box, Typography, Link, Divider } from '@mui/material';
+import React from 'react';
 
 const Footer: React.FC = () => {
   const year = new Date().getFullYear();

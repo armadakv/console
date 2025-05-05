@@ -21,6 +21,11 @@ frontend-deps:
 frontend-build: frontend-deps
 	cd frontend && $(NPM) run build
 
+# Format frontend code with Prettier
+.PHONY: frontend-format
+frontend-format:
+	cd frontend && $(NPM) format
+
 # Generate gRPC client code
 .PHONY: proto
 proto:
@@ -55,7 +60,7 @@ test:
 
 # Format the code
 .PHONY: fmt
-fmt:
+fmt: frontend-format
 	$(GOFMT) ./...
 
 # Update dependencies
@@ -76,7 +81,8 @@ help:
 	@echo "make run - Run the project"
 	@echo "make dev - Run in development mode with hot reloading"
 	@echo "make test - Test the project"
-	@echo "make fmt - Format the code"
+	@echo "make fmt - Format the code (backend and frontend)"
+	@echo "make frontend-format - Format only frontend code"
 	@echo "make deps - Update dependencies"
 	@echo "make prod - Build for production"
 	@echo "make frontend-deps - Install frontend dependencies"

@@ -1,9 +1,9 @@
-import React, { useState, useCallback } from 'react';
-import { TableCell, Typography, Box, ToggleButtonGroup, ToggleButton, Paper } from '@mui/material';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import CodeIcon from '@mui/icons-material/Code';
 import TextFormatIcon from '@mui/icons-material/TextFormat';
+import { TableCell, Typography, Box, ToggleButtonGroup, ToggleButton, Paper } from '@mui/material';
+import React, { useState, useCallback } from 'react';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 interface TableRowProps {
   keyName: string;

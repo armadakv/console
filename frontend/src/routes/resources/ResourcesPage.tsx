@@ -1,11 +1,12 @@
-import React from 'react';
 import { Box, Typography, Grid, Paper, LinearProgress, useTheme } from '@mui/material';
-import { useMetrics } from '../../hooks/useApi';
-import PageHeader from '../../components/shared/PageHeader';
-import LoadingState from '../../components/shared/LoadingState';
-import ErrorState from '../../components/shared/ErrorState';
+import React from 'react';
+
 import CardWithHeader from '../../components/shared/CardWithHeader';
+import ErrorState from '../../components/shared/ErrorState';
+import LoadingState from '../../components/shared/LoadingState';
+import PageHeader from '../../components/shared/PageHeader';
 import RefreshButton from '../../components/shared/RefreshButton';
+import { useMetrics } from '../../hooks/useApi';
 
 const ResourcesPage: React.FC = () => {
   const theme = useTheme();

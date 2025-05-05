@@ -1,23 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Grid,
-  Button,
-  Fab,
-  Tooltip,
-  useTheme,
-  useMediaQuery,
-  Typography,
-} from '@mui/material';
-import { useDeleteKeyValuePair } from '../../hooks/useApi';
-import TableSelector from './TableSelector';
-import KeyValueFilter from './KeyValueFilter';
-import KeyValueTable from './KeyValueTable';
-import PageHeader from '../../components/shared/PageHeader';
-import CardWithHeader from '../../components/shared/CardWithHeader';
 import AddIcon from '@mui/icons-material/Add';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { Box, Grid, Button, Fab, Tooltip, useTheme, useMediaQuery } from '@mui/material';
+import React, { useState } from 'react';
 import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
+
+import CardWithHeader from '../../components/shared/CardWithHeader';
+import PageHeader from '../../components/shared/PageHeader';
+import { useDeleteKeyValuePair } from '../../hooks/useApi';
+
+import KeyValueFilter from './KeyValueFilter';
+import KeyValueTable from './KeyValueTable';
+import TableSelector from './TableSelector';
 
 const DataPage: React.FC = () => {
   const theme = useTheme();
