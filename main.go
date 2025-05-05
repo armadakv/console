@@ -1,15 +1,20 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"fmt"
+	"io/fs"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"github.com/armadakv/console/backend/api"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"go.uber.org/zap"
-	"io/fs"
-	"net/http"
-	"os"
 )
 
 const (
@@ -92,15 +97,41 @@ func main() {
 		fileServer.ServeHTTP(w, r)
 	})
 
-	// Start the server
+	// Setup server with graceful shutdown
 	addr := ":" + port
 	server := &http.Server{
 		Addr:    addr,
 		Handler: r,
 	}
 
-	logger.Info("Starting Armada Dashboard server", zap.String("port", port))
-	logger.Info("Connecting to Armada server", zap.String("url", armadaURL))
-	logger.Info("Server ready", zap.String("url", "http://localhost:"+port))
-	logger.Fatal("Server stopped", zap.Error(server.ListenAndServe()))
+	// Create a channel to listen for interrupt signals
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+
+	// Start the server in a goroutine
+	go func() {
+		logger.Info("Starting Armada Dashboard server", zap.String("port", port))
+		logger.Info("Connecting to Armada server", zap.String("url", armadaURL))
+		logger.Info("Server ready", zap.String("url", "http://localhost"+addr))
+
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Fatal("Server error", zap.Error(err))
+		}
+	}()
+
+	// Wait for interrupt signal
+	receivedSignal := <-sig
+	logger.Info("Received shutdown signal", zap.String("signal", receivedSignal.String()))
+
+	// Create shutdown context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Attempt graceful shutdown
+	logger.Info("Shutting down server gracefully")
+	if err := server.Shutdown(ctx); err != nil {
+		logger.Error("Server forced to shutdown", zap.Error(err))
+	}
+
+	logger.Info("Server exited successfully")
 }
