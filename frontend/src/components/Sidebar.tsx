@@ -47,7 +47,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [tablesOpen, setTablesOpen] = useState(true);
-  
+
   // Fetch tables for submenu
   const { data: tables, isLoading: tablesLoading } = useTables();
 
@@ -91,7 +91,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
         {/* Main navigation items except Data which has a submenu */}
         {navItems.map((item) => (
           <ListItem key={item.path} disablePadding>
-            <ListItemButton 
+            <ListItemButton
               selected={item.path === location.pathname}
               onClick={() => handleNavClick(item.path)}
               sx={{
@@ -105,20 +105,22 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                 },
               }}
             >
-              <ListItemIcon sx={{ 
-                color: item.path === location.pathname ? 'primary.main' : 'inherit',
-                minWidth: '40px'
-              }}>
+              <ListItemIcon
+                sx={{
+                  color: item.path === location.pathname ? 'primary.main' : 'inherit',
+                  minWidth: '40px',
+                }}
+              >
                 {item.icon}
               </ListItemIcon>
               <ListItemText primary={item.text} />
             </ListItemButton>
           </ListItem>
         ))}
-        
+
         {/* Data item with tables submenu */}
         <ListItem disablePadding>
-          <ListItemButton 
+          <ListItemButton
             selected={location.pathname.startsWith('/data')}
             onClick={handleToggleTables}
             sx={{
@@ -132,22 +134,24 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
               },
             }}
           >
-            <ListItemIcon sx={{ 
-              color: location.pathname.startsWith('/data') ? 'primary.main' : 'inherit',
-              minWidth: '40px'
-            }}>
+            <ListItemIcon
+              sx={{
+                color: location.pathname.startsWith('/data') ? 'primary.main' : 'inherit',
+                minWidth: '40px',
+              }}
+            >
               <StorageIcon />
             </ListItemIcon>
             <ListItemText primary="Data" />
             {tablesOpen ? <ExpandLess /> : <ExpandMore />}
           </ListItemButton>
         </ListItem>
-        
+
         {/* Tables submenu */}
         <Collapse in={tablesOpen} timeout="auto" unmountOnExit>
           <List component="div" disablePadding>
             {/* All Tables option */}
-            <ListItemButton 
+            <ListItemButton
               selected={location.pathname === '/data'}
               onClick={() => handleNavClick('/data')}
               sx={{ pl: 4 }}
@@ -157,22 +161,24 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
               </ListItemIcon>
               <ListItemText primary="All Tables" />
             </ListItemButton>
-            
+
             {/* Individual tables */}
-            {!tablesLoading && tables && tables.map((table) => (
-              <ListItemButton 
-                key={table.id}
-                selected={location.pathname === `/data/${table.name}`}
-                onClick={() => handleTableClick(table.name)}
-                sx={{ pl: 4 }}
-              >
-                <ListItemIcon sx={{ minWidth: '40px' }}>
-                  <TableChartIcon fontSize="small" />
-                </ListItemIcon>
-                <ListItemText primary={table.name} />
-              </ListItemButton>
-            ))}
-            
+            {!tablesLoading &&
+              tables &&
+              tables.map((table) => (
+                <ListItemButton
+                  key={table.id}
+                  selected={location.pathname === `/data/${table.name}`}
+                  onClick={() => handleTableClick(table.name)}
+                  sx={{ pl: 4 }}
+                >
+                  <ListItemIcon sx={{ minWidth: '40px' }}>
+                    <TableChartIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText primary={table.name} />
+                </ListItemButton>
+              ))}
+
             {/* Show loading indicator or no tables message */}
             {tablesLoading && (
               <ListItem sx={{ pl: 4 }}>
@@ -181,7 +187,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                 </Typography>
               </ListItem>
             )}
-            
+
             {!tablesLoading && (!tables || tables.length === 0) && (
               <ListItem sx={{ pl: 4 }}>
                 <Typography variant="caption" color="text.secondary">
@@ -194,7 +200,11 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
       </List>
       <Divider />
       <Box sx={{ p: 2 }}>
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center' }}>
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ display: 'block', textAlign: 'center' }}
+        >
           Armada KV Database
         </Typography>
       </Box>

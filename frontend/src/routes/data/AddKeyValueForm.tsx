@@ -1,13 +1,9 @@
 import React, { useState } from 'react';
-import {
-  TextField,
-  Button,
-  Grid,
-  CircularProgress
-} from '@mui/material';
+import { TextField, Button, Grid, CircularProgress } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import { useAddKeyValuePair } from '../../hooks/useApi';
 import ErrorState from '../../components/shared/ErrorState';
+import SuccessState from '../../components/shared/SuccessState';
 
 interface AddKeyValueFormProps {
   selectedTable: string;
@@ -51,7 +47,7 @@ const AddKeyValueForm: React.FC<AddKeyValueFormProps> = ({ selectedTable }) => {
           sx={{ mb: 2 }}
         />
       )}
-      
+
       {addMutation.isError && (
         <ErrorState
           error={addMutation.error}
@@ -61,14 +57,9 @@ const AddKeyValueForm: React.FC<AddKeyValueFormProps> = ({ selectedTable }) => {
       )}
 
       {addMutation.isSuccess && (
-        <ErrorState
-          title="Success"
-          message="Key-value pair added successfully!"
-          sx={{ mb: 2 }}
-          severity="success"
-        />
+        <SuccessState message="Key-value pair added successfully!" sx={{ mb: 2 }} />
       )}
-      
+
       <form onSubmit={addKeyValuePair}>
         <Grid container spacing={2}>
           <Grid item xs={12} sm={5}>

@@ -1,12 +1,12 @@
 import React from 'react';
-import { 
-  IconButton, 
-  Menu, 
-  MenuItem, 
-  ListItemIcon, 
-  ListItemText, 
-  Tooltip, 
-  Typography 
+import {
+  IconButton,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+  Tooltip,
+  Typography,
 } from '@mui/material';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
@@ -78,28 +78,19 @@ const ThemeToggle: React.FC = () => {
           'aria-labelledby': 'theme-button',
         }}
       >
-        <MenuItem 
-          selected={mode === 'light'} 
-          onClick={() => handleModeSelect('light')}
-        >
+        <MenuItem selected={mode === 'light'} onClick={() => handleModeSelect('light')}>
           <ListItemIcon>
             <LightModeIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText>Light</ListItemText>
         </MenuItem>
-        <MenuItem 
-          selected={mode === 'dark'} 
-          onClick={() => handleModeSelect('dark')}
-        >
+        <MenuItem selected={mode === 'dark'} onClick={() => handleModeSelect('dark')}>
           <ListItemIcon>
             <DarkModeIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText>Dark</ListItemText>
         </MenuItem>
-        <MenuItem 
-          selected={mode === 'system'} 
-          onClick={() => handleModeSelect('system')}
-        >
+        <MenuItem selected={mode === 'system'} onClick={() => handleModeSelect('system')}>
           <ListItemIcon>
             <SettingsBrightnessIcon fontSize="small" />
           </ListItemIcon>

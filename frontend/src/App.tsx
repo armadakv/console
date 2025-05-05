@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { Route, Routes } from 'react-router-dom';
-import { 
-  Box, 
-  Container, 
-  CssBaseline, 
-  Drawer, 
-  Toolbar, 
-  useMediaQuery, 
-  useTheme
+import {
+  Box,
+  Container,
+  CssBaseline,
+  Drawer,
+  Toolbar,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
@@ -34,18 +34,12 @@ const App: React.FC = () => {
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
       <CssBaseline />
-      
+
       {/* App bar */}
-      <Header 
-        drawerWidth={drawerWidth} 
-        onDrawerToggle={handleDrawerToggle} 
-      />
+      <Header drawerWidth={drawerWidth} onDrawerToggle={handleDrawerToggle} />
 
       {/* Sidebar / Navigation drawer */}
-      <Box
-        component="nav"
-        sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
-      >
+      <Box component="nav" sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}>
         {/* Mobile drawer */}
         {isMobile && (
           <Drawer
@@ -56,8 +50,8 @@ const App: React.FC = () => {
               keepMounted: true, // Better open performance on mobile
             }}
             sx={{
-              '& .MuiDrawer-paper': { 
-                boxSizing: 'border-box', 
+              '& .MuiDrawer-paper': {
+                boxSizing: 'border-box',
                 width: drawerWidth,
               },
             }}
@@ -65,14 +59,14 @@ const App: React.FC = () => {
             <Sidebar onClose={handleDrawerToggle} />
           </Drawer>
         )}
-        
+
         {/* Desktop drawer - permanent */}
         {!isMobile && (
           <Drawer
             variant="permanent"
             sx={{
-              '& .MuiDrawer-paper': { 
-                boxSizing: 'border-box', 
+              '& .MuiDrawer-paper': {
+                boxSizing: 'border-box',
                 width: drawerWidth,
                 borderRight: '1px solid rgba(0, 0, 0, 0.12)',
               },

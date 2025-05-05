@@ -24,7 +24,7 @@ const RefreshButton: React.FC<RefreshButtonProps> = ({
   label = 'Refresh',
   size = 'small',
   buttonProps,
-  tooltipProps
+  tooltipProps,
 }) => {
   // For the icon-only variant
   if (variant === 'icon') {
@@ -40,7 +40,7 @@ const RefreshButton: React.FC<RefreshButtonProps> = ({
               border: '1px solid',
               borderColor: 'divider',
               borderRadius: 1,
-              ...buttonProps?.sx
+              ...buttonProps?.sx,
             }}
           >
             <RefreshIcon fontSize={size === 'large' ? 'medium' : 'small'} />

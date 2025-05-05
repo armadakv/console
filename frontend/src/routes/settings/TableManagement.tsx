@@ -27,6 +27,7 @@ import CardWithHeader from '../../components/shared/CardWithHeader';
 import StyledTable from '../../components/shared/StyledTable';
 import LoadingState from '../../components/shared/LoadingState';
 import ErrorState from '../../components/shared/ErrorState';
+import SuccessState from '../../components/shared/SuccessState';
 import RefreshButton from '../../components/shared/RefreshButton';
 
 const TableManagement: React.FC = () => {
@@ -37,11 +38,11 @@ const TableManagement: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // React Query hooks
-  const { 
-    data: tables = [], 
-    isLoading: isTablesLoading, 
-    error: tablesError, 
-    refetch 
+  const {
+    data: tables = [],
+    isLoading: isTablesLoading,
+    error: tablesError,
+    refetch,
   } = useTables();
 
   const createTableMutation = useCreateTable();
@@ -51,7 +52,7 @@ const TableManagement: React.FC = () => {
   const handleCreateTable = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTableName.trim()) return;
-    
+
     try {
       const result = await createTableMutation.mutateAsync(newTableName);
       setSuccessMessage(`Table '${newTableName}' created successfully with ID: ${result.id}`);
@@ -59,7 +60,7 @@ const TableManagement: React.FC = () => {
     } catch (err) {
       console.error('Error creating table:', err);
     }
-    
+
     // Clear success message after 5 seconds
     setTimeout(() => {
       setSuccessMessage(null);
@@ -74,9 +75,9 @@ const TableManagement: React.FC = () => {
 
   const handleDeleteTable = async () => {
     if (!tableToDelete) return;
-    
+
     setOpenDialog(false);
-    
+
     try {
       await deleteTableMutation.mutateAsync(tableToDelete.name);
       setSuccessMessage(`Table '${tableToDelete.name}' deleted successfully`);
@@ -85,7 +86,7 @@ const TableManagement: React.FC = () => {
     } finally {
       setTableToDelete(null);
     }
-    
+
     // Clear success message after 5 seconds
     setTimeout(() => {
       setSuccessMessage(null);
@@ -93,13 +94,14 @@ const TableManagement: React.FC = () => {
   };
 
   // Determine loading and error states
-  const isLoading = isTablesLoading || createTableMutation.isLoading || deleteTableMutation.isLoading;
-  const errorMessage = tablesError 
-    ? 'Failed to fetch tables' 
-    : createTableMutation.error 
-      ? 'Failed to create table' 
-      : deleteTableMutation.error 
-        ? 'Failed to delete table' 
+  const isLoading =
+    isTablesLoading || createTableMutation.isLoading || deleteTableMutation.isLoading;
+  const errorMessage = tablesError
+    ? 'Failed to fetch tables'
+    : createTableMutation.error
+      ? 'Failed to create table'
+      : deleteTableMutation.error
+        ? 'Failed to delete table'
         : null;
 
   // Define table columns
@@ -114,29 +116,19 @@ const TableManagement: React.FC = () => {
       {/* Section Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="subtitle1">Table Management</Typography>
-        <RefreshButton 
-          onClick={() => refetch()} 
-          disabled={isLoading} 
+        <RefreshButton
+          onClick={() => refetch()}
+          disabled={isLoading}
           tooltipTitle="Refresh tables list"
         />
       </Box>
 
-      {errorMessage && (
-        <ErrorState message={errorMessage} onRetry={refetch} />
-      )}
+      {errorMessage && <ErrorState message={errorMessage} onRetry={refetch} />}
 
-      {successMessage && (
-        <Alert severity="success" sx={{ mb: 3 }} variant="outlined">
-          {successMessage}
-        </Alert>
-      )}
+      {successMessage && <SuccessState message={successMessage} sx={{ mb: 3 }} />}
 
       {/* New Table Form */}
-      <CardWithHeader
-        title="Create New Table"
-        sx={{ mb: 4 }}
-        contentSx={{ p: 2 }}
-      >
+      <CardWithHeader title="Create New Table" sx={{ mb: 4 }} contentSx={{ p: 2 }}>
         <form onSubmit={handleCreateTable}>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="stretch">
             <TextField
@@ -150,12 +142,18 @@ const TableManagement: React.FC = () => {
               placeholder="Enter table name"
               sx={{ flexGrow: 1 }}
             />
-            <Button 
-              type="submit" 
-              variant="contained" 
-              color="primary" 
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
               disabled={!newTableName.trim() || isLoading}
-              startIcon={createTableMutation.isLoading ? <CircularProgress size={20} color="inherit" /> : <AddIcon />}
+              startIcon={
+                createTableMutation.isLoading ? (
+                  <CircularProgress size={20} color="inherit" />
+                ) : (
+                  <AddIcon />
+                )
+              }
               sx={{ minWidth: '120px', px: 3 }}
             >
               {createTableMutation.isLoading ? 'Creating...' : 'Create'}
@@ -168,7 +166,7 @@ const TableManagement: React.FC = () => {
       <Typography variant="subtitle2" sx={{ mb: 2 }}>
         Existing Tables
       </Typography>
-      
+
       {isTablesLoading && tables.length === 0 ? (
         <LoadingState message="Loading tables..." height={150} />
       ) : tables.length === 0 ? (
@@ -187,8 +185,8 @@ const TableManagement: React.FC = () => {
               <TableCell>{table.id}</TableCell>
               <TableCell align="right">
                 <Tooltip title="Delete table">
-                  <IconButton 
-                    color="error" 
+                  <IconButton
+                    color="error"
                     onClick={() => confirmDeleteTable(table)}
                     disabled={isLoading}
                     size="small"
@@ -207,32 +205,28 @@ const TableManagement: React.FC = () => {
         open={openDialog}
         onClose={() => setOpenDialog(false)}
         PaperProps={{
-          sx: { borderRadius: 2 }
+          sx: { borderRadius: 2 },
         }}
       >
-        <DialogTitle sx={{ pb: 1 }}>
-          Confirm Table Deletion
-        </DialogTitle>
+        <DialogTitle sx={{ pb: 1 }}>Confirm Table Deletion</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to delete the table <strong>"{tableToDelete?.name}"</strong>?
-            This action cannot be undone and all data in this table will be permanently lost.
+            Are you sure you want to delete the table <strong>"{tableToDelete?.name}"</strong>? This
+            action cannot be undone and all data in this table will be permanently lost.
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button 
-            onClick={() => setOpenDialog(false)} 
-            color="inherit" 
-            variant="outlined"
-          >
+          <Button onClick={() => setOpenDialog(false)} color="inherit" variant="outlined">
             Cancel
           </Button>
-          <Button 
-            onClick={handleDeleteTable} 
-            color="error" 
+          <Button
+            onClick={handleDeleteTable}
+            color="error"
             variant="contained"
             disabled={deleteTableMutation.isLoading}
-            startIcon={deleteTableMutation.isLoading && <CircularProgress size={20} color="inherit" />}
+            startIcon={
+              deleteTableMutation.isLoading && <CircularProgress size={20} color="inherit" />
+            }
           >
             {deleteTableMutation.isLoading ? 'Deleting...' : 'Delete'}
           </Button>
@@ -243,4 +237,3 @@ const TableManagement: React.FC = () => {
 };
 
 export default TableManagement;
-

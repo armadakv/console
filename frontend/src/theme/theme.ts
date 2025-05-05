@@ -79,7 +79,7 @@ const darkPalette: ThemeOptions['palette'] = {
 const getComponents = (mode: 'light' | 'dark'): ThemeOptions['components'] => {
   // We'll use this isDark flag to conditionally apply different styles
   const isDark = mode === 'dark';
-  
+
   return {
     MuiCard: {
       styleOverrides: {
@@ -109,7 +109,9 @@ const getComponents = (mode: 'light' | 'dark'): ThemeOptions['components'] => {
         contained: {
           boxShadow: 'none',
           '&:hover': {
-            boxShadow: isDark ? '0px 2px 4px -1px rgba(0,0,0,0.3)' : '0px 2px 4px -1px rgba(0,0,0,0.2)',
+            boxShadow: isDark
+              ? '0px 2px 4px -1px rgba(0,0,0,0.3)'
+              : '0px 2px 4px -1px rgba(0,0,0,0.2)',
           },
         },
       },

@@ -1,13 +1,5 @@
 import React from 'react';
-import { 
-  Box, 
-  Tab, 
-  Tabs, 
-  Paper, 
-  Card, 
-  Typography,
-  useTheme
-} from '@mui/material';
+import { Box, Tab, Tabs, Paper, Card, Typography, useTheme } from '@mui/material';
 import TableChartIcon from '@mui/icons-material/TableChart';
 import SettingsSystemDaydreamIcon from '@mui/icons-material/SettingsSystemDaydream';
 import PersonIcon from '@mui/icons-material/Person';
@@ -32,11 +24,7 @@ function TabPanel(props: TabPanelProps) {
       aria-labelledby={`settings-tab-${index}`}
       {...other}
     >
-      {value === index && (
-        <Box sx={{ p: 0 }}>
-          {children}
-        </Box>
-      )}
+      {value === index && <Box sx={{ p: 0 }}>{children}</Box>}
     </div>
   );
 }
@@ -60,25 +48,25 @@ const SettingsPage: React.FC = () => {
   return (
     <>
       <PageHeader title="Settings" />
-      
+
       <Card>
-        <Box 
-          sx={{ 
-            borderBottom: '1px solid', 
-            borderColor: 'divider', 
+        <Box
+          sx={{
+            borderBottom: '1px solid',
+            borderColor: 'divider',
             bgcolor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
           }}
         >
-          <Tabs 
-            value={value} 
-            onChange={handleChange} 
+          <Tabs
+            value={value}
+            onChange={handleChange}
             aria-label="settings tabs"
             textColor="primary"
             indicatorColor="primary"
             variant="scrollable"
             scrollButtons="auto"
-            sx={{ 
-              px: 2, 
+            sx={{
+              px: 2,
               '& .MuiTab-root': {
                 py: 1.5,
                 px: 2,
@@ -90,50 +78,47 @@ const SettingsPage: React.FC = () => {
                 },
                 '&:hover': {
                   color: isDarkMode ? theme.palette.primary.light : theme.palette.primary.dark,
-                  opacity: 0.8
-                }
-              }
+                  opacity: 0.8,
+                },
+              },
             }}
           >
-            <Tab 
-              icon={<TableChartIcon />} 
-              iconPosition="start" 
-              label="Tables" 
-              {...a11yProps(0)} 
+            <Tab icon={<TableChartIcon />} iconPosition="start" label="Tables" {...a11yProps(0)} />
+            <Tab
+              icon={<SettingsSystemDaydreamIcon />}
+              iconPosition="start"
+              label="System"
+              {...a11yProps(1)}
             />
-            <Tab 
-              icon={<SettingsSystemDaydreamIcon />} 
-              iconPosition="start" 
-              label="System" 
-              {...a11yProps(1)} 
-            />
-            <Tab 
-              icon={<PersonIcon />} 
-              iconPosition="start" 
-              label="User Preferences" 
-              {...a11yProps(2)} 
+            <Tab
+              icon={<PersonIcon />}
+              iconPosition="start"
+              label="User Preferences"
+              {...a11yProps(2)}
             />
           </Tabs>
         </Box>
-        
+
         <TabPanel value={value} index={0}>
           <TableManagement />
         </TabPanel>
-        
+
         <TabPanel value={value} index={1}>
           <ServerConfig />
         </TabPanel>
-        
+
         <TabPanel value={value} index={2}>
           <Box sx={{ p: 3 }}>
-            <Typography variant="subtitle1" sx={{ mb: 2 }}>User Preferences</Typography>
-            <Paper 
-              variant="outlined" 
-              sx={{ 
-                p: 3, 
-                textAlign: 'center', 
+            <Typography variant="subtitle1" sx={{ mb: 2 }}>
+              User Preferences
+            </Typography>
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 3,
+                textAlign: 'center',
                 borderLeft: 4,
-                borderLeftColor: 'primary.light' 
+                borderLeftColor: 'primary.light',
               }}
             >
               <Typography variant="body2" color="text.secondary">

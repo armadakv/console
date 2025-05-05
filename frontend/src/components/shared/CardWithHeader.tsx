@@ -21,7 +21,7 @@ const CardWithHeader: React.FC<CardWithHeaderProps> = ({
 }) => {
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === 'dark';
-  
+
   return (
     <Card sx={{ ...sx }}>
       <Box
@@ -36,20 +36,18 @@ const CardWithHeader: React.FC<CardWithHeaderProps> = ({
           alignItems: 'center',
         }}
       >
-        <Typography 
-          variant="h6" 
-          sx={{ 
+        <Typography
+          variant="h6"
+          sx={{
             color: isDarkMode ? theme.palette.primary.light : theme.palette.primary.dark,
-            fontWeight: 500
+            fontWeight: 500,
           }}
         >
           {title}
         </Typography>
         {action && <Box>{action}</Box>}
       </Box>
-      <CardContent sx={contentSx}>
-        {children}
-      </CardContent>
+      <CardContent sx={contentSx}>{children}</CardContent>
     </Card>
   );
 };

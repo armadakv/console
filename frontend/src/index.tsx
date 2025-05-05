@@ -1,20 +1,20 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
-import {ReactQueryDevtools} from '@tanstack/react-query-devtools';
-import {CssBaseline} from '@mui/material';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { CssBaseline } from '@mui/material';
 import App from './App';
-import {BrowserRouter} from "react-router-dom";
+import { BrowserRouter } from 'react-router-dom';
 import { ThemeProvider } from './theme/ThemeProvider';
 
 // Create a client
 const queryClient = new QueryClient({
-    defaultOptions: {
-        queries: {
-            refetchOnWindowFocus: false,
-            retry: 1,
-        },
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
     },
+  },
 });
 
 // Get the root element
@@ -26,15 +26,15 @@ const root = ReactDOM.createRoot(rootElement);
 
 // Render the app
 root.render(
-    <React.StrictMode>
-        <QueryClientProvider client={queryClient}>
-            <ThemeProvider>
-                <CssBaseline/>
-                <BrowserRouter>
-                    <App/>
-                </BrowserRouter>
-            </ThemeProvider>
-            <ReactQueryDevtools initialIsOpen={false}/>
-        </QueryClientProvider>
-    </React.StrictMode>
+  <React.StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <CssBaseline />
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </ThemeProvider>
+      <ReactQueryDevtools initialIsOpen={false} />
+    </QueryClientProvider>
+  </React.StrictMode>,
 );

@@ -25,9 +25,10 @@ const ServerConfig: React.FC = () => {
   const { data: statusData, isLoading, error, refetch } = useStatus();
   const [expandedServer, setExpandedServer] = useState<string | false>(false);
 
-  const handleServerToggle = (serverId: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
-    setExpandedServer(isExpanded ? serverId : false);
-  };
+  const handleServerToggle =
+    (serverId: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
+      setExpandedServer(isExpanded ? serverId : false);
+    };
 
   // Helper function to format configuration values
   const formatValue = (value: any): string => {
@@ -46,25 +47,33 @@ const ServerConfig: React.FC = () => {
   // Helper function to render config data as a table
   const renderConfigTable = (config: Record<string, any> | undefined) => {
     if (!config || Object.keys(config).length === 0) {
-      return <Typography variant="body2" color="text.secondary">No configuration data available</Typography>;
+      return (
+        <Typography variant="body2" color="text.secondary">
+          No configuration data available
+        </Typography>
+      );
     }
 
     return (
       <Box sx={{ maxHeight: 400, overflow: 'auto' }}>
         <StyledTable columns={configColumns} containerSx={{ maxHeight: 400 }}>
-          {Object.entries(config).sort(([a], [b]) => a.localeCompare(b)).map(([key, value]) => (
-            <TableRow key={key} hover>
-              <TableCell sx={{ maxWidth: '30%', overflowWrap: 'break-word' }}>{key}</TableCell>
-              <TableCell sx={{ 
-                maxWidth: '70%', 
-                overflowWrap: 'break-word', 
-                fontFamily: 'monospace',
-                fontSize: '0.85rem'
-              }}>
-                {formatValue(value)}
-              </TableCell>
-            </TableRow>
-          ))}
+          {Object.entries(config)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([key, value]) => (
+              <TableRow key={key} hover>
+                <TableCell sx={{ maxWidth: '30%', overflowWrap: 'break-word' }}>{key}</TableCell>
+                <TableCell
+                  sx={{
+                    maxWidth: '70%',
+                    overflowWrap: 'break-word',
+                    fontFamily: 'monospace',
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  {formatValue(value)}
+                </TableCell>
+              </TableRow>
+            ))}
         </StyledTable>
       </Box>
     );
@@ -81,11 +90,7 @@ const ServerConfig: React.FC = () => {
   if (error) {
     return (
       <Box p={3}>
-        <ErrorState 
-          error={error} 
-          message="Error loading server configuration" 
-          onRetry={refetch}
-        />
+        <ErrorState error={error} message="Error loading server configuration" onRetry={refetch} />
       </Box>
     );
   }
@@ -93,13 +98,13 @@ const ServerConfig: React.FC = () => {
   if (!statusData || !statusData.servers || statusData.servers.length === 0) {
     return (
       <Box p={3}>
-        <Paper 
-          variant="outlined" 
-          sx={{ 
-            p: 3, 
+        <Paper
+          variant="outlined"
+          sx={{
+            p: 3,
             textAlign: 'center',
             borderLeft: 4,
-            borderLeftColor: 'info.main' 
+            borderLeftColor: 'info.main',
           }}
         >
           <Typography variant="body2" color="text.secondary">
@@ -113,18 +118,20 @@ const ServerConfig: React.FC = () => {
   return (
     <Box p={3}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="subtitle1" fontWeight="medium">Server Configuration</Typography>
-        <RefreshButton 
-          onClick={() => refetch()} 
-          disabled={isLoading} 
+        <Typography variant="subtitle1" fontWeight="medium">
+          Server Configuration
+        </Typography>
+        <RefreshButton
+          onClick={() => refetch()}
+          disabled={isLoading}
           tooltipTitle="Refresh server status"
         />
       </Box>
-      
-      <Paper 
-        variant="outlined" 
-        sx={{ 
-          p: 2, 
+
+      <Paper
+        variant="outlined"
+        sx={{
+          p: 2,
           mb: 3,
           bgcolor: 'rgba(25, 118, 210, 0.05)',
           borderLeft: 4,
@@ -132,19 +139,19 @@ const ServerConfig: React.FC = () => {
         }}
       >
         <Typography variant="body2" color="text.secondary">
-          This section displays the configuration for each server in the Armada cluster.
-          Expand a server to see its configuration details.
+          This section displays the configuration for each server in the Armada cluster. Expand a
+          server to see its configuration details.
         </Typography>
       </Paper>
 
       {statusData.servers.map((server) => (
-        <Accordion 
+        <Accordion
           key={server.id}
           expanded={expandedServer === server.id}
           onChange={handleServerToggle(server.id)}
-          sx={{ 
-            mb: 2, 
-            borderRadius: 2, 
+          sx={{
+            mb: 2,
+            borderRadius: 2,
             overflow: 'hidden',
             border: '1px solid',
             borderColor: 'divider',
@@ -152,12 +159,14 @@ const ServerConfig: React.FC = () => {
             '&:before': {
               display: 'none',
             },
-            ...(expandedServer === server.id ? {
-              boxShadow: theme.shadows[1],
-            } : {})
+            ...(expandedServer === server.id
+              ? {
+                  boxShadow: theme.shadows[1],
+                }
+              : {}),
           }}
         >
-          <AccordionSummary 
+          <AccordionSummary
             expandIcon={<ExpandMoreIcon />}
             sx={{
               borderBottom: expandedServer === server.id ? '1px solid' : 'none',
@@ -166,10 +175,7 @@ const ServerConfig: React.FC = () => {
             }}
           >
             <Box display="flex" alignItems="center" width="100%">
-              <StorageIcon 
-                color={server.status === 'ok' ? 'success' : 'error'}
-                sx={{ mr: 1.5 }}
-              />
+              <StorageIcon color={server.status === 'ok' ? 'success' : 'error'} sx={{ mr: 1.5 }} />
               <Typography sx={{ flexGrow: 1, fontWeight: 'medium' }}>
                 {server.name || server.id}
               </Typography>
@@ -177,9 +183,13 @@ const ServerConfig: React.FC = () => {
             </Box>
           </AccordionSummary>
           <AccordionDetails sx={{ p: 2 }}>
-            <CardWithHeader 
-              title="Server Details" 
-              sx={{ mb: 2, borderLeft: 3, borderColor: server.status === 'ok' ? 'success.main' : 'error.main' }}
+            <CardWithHeader
+              title="Server Details"
+              sx={{
+                mb: 2,
+                borderLeft: 3,
+                borderColor: server.status === 'ok' ? 'success.main' : 'error.main',
+              }}
               contentSx={{ py: 2 }}
             >
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
@@ -193,10 +203,7 @@ const ServerConfig: React.FC = () => {
               </Typography>
             </CardWithHeader>
 
-            <CardWithHeader 
-              title="Configuration"
-              contentSx={{ py: 2 }}
-            >
+            <CardWithHeader title="Configuration" contentSx={{ py: 2 }}>
               {renderConfigTable(server.config)}
             </CardWithHeader>
           </AccordionDetails>

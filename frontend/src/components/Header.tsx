@@ -1,12 +1,12 @@
 import React from 'react';
-import { 
-  AppBar, 
-  Toolbar, 
-  Typography, 
-  IconButton, 
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  IconButton,
   Box,
   useMediaQuery,
-  useTheme
+  useTheme,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import ThemeToggle from './ThemeToggle';
@@ -43,12 +43,19 @@ const Header: React.FC<HeaderProps> = ({ drawerWidth, onDrawerToggle }) => {
             <MenuIcon />
           </IconButton>
         )}
-        
-        <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
+
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            width: '100%',
+            justifyContent: 'space-between',
+          }}
+        >
           <Typography variant="h6" noWrap component="div">
             {isMobile ? 'Armada Console' : 'Dashboard'}
           </Typography>
-          
+
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <ThemeToggle />
           </Box>

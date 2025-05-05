@@ -1,12 +1,5 @@
 import React from 'react';
-import { 
-  Box, 
-  Typography, 
-  Grid, 
-  Paper,
-  LinearProgress,
-  useTheme
-} from '@mui/material';
+import { Box, Typography, Grid, Paper, LinearProgress, useTheme } from '@mui/material';
 import { useMetrics } from '../../hooks/useApi';
 import PageHeader from '../../components/shared/PageHeader';
 import LoadingState from '../../components/shared/LoadingState';
@@ -29,15 +22,20 @@ const ResourcesPage: React.FC = () => {
   );
 
   // Helper function to render a metric card with a progress bar
-  const renderMetricCard = (title: string, value: number | undefined, max: number, unit: string) => {
+  const renderMetricCard = (
+    title: string,
+    value: number | undefined,
+    max: number,
+    unit: string,
+  ) => {
     const percentage = value !== undefined ? (value / max) * 100 : 0;
     const color = percentage > 80 ? 'error' : percentage > 60 ? 'warning' : 'primary';
-    
+
     return (
-      <Paper 
+      <Paper
         variant="outlined"
-        sx={{ 
-          p: 2, 
+        sx={{
+          p: 2,
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
@@ -47,9 +45,9 @@ const ResourcesPage: React.FC = () => {
           {title}
         </Typography>
         <Box sx={{ my: 1 }}>
-          <LinearProgress 
-            variant="determinate" 
-            value={Math.min(percentage, 100)} 
+          <LinearProgress
+            variant="determinate"
+            value={Math.min(percentage, 100)}
             color={color}
             sx={{ height: 10, borderRadius: 5 }}
           />
@@ -79,11 +77,7 @@ const ResourcesPage: React.FC = () => {
     return (
       <>
         <PageHeader title="Resources" />
-        <ErrorState 
-          error={error} 
-          message="Failed to fetch resources data." 
-          onRetry={refetch}
-        />
+        <ErrorState error={error} message="Failed to fetch resources data." onRetry={refetch} />
       </>
     );
   }
@@ -102,10 +96,20 @@ const ResourcesPage: React.FC = () => {
                   {renderMetricCard('CPU Usage', data.metrics.cpuUsage, 100, '%')}
                 </Grid>
                 <Grid item xs={12} md={4}>
-                  {renderMetricCard('Memory Usage', data.metrics.memoryUsage, data.metrics.totalMemory || 100, 'MB')}
+                  {renderMetricCard(
+                    'Memory Usage',
+                    data.metrics.memoryUsage,
+                    data.metrics.totalMemory || 100,
+                    'MB',
+                  )}
                 </Grid>
                 <Grid item xs={12} md={4}>
-                  {renderMetricCard('Disk Usage', data.metrics.diskUsage, data.metrics.totalDisk || 100, 'GB')}
+                  {renderMetricCard(
+                    'Disk Usage',
+                    data.metrics.diskUsage,
+                    data.metrics.totalDisk || 100,
+                    'GB',
+                  )}
                 </Grid>
               </Grid>
             ) : (
@@ -123,8 +127,8 @@ const ResourcesPage: React.FC = () => {
               <Grid container spacing={3}>
                 <Grid item xs={12} md={6} lg={3}>
                   <Paper
-                    sx={{ 
-                      p: 2, 
+                    sx={{
+                      p: 2,
                       textAlign: 'center',
                       height: '100%',
                       borderLeft: 4,
@@ -142,8 +146,8 @@ const ResourcesPage: React.FC = () => {
                 </Grid>
                 <Grid item xs={12} md={6} lg={3}>
                   <Paper
-                    sx={{ 
-                      p: 2, 
+                    sx={{
+                      p: 2,
                       textAlign: 'center',
                       height: '100%',
                       borderLeft: 4,
@@ -161,8 +165,8 @@ const ResourcesPage: React.FC = () => {
                 </Grid>
                 <Grid item xs={12} md={6} lg={3}>
                   <Paper
-                    sx={{ 
-                      p: 2, 
+                    sx={{
+                      p: 2,
                       textAlign: 'center',
                       height: '100%',
                       borderLeft: 4,
@@ -180,8 +184,8 @@ const ResourcesPage: React.FC = () => {
                 </Grid>
                 <Grid item xs={12} md={6} lg={3}>
                   <Paper
-                    sx={{ 
-                      p: 2, 
+                    sx={{
+                      p: 2,
                       textAlign: 'center',
                       height: '100%',
                       borderLeft: 4,

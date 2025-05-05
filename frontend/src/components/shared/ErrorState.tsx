@@ -23,22 +23,18 @@ const ErrorState: React.FC<ErrorStateProps> = ({
   action,
 }) => {
   // Format error message from error object or use provided message
-  const errorMessage = message || 
-    (error instanceof Error ? error.message : 'An unexpected error occurred');
+  const errorMessage =
+    message || (error instanceof Error ? error.message : 'An unexpected error occurred');
 
   return (
-    <Alert 
-      severity="error" 
+    <Alert
+      severity="error"
       variant="outlined"
       sx={{ mb: 3, ...sx }}
       action={
-        action || (onRetry && (
-          <Button 
-            color="inherit" 
-            size="small" 
-            onClick={onRetry}
-            startIcon={<RefreshIcon />}
-          >
+        action ||
+        (onRetry && (
+          <Button color="inherit" size="small" onClick={onRetry} startIcon={<RefreshIcon />}>
             Retry
           </Button>
         ))

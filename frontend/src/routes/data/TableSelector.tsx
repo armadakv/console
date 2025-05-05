@@ -30,24 +30,16 @@ const TableSelector: React.FC<TableSelectorProps> = ({ selectedTable, onTableCha
   const [searchQuery, setSearchQuery] = React.useState('');
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  
-  const {
-    data: tables,
-    isLoading,
-    isError,
-    error,
-    refetch
-  } = useTables();
+
+  const { data: tables, isLoading, isError, error, refetch } = useTables();
 
   // Filter tables based on search query
   const filteredTables = React.useMemo(() => {
     if (!tables) return [];
     if (!searchQuery) return tables;
-    
+
     const lowerQuery = searchQuery.toLowerCase();
-    return tables.filter(table => 
-      table.name.toLowerCase().includes(lowerQuery)
-    );
+    return tables.filter((table) => table.name.toLowerCase().includes(lowerQuery));
   }, [tables, searchQuery]);
 
   if (isLoading) {
@@ -79,14 +71,16 @@ const TableSelector: React.FC<TableSelectorProps> = ({ selectedTable, onTableCha
   return (
     <Box>
       {/* Search and Create Table Section */}
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        flexDirection: isMobile ? 'column' : 'row',
-        gap: 2,
-        mb: 2 
-      }}>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexDirection: isMobile ? 'column' : 'row',
+          gap: 2,
+          mb: 2,
+        }}
+      >
         <TextField
           placeholder="Search tables..."
           value={searchQuery}
@@ -102,23 +96,23 @@ const TableSelector: React.FC<TableSelectorProps> = ({ selectedTable, onTableCha
             ),
           }}
         />
-        
+
         <Button
           component={RouterLink}
           to="/settings"
           variant="contained"
           color="primary"
           startIcon={<AddIcon />}
-          sx={{ 
+          sx={{
             borderRadius: 1,
             textTransform: 'none',
-            whiteSpace: 'nowrap'
+            whiteSpace: 'nowrap',
           }}
         >
           Create New Table
         </Button>
       </Box>
-      
+
       <Divider sx={{ mb: 3 }} />
 
       {/* Tables Grid/List */}
@@ -136,34 +130,35 @@ const TableSelector: React.FC<TableSelectorProps> = ({ selectedTable, onTableCha
         <Grid container spacing={2}>
           {filteredTables.map((table) => (
             <Grid item xs={12} sm={6} md={4} key={table.id}>
-              <Card 
+              <Card
                 variant="outlined"
                 sx={{
                   borderRadius: 2,
                   borderColor: selectedTable === table.name ? 'primary.main' : 'divider',
-                  bgcolor: selectedTable === table.name ? 'rgba(25, 118, 210, 0.04)' : 'background.paper',
+                  bgcolor:
+                    selectedTable === table.name ? 'rgba(25, 118, 210, 0.04)' : 'background.paper',
                   transition: 'all 0.2s ease',
                   '&:hover': {
                     borderColor: 'primary.main',
                     boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                  }
+                  },
                 }}
               >
-                <CardActionArea 
+                <CardActionArea
                   onClick={() => onTableChange(table.name)}
-                  sx={{ 
-                    py: 1.5, 
+                  sx={{
+                    py: 1.5,
                     px: 2,
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'flex-start'
+                    justifyContent: 'flex-start',
                   }}
                 >
-                  <TableChartIcon 
-                    sx={{ 
-                      mr: 1.5, 
-                      color: selectedTable === table.name ? 'primary.main' : 'text.secondary' 
-                    }} 
+                  <TableChartIcon
+                    sx={{
+                      mr: 1.5,
+                      color: selectedTable === table.name ? 'primary.main' : 'text.secondary',
+                    }}
                   />
                   <CardContent sx={{ p: 0 }}>
                     <Typography variant="subtitle1" fontWeight="medium">
@@ -174,7 +169,7 @@ const TableSelector: React.FC<TableSelectorProps> = ({ selectedTable, onTableCha
               </Card>
             </Grid>
           ))}
-          
+
           {/* Show message when no search results */}
           {filteredTables.length === 0 && searchQuery && (
             <Grid item xs={12}>

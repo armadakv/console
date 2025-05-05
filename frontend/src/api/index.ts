@@ -40,7 +40,7 @@ export const getKeyValuePairs = async (
   table: string,
   prefix: string = '',
   start: string = '',
-  end: string = ''
+  end: string = '',
 ): Promise<KeyValuePair[]> => {
   const url = new URL(`${API_URL}/kv/${table}`, window.location.origin);
   if (prefix) {
@@ -50,26 +50,19 @@ export const getKeyValuePairs = async (
     url.searchParams.append('start', start);
     url.searchParams.append('end', end);
   }
-  
+
   const response = await fetch(url.toString());
   return handleApiError(response);
 };
 
-export const getKeyValue = async (
-  table: string,
-  key: string
-): Promise<KeyValuePair> => {
+export const getKeyValue = async (table: string, key: string): Promise<KeyValuePair> => {
   const response = await fetch(`${API_URL}/kv/${table}/${encodeURIComponent(key)}`);
   return handleApiError(response);
 };
 
-export const putKeyValuePair = async (
-  table: string,
-  key: string,
-  value: string
-): Promise<void> => {
+export const putKeyValuePair = async (table: string, key: string, value: string): Promise<void> => {
   const url = new URL(`${API_URL}/kv/${table}`, window.location.origin);
-  
+
   const response = await fetch(url.toString(), {
     method: 'PUT',
     headers: {
@@ -77,21 +70,18 @@ export const putKeyValuePair = async (
     },
     body: JSON.stringify({ key, value }),
   });
-  
+
   return handleApiError(response);
 };
 
-export const deleteKeyValuePair = async (
-  table: string,
-  key: string
-): Promise<void> => {
+export const deleteKeyValuePair = async (table: string, key: string): Promise<void> => {
   const url = new URL(`${API_URL}/kv/${table}`, window.location.origin);
   url.searchParams.append('key', key);
-  
+
   const response = await fetch(url.toString(), {
     method: 'DELETE',
   });
-  
+
   return handleApiError(response);
 };
 
@@ -103,7 +93,7 @@ export const createTable = async (name: string): Promise<{ id: string }> => {
     },
     body: JSON.stringify({ name }),
   });
-  
+
   return handleApiError(response);
 };
 
@@ -111,6 +101,6 @@ export const deleteTable = async (name: string): Promise<void> => {
   const response = await fetch(`${API_URL}/tables/${name}`, {
     method: 'DELETE',
   });
-  
+
   return handleApiError(response);
 };

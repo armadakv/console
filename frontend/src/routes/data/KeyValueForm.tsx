@@ -6,7 +6,6 @@ import {
   CircularProgress,
   Box,
   Typography,
-  Alert,
   Card,
   CardContent,
   CardHeader,
@@ -17,6 +16,8 @@ import AddIcon from '@mui/icons-material/Add';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { Link as RouterLink } from 'react-router-dom';
 import { useAddKeyValuePair } from '../../hooks/useApi';
+import SuccessState from '../../components/shared/SuccessState';
+import ErrorState from '../../components/shared/ErrorState';
 
 interface KeyValueFormProps {
   selectedTable: string;
@@ -26,12 +27,12 @@ interface KeyValueFormProps {
   onSuccess?: () => void;
 }
 
-const KeyValueForm: React.FC<KeyValueFormProps> = ({ 
-  selectedTable, 
-  initialKey = '', 
-  initialValue = '', 
+const KeyValueForm: React.FC<KeyValueFormProps> = ({
+  selectedTable,
+  initialKey = '',
+  initialValue = '',
   isEdit = false,
-  onSuccess 
+  onSuccess,
 }) => {
   const [key, setKey] = useState<string>(initialKey);
   const [value, setValue] = useState<string>(initialValue);
@@ -54,15 +55,15 @@ const KeyValueForm: React.FC<KeyValueFormProps> = ({
         key,
         value,
       });
-      
+
       setSuccess(true);
-      
+
       if (!isEdit) {
         // If adding a new KV pair, clear the form
         setKey('');
         setValue('');
       }
-      
+
       if (onSuccess) {
         onSuccess();
       }
@@ -89,27 +90,24 @@ const KeyValueForm: React.FC<KeyValueFormProps> = ({
 
       <Card sx={{ borderRadius: 2, overflow: 'hidden' }}>
         <CardHeader
-          title={isEdit ? "Edit Value" : "Enter Key-Value Details"}
-          sx={{ 
+          title={isEdit ? 'Edit Value' : 'Enter Key-Value Details'}
+          sx={{
             borderBottom: '1px solid',
             borderColor: 'divider',
             bgcolor: 'background.default',
             px: 3,
-            py: 2
+            py: 2,
           }}
         />
         <CardContent sx={{ p: 3 }}>
           {success && (
-            <Alert severity="success" sx={{ mb: 3 }}>
-              Key-value pair {isEdit ? 'updated' : 'added'} successfully!
-            </Alert>
+            <SuccessState
+              message={`Key-value pair ${isEdit ? 'updated' : 'added'} successfully!`}
+              sx={{ mb: 3 }}
+            />
           )}
 
-          {error && (
-            <Alert severity="error" sx={{ mb: 3 }}>
-              {error}
-            </Alert>
-          )}
+          {error && <ErrorState message={error} sx={{ mb: 3 }} />}
 
           <form onSubmit={handleSubmit}>
             <Grid container spacing={3}>
@@ -127,11 +125,11 @@ const KeyValueForm: React.FC<KeyValueFormProps> = ({
                     sx: {
                       fontFamily: '"Roboto Mono", "Courier New", monospace',
                       fontSize: '0.875rem',
-                    }
+                    },
                   }}
                 />
               </Grid>
-              
+
               <Grid item xs={12}>
                 <TextField
                   label="Value"
@@ -148,7 +146,7 @@ const KeyValueForm: React.FC<KeyValueFormProps> = ({
                     sx: {
                       fontFamily: '"Roboto Mono", "Courier New", monospace',
                       fontSize: '0.875rem',
-                    }
+                    },
                   }}
                 />
               </Grid>
@@ -159,17 +157,26 @@ const KeyValueForm: React.FC<KeyValueFormProps> = ({
                   variant="contained"
                   color="primary"
                   disabled={!key || !value || mutation.isLoading}
-                  startIcon={mutation.isLoading ? 
-                    <CircularProgress size={20} /> : 
-                    (isEdit ? <SaveIcon /> : <AddIcon />)
+                  startIcon={
+                    mutation.isLoading ? (
+                      <CircularProgress size={20} />
+                    ) : isEdit ? (
+                      <SaveIcon />
+                    ) : (
+                      <AddIcon />
+                    )
                   }
-                  sx={{ 
+                  sx={{
                     textTransform: 'none',
                     borderRadius: 1,
-                    px: 3
+                    px: 3,
                   }}
                 >
-                  {mutation.isLoading ? 'Saving...' : (isEdit ? 'Save Changes' : 'Add Key-Value Pair')}
+                  {mutation.isLoading
+                    ? 'Saving...'
+                    : isEdit
+                      ? 'Save Changes'
+                      : 'Add Key-Value Pair'}
                 </Button>
               </Grid>
             </Grid>

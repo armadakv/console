@@ -12,13 +12,13 @@ interface PageHeaderProps {
  */
 const PageHeader: React.FC<PageHeaderProps> = ({ title, action, sx = {} }) => {
   return (
-    <Box 
+    <Box
       sx={{
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
         mb: 3,
-        ...sx
+        ...sx,
       }}
     >
       <Typography variant="h5">{title}</Typography>

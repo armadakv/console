@@ -35,11 +35,7 @@ const StyledTable: React.FC<StyledTableProps> = ({
   emptyContent,
 }) => {
   return (
-    <TableContainer 
-      component={Paper} 
-      variant="outlined" 
-      sx={{ ...containerSx }}
-    >
+    <TableContainer component={Paper} variant="outlined" sx={{ ...containerSx }}>
       <Table>
         <TableHead>
           <TableRow>
@@ -54,12 +50,7 @@ const StyledTable: React.FC<StyledTableProps> = ({
             ))}
           </TableRow>
         </TableHead>
-        <TableBody>
-          {isEmpty && emptyContent ? 
-            emptyContent : 
-            children
-          }
-        </TableBody>
+        <TableBody>{isEmpty && emptyContent ? emptyContent : children}</TableBody>
       </Table>
     </TableContainer>
   );

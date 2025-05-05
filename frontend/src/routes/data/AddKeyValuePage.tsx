@@ -21,10 +21,7 @@ const AddKeyValuePage: React.FC = () => {
     return (
       <>
         <PageHeader title="Add Key-Value Pair" />
-        <Alert 
-          severity="error" 
-          sx={{ mt: 2 }}
-        >
+        <Alert severity="error" sx={{ mt: 2 }}>
           No table specified. Please select a table from the Data page first.
         </Alert>
       </>
@@ -34,10 +31,7 @@ const AddKeyValuePage: React.FC = () => {
   return (
     <>
       <PageHeader title={`Add Key-Value Pair to ${table}`} />
-      <KeyValueForm 
-        selectedTable={table} 
-        onSuccess={handleSuccess}
-      />
+      <KeyValueForm selectedTable={table} onSuccess={handleSuccess} />
     </>
   );
 };

@@ -34,17 +34,10 @@ const StatusChip: React.FC<StatusChipProps> = ({
   // Determine color based on status and color mapping
   const getStatusColor = (statusText: string): StatusType => {
     const normalizedStatus = statusText.toLowerCase();
-    return colorMapping[normalizedStatus] as StatusType || defaultColor;
+    return (colorMapping[normalizedStatus] as StatusType) || defaultColor;
   };
 
-  return (
-    <Chip
-      label={status}
-      color={getStatusColor(status)}
-      size="small"
-      {...props}
-    />
-  );
+  return <Chip label={status} color={getStatusColor(status)} size="small" {...props} />;
 };
 
 export default StatusChip;

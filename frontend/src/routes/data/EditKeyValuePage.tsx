@@ -11,11 +11,8 @@ const EditKeyValuePage: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [value, setValue] = useState<string>('');
-  
-  const { data, isError, isLoading: isQueryLoading } = useKeyValuePair(
-    table || '',
-    key || ''
-  );
+
+  const { data, isError, isLoading: isQueryLoading } = useKeyValuePair(table || '', key || '');
 
   useEffect(() => {
     if (!table || !key) {
@@ -49,7 +46,7 @@ const EditKeyValuePage: React.FC = () => {
   return (
     <>
       <PageHeader title="Edit Key-Value Pair" />
-      
+
       {isLoading ? (
         <Box display="flex" justifyContent="center" my={4}>
           <CircularProgress />
@@ -59,8 +56,8 @@ const EditKeyValuePage: React.FC = () => {
           {error}
         </Alert>
       ) : (
-        <KeyValueForm 
-          selectedTable={table || ''} 
+        <KeyValueForm
+          selectedTable={table || ''}
           initialKey={key || ''}
           initialValue={value}
           isEdit={true}

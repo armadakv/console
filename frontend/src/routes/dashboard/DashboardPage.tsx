@@ -1,14 +1,5 @@
 import React from 'react';
-import { 
-  CardContent, 
-  Typography, 
-  Box, 
-  Grid,
-  Chip,
-  Paper,
-  useTheme,
-  Divider
-} from '@mui/material';
+import { CardContent, Typography, Box, Grid, Chip, Paper, useTheme, Divider } from '@mui/material';
 import { useStatus } from '../../hooks/useApi';
 import PageHeader from '../../components/shared/PageHeader';
 import LoadingState from '../../components/shared/LoadingState';
@@ -44,7 +35,7 @@ const DashboardPage: React.FC = () => {
     return (
       <>
         <PageHeader title="Dashboard" />
-        <ErrorState 
+        <ErrorState
           error={error}
           message="Failed to fetch dashboard data. Please try again later."
           onRetry={refetch}
@@ -67,7 +58,7 @@ const DashboardPage: React.FC = () => {
               textAlign: 'center',
               bgcolor: theme.palette.primary.light,
               color: theme.palette.primary.contrastText,
-              border: `1px solid ${theme.palette.primary.main}`
+              border: `1px solid ${theme.palette.primary.main}`,
             }}
           >
             <Typography variant="h6">Servers</Typography>
@@ -79,7 +70,7 @@ const DashboardPage: React.FC = () => {
             </Typography>
           </Paper>
         </Grid>
-        
+
         <Grid item xs={12} md={4}>
           <Paper
             elevation={0}
@@ -96,12 +87,10 @@ const DashboardPage: React.FC = () => {
             <Typography variant="h2" sx={{ my: 2, fontWeight: 'medium' }}>
               {data?.tables?.length || 0}
             </Typography>
-            <Typography variant="body2">
-              Available tables
-            </Typography>
+            <Typography variant="body2">Available tables</Typography>
           </Paper>
         </Grid>
-        
+
         <Grid item xs={12} md={4}>
           <Paper
             elevation={0}
@@ -118,9 +107,7 @@ const DashboardPage: React.FC = () => {
             <Typography variant="h5" sx={{ my: 2, fontWeight: 'medium' }}>
               {data?.clusterHealth || 'Unknown'}
             </Typography>
-            <Typography variant="body2">
-              Current cluster status
-            </Typography>
+            <Typography variant="body2">Current cluster status</Typography>
           </Paper>
         </Grid>
 
@@ -131,17 +118,24 @@ const DashboardPage: React.FC = () => {
               <Grid container spacing={2}>
                 {data.servers.map((server) => (
                   <Grid item xs={12} key={server.id}>
-                    <Paper 
+                    <Paper
                       elevation={0}
                       variant="outlined"
-                      sx={{ 
-                        p: 2, 
+                      sx={{
+                        p: 2,
                         borderRadius: 1,
                         borderLeft: 4,
-                        borderLeftColor: server.status === 'ok' ? 'success.main' : 'error.main'
+                        borderLeftColor: server.status === 'ok' ? 'success.main' : 'error.main',
                       }}
                     >
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          mb: 1,
+                        }}
+                      >
                         <Typography variant="subtitle1" fontWeight="medium">
                           {server.name || server.id}
                         </Typography>
@@ -150,7 +144,8 @@ const DashboardPage: React.FC = () => {
                       <Divider sx={{ my: 1 }} />
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                         <Typography variant="body2" color="text.secondary">
-                          <strong>Message:</strong> {server.message || 'No status message available'}
+                          <strong>Message:</strong>{' '}
+                          {server.message || 'No status message available'}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
                           <strong>ID:</strong> {server.id}
