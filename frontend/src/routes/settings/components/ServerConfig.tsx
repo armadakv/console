@@ -13,13 +13,13 @@ import {
 } from '@mui/material';
 import React, { useState } from 'react';
 
-import CardWithHeader from '../../components/shared/CardWithHeader';
-import ErrorState from '../../components/shared/ErrorState';
-import LoadingState from '../../components/shared/LoadingState';
-import RefreshButton from '../../components/shared/RefreshButton';
-import StatusChip from '../../components/shared/StatusChip';
-import StyledTable from '../../components/shared/StyledTable';
-import { useStatus } from '../../hooks/useApi';
+import CardWithHeader from '../../../components/shared/CardWithHeader';
+import ErrorState from '../../../components/shared/ErrorState';
+import LoadingState from '../../../components/shared/LoadingState';
+import RefreshButton from '../../../components/shared/RefreshButton';
+import StatusChip from '../../../components/shared/StatusChip';
+import StyledTable from '../../../components/shared/StyledTable';
+import { useStatus } from '../../../hooks/useApi';
 
 const ServerConfig: React.FC = () => {
   const theme = useTheme();

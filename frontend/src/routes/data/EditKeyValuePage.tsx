@@ -5,7 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import PageHeader from '../../components/shared/PageHeader';
 import { useKeyValuePair } from '../../hooks/useApi';
 
-import KeyValueForm from './KeyValueForm';
+import KeyValueForm from './components/KeyValueForm';
 
 const EditKeyValuePage: React.FC = () => {
   const { table, key } = useParams<{ table: string; key: string }>();

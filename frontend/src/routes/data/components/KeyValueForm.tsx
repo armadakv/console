@@ -16,9 +16,9 @@ import {
 import React, { useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 
-import ErrorState from '../../components/shared/ErrorState';
-import SuccessState from '../../components/shared/SuccessState';
-import { useAddKeyValuePair } from '../../hooks/useApi';
+import ErrorState from '../../../components/shared/ErrorState';
+import SuccessState from '../../../components/shared/SuccessState';
+import { useAddKeyValuePair } from '../../../hooks/useApi';
 
 interface KeyValueFormProps {
   selectedTable: string;

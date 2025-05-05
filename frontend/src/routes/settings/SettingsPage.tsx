@@ -6,8 +6,8 @@ import React from 'react';
 
 import PageHeader from '../../components/shared/PageHeader';
 
-import ServerConfig from './ServerConfig';
-import TableManagement from './TableManagement';
+import ServerConfig from './components/ServerConfig';
+import TableManagement from './components/TableManagement';
 
 interface TabPanelProps {
   children?: React.ReactNode;

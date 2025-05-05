@@ -4,10 +4,10 @@ import { Box, IconButton, TableRow, TableCell, Typography, Tooltip } from '@mui/
 import React from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 
-import ErrorState from '../../components/shared/ErrorState';
-import LoadingState from '../../components/shared/LoadingState';
-import StyledTable from '../../components/shared/StyledTable';
-import { useKeyValuePairs } from '../../hooks/useApi';
+import ErrorState from '../../../components/shared/ErrorState';
+import LoadingState from '../../../components/shared/LoadingState';
+import StyledTable from '../../../components/shared/StyledTable';
+import { useKeyValuePairs } from '../../../hooks/useApi';
 
 import KeyValueCells from './KeyValueCells';
 

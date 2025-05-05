@@ -22,14 +22,14 @@ import {
 } from '@mui/material';
 import React, { useState } from 'react';
 
-import CardWithHeader from '../../components/shared/CardWithHeader';
-import ErrorState from '../../components/shared/ErrorState';
-import LoadingState from '../../components/shared/LoadingState';
-import RefreshButton from '../../components/shared/RefreshButton';
-import StyledTable from '../../components/shared/StyledTable';
-import SuccessState from '../../components/shared/SuccessState';
-import { useTables, useCreateTable, useDeleteTable } from '../../hooks/useApi';
-import type { Table as TableType } from '../../types';
+import CardWithHeader from '../../../components/shared/CardWithHeader';
+import ErrorState from '../../../components/shared/ErrorState';
+import LoadingState from '../../../components/shared/LoadingState';
+import RefreshButton from '../../../components/shared/RefreshButton';
+import StyledTable from '../../../components/shared/StyledTable';
+import SuccessState from '../../../components/shared/SuccessState';
+import { useTables, useCreateTable, useDeleteTable } from '../../../hooks/useApi';
+import type { Table as TableType } from '../../../types';
 
 const TableManagement: React.FC = () => {
   // State for form and dialogs

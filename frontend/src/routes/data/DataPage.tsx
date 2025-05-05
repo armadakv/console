@@ -8,9 +8,9 @@ import CardWithHeader from '../../components/shared/CardWithHeader';
 import PageHeader from '../../components/shared/PageHeader';
 import { useDeleteKeyValuePair } from '../../hooks/useApi';
 
-import KeyValueFilter from './KeyValueFilter';
-import KeyValueTable from './KeyValueTable';
-import TableSelector from './TableSelector';
+import KeyValueFilter from './components/KeyValueFilter';
+import KeyValueTable from './components/KeyValueTable';
+import TableSelector from './components/TableSelector';
 
 const DataPage: React.FC = () => {
   const theme = useTheme();

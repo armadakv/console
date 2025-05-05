@@ -2,9 +2,9 @@ import AddIcon from '@mui/icons-material/Add';
 import { TextField, Button, Grid, CircularProgress } from '@mui/material';
 import React, { useState } from 'react';
 
-import ErrorState from '../../components/shared/ErrorState';
-import SuccessState from '../../components/shared/SuccessState';
-import { useAddKeyValuePair } from '../../hooks/useApi';
+import ErrorState from '../../../components/shared/ErrorState';
+import SuccessState from '../../../components/shared/SuccessState';
+import { useAddKeyValuePair } from '../../../hooks/useApi';
 
 interface AddKeyValueFormProps {
   selectedTable: string;

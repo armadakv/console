@@ -20,7 +20,7 @@ import {
 import React from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 
-import { useTables } from '../../hooks/useApi';
+import { useTables } from '../../../hooks/useApi';
 
 interface TableSelectorProps {
   selectedTable: string;

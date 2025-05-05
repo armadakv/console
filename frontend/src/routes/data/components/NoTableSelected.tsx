@@ -4,7 +4,7 @@ import { Box, Typography, Button, Card, CardContent } from '@mui/material';
 import React from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 
-import { useTables } from '../../hooks/useApi';
+import { useTables } from '../../../hooks/useApi';
 
 const NoTableSelected: React.FC = () => {
   const { data: tables, isLoading } = useTables();
