@@ -1,12 +1,207 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Armada Dashboard</title>
+    <style>
+        /* Splash screen styles */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+                Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+        }
+
+        #splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #f5f5f5;
+            /* Light mode background */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.3s ease-out;
+        }
+
+        .splash-logo {
+            width: 120px;
+            height: 120px;
+            margin-bottom: 24px;
+        }
+
+        .splash-logo svg {
+            fill: #1976d2;
+            /* Light mode primary color */
+        }
+
+        .splash-title {
+            color: #1976d2;
+            /* Light mode primary color */
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .splash-subtitle {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 32px;
+        }
+
+        .splash-spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(25, 118, 210, 0.3);
+            /* Light mode primary with opacity */
+            border-radius: 50%;
+            border-top-color: #1976d2;
+            /* Light mode primary */
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        .splash-js-warning {
+            display: flex;
+            align-items: center;
+            margin-top: 32px;
+            padding: 10px 16px;
+            background-color: rgba(255, 152, 0, 0.1);
+            /* Warning color with opacity */
+            border-left: 4px solid #ff9800;
+            /* Warning color */
+            border-radius: 4px;
+            max-width: 340px;
+            text-align: left;
+        }
+
+        .splash-js-warning svg {
+            fill: #ff9800;
+            /* Warning color */
+            width: 24px;
+            height: 24px;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+
+        .splash-js-warning-text {
+            color: #666;
+            font-size: 14px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .splash-hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Dark mode styles */
+        @media (prefers-color-scheme: dark) {
+            #splash-screen {
+                background-color: #121212;
+                /* Dark mode background */
+            }
+
+            .splash-logo svg {
+                fill: #90caf9;
+                /* Dark mode primary */
+            }
+
+            .splash-title {
+                color: #90caf9;
+                /* Dark mode primary */
+            }
+
+            .splash-subtitle {
+                color: #aaa;
+            }
+
+            .splash-spinner {
+                border: 3px solid rgba(144, 202, 249, 0.3);
+                /* Dark mode primary with opacity */
+                border-top-color: #90caf9;
+                /* Dark mode primary */
+            }
+
+            .splash-js-warning {
+                background-color: rgba(255, 152, 0, 0.08);
+                /* Darker warning background */
+            }
+
+            .splash-js-warning-text {
+                color: #aaa;
+            }
+        }
+
+        /* Hide JavaScript warning if JavaScript is enabled */
+        .js-enabled .splash-js-warning {
+            display: none;
+        }
+    </style>
+    <noscript>
+        <style>
+            .splash-spinner,
+            .splash-subtitle {
+                display: none;
+            }
+        </style>
+    </noscript>
 </head>
+
 <body>
+    <!-- Splash Screen -->
+    <div id="splash-screen">
+        <div class="splash-logo">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%">
+                <path
+                    d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.09L20 7.67v8.66l-8 4-8-4V7.67l8-3.58zm-2 9.91v3l2 1 2-1v-3l-2-1-2 1zm6-6l-6-3-6 3 6 3 6-3z" />
+            </svg>
+        </div>
+        <div class="splash-title">Armada Dashboard</div>
+        <div class="splash-subtitle">Loading application...</div>
+        <div class="splash-spinner"></div>
+
+        <!-- JavaScript Warning -->
+        <div class="splash-js-warning">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M12 5.99L19.53 19H4.47L12 5.99M12 2L1 21h22L12 2zm1 14h-2v2h2v-2zm0-6h-2v4h2v-4z" />
+            </svg>
+            <div class="splash-js-warning-text">
+                This application requires JavaScript to function properly. Please enable JavaScript in your browser
+                settings.
+            </div>
+        </div>
+    </div>
+
     <div id="root"></div>
     <script type="module" src="/src/index.tsx"></script>
+
+    <script>
+        // This script helps ensure the splash screen is hidden when the app loads
+        window.hideSplashScreen = function () {
+            const splashScreen = document.getElementById('splash-screen');
+            if (splashScreen) {
+                splashScreen.classList.add('splash-hidden');
+                setTimeout(() => {
+                    splashScreen.style.display = 'none';
+                }, 300);
+            }
+        };
+
+        // Add class to body to indicate JavaScript is enabled
+        document.body.classList.add('js-enabled');
+    </script>
 </body>
+
 </html>
