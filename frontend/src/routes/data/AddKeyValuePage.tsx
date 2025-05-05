@@ -2,13 +2,15 @@ import { Alert } from '@mui/material';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import PageHeader from '../../components/shared/PageHeader';
-
+import usePageTitle from '../../hooks/usePageTitle';
 import KeyValueForm from './components/KeyValueForm';
 
 const AddKeyValuePage: React.FC = () => {
   const { table } = useParams<{ table: string }>();
   const navigate = useNavigate();
+
+  // Use the usePageTitle hook instead of PageHeader component
+  usePageTitle(table ? `Add Key-Value Pair to ${table}` : 'Add Key-Value Pair');
 
   const handleSuccess = () => {
     // Navigate back to the data page after successful addition
@@ -21,21 +23,13 @@ const AddKeyValuePage: React.FC = () => {
   // If no table is specified in the URL, show an error message
   if (!table) {
     return (
-      <>
-        <PageHeader title="Add Key-Value Pair" />
-        <Alert severity="error" sx={{ mt: 2 }}>
-          No table specified. Please select a table from the Data page first.
-        </Alert>
-      </>
+      <Alert severity="error" sx={{ mt: 2 }}>
+        No table specified. Please select a table from the Data page first.
+      </Alert>
     );
   }
 
-  return (
-    <>
-      <PageHeader title={`Add Key-Value Pair to ${table}`} />
-      <KeyValueForm selectedTable={table} onSuccess={handleSuccess} />
-    </>
-  );
+  return <KeyValueForm selectedTable={table} onSuccess={handleSuccess} />;
 };
 
 export default AddKeyValuePage;

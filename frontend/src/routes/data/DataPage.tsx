@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
 
 import CardWithHeader from '../../components/shared/CardWithHeader';
-import PageHeader from '../../components/shared/PageHeader';
+import usePageTitle from '../../hooks/usePageTitle';
 import { useDeleteKeyValuePair } from '../../hooks/useApi';
 
 import KeyValueFilter from './components/KeyValueFilter';
@@ -24,6 +24,27 @@ const DataPage: React.FC = () => {
   const [end, setEnd] = useState<string>('');
   const [filterMode, setFilterMode] = useState<'prefix' | 'range'>('prefix');
   const deleteMutation = useDeleteKeyValuePair();
+
+  // Create add button for the header
+  const addButton = table ? (
+    <Button
+      component={RouterLink}
+      to={`/data/${table}/add`}
+      variant="contained"
+      color="primary"
+      startIcon={<AddIcon />}
+      sx={{
+        borderRadius: 1,
+        textTransform: 'none',
+      }}
+    >
+      Add Key-Value Pair
+    </Button>
+  ) : undefined;
+
+  // Use the usePageTitle hook instead of PageHeader component
+  // Dynamic title based on whether a table is selected
+  usePageTitle(table ? `Table: ${table}` : 'Key-Value Data', addButton);
 
   // Handle filter mode change
   const handleFilterModeChange = (mode: 'prefix' | 'range') => {
@@ -45,25 +66,21 @@ const DataPage: React.FC = () => {
   // Table selection page
   if (!table) {
     return (
-      <>
-        <PageHeader title="Key-Value Data" />
-
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <CardWithHeader
-              title="Tables"
-              sx={{
-                borderRadius: 2,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-              }}
-            >
-              <Box sx={{ p: 2 }}>
-                <TableSelector selectedTable="" onTableChange={handleTableChange} />
-              </Box>
-            </CardWithHeader>
-          </Grid>
+      <Grid container spacing={3}>
+        <Grid item xs={12}>
+          <CardWithHeader
+            title="Tables"
+            sx={{
+              borderRadius: 2,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+            }}
+          >
+            <Box sx={{ p: 2 }}>
+              <TableSelector selectedTable="" onTableChange={handleTableChange} />
+            </Box>
+          </CardWithHeader>
         </Grid>
-      </>
+      </Grid>
     );
   }
 
@@ -82,32 +99,14 @@ const DataPage: React.FC = () => {
   // Table data page (with specified table)
   return (
     <>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <Button
-            component={RouterLink}
-            to="/data"
-            startIcon={<ArrowBackIcon />}
-            sx={{ mr: 2, textTransform: 'none' }}
-          >
-            Tables
-          </Button>
-          <PageHeader title={`Table: ${table}`} />
-        </Box>
-
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
         <Button
           component={RouterLink}
-          to={`/data/${table}/add`}
-          variant="contained"
-          color="primary"
-          startIcon={<AddIcon />}
-          sx={{
-            borderRadius: 1,
-            textTransform: 'none',
-            display: { xs: 'none', sm: 'flex' },
-          }}
+          to="/data"
+          startIcon={<ArrowBackIcon />}
+          sx={{ mr: 2, textTransform: 'none' }}
         >
-          Add Key-Value Pair
+          Tables
         </Button>
       </Box>
 

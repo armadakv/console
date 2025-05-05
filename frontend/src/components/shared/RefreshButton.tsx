@@ -5,7 +5,7 @@ import React from 'react';
 interface RefreshButtonProps {
   onClick: () => void;
   disabled?: boolean;
-  variant?: 'icon' | 'button';
+  variant?: 'icon' | 'button' | 'header';
   tooltipTitle?: string;
   label?: string;
   size?: 'small' | 'medium' | 'large';
@@ -44,6 +44,29 @@ const RefreshButton: React.FC<RefreshButtonProps> = ({
             }}
           >
             <RefreshIcon fontSize={size === 'large' ? 'medium' : 'small'} />
+          </IconButton>
+        </span>
+      </Tooltip>
+    );
+  }
+
+  // For the header variant (used in the navbar)
+  if (variant === 'header') {
+    return (
+      <Tooltip title={tooltipTitle} {...tooltipProps}>
+        <span>
+          <IconButton
+            onClick={onClick}
+            disabled={disabled}
+            color="inherit"
+            size={size}
+            sx={{
+              ml: 1,
+              color: 'inherit',
+              ...buttonProps?.sx,
+            }}
+          >
+            <RefreshIcon />
           </IconButton>
         </span>
       </Tooltip>

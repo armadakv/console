@@ -1,33 +1,40 @@
 // Server status types
+export interface TableStatus {
+  logSize: number;
+  dbSize: number;
+  leader: string;
+  raftIndex: number;
+  raftTerm: number;
+  raftAppliedIndex: number;
+}
+
 export interface ServerStatus {
   id: string;
   name: string;
   status: string;
   message: string;
   config?: Record<string, any>;
+  tables?: Record<string, TableStatus>;
+  errors?: string[];
 }
 
 export interface StatusResponse {
   servers: ServerStatus[];
 }
 
+// Server info type
+export interface Server {
+  id: string;
+  name: string;
+  peerURLs: string[];
+  clientURLs: string[];
+}
+
 // Cluster info types
 export interface ClusterInfo {
   nodeId: string;
   nodeAddress: string;
-  leader: string;
-  followers: string[];
-  term: number;
-}
-
-// Metrics types
-export interface Metrics {
-  requestCount: number;
-  keyCount: number;
-  diskUsage: number;
-  memoryUsage: number;
-  upTime: number;
-  requestLatency: number;
+  members: Server[];
 }
 
 // Table types
@@ -49,4 +56,11 @@ export interface CreateTableRequest {
 
 export interface CreateTableResponse {
   id: string;
+}
+
+// Splash screen types
+declare global {
+  interface Window {
+    hideSplashScreen?: () => void;
+  }
 }

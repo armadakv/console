@@ -1,4 +1,4 @@
-import { KeyValuePair, StatusResponse, ClusterInfo, Metrics, Table } from '../types';
+import { KeyValuePair, StatusResponse, ClusterInfo, Table } from '../types';
 
 // Base API URL
 const API_URL = '/api';
@@ -23,11 +23,6 @@ export const getStatus = async (): Promise<StatusResponse> => {
 
 export const getClusterInfo = async (): Promise<ClusterInfo> => {
   const response = await fetch(`${API_URL}/cluster`);
-  return handleApiError(response);
-};
-
-export const getMetrics = async (): Promise<Metrics> => {
-  const response = await fetch(`${API_URL}/metrics`);
   return handleApiError(response);
 };
 

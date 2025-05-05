@@ -6,7 +6,6 @@ import * as api from '../api';
 export const queryKeys = {
   status: ['status'],
   clusterInfo: ['clusterInfo'],
-  metrics: ['metrics'],
   tables: ['tables'],
   keyValuePairs: (table: string, prefix: string = '', start: string = '', end: string = '') => [
     'keyValuePairs',
@@ -28,13 +27,6 @@ export const useStatus = () => {
 // Cluster info hook
 export const useClusterInfo = () => {
   return useQuery(queryKeys.clusterInfo, api.getClusterInfo, {
-    refetchInterval: 10000, // Refetch every 10 seconds
-  });
-};
-
-// Metrics hook
-export const useMetrics = () => {
-  return useQuery(queryKeys.metrics, api.getMetrics, {
     refetchInterval: 10000, // Refetch every 10 seconds
   });
 };

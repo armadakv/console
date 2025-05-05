@@ -10,6 +10,7 @@ import {
 } from '@mui/material';
 import React from 'react';
 
+import { useNavigation } from '../context/NavigationContext';
 import ThemeToggle from './ThemeToggle';
 
 interface HeaderProps {
@@ -20,6 +21,7 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ drawerWidth, onDrawerToggle }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { pageTitle, pageAction } = useNavigation();
 
   return (
     <AppBar
@@ -54,10 +56,11 @@ const Header: React.FC<HeaderProps> = ({ drawerWidth, onDrawerToggle }) => {
           }}
         >
           <Typography variant="h6" noWrap component="div">
-            {isMobile ? 'Armada Console' : 'Dashboard'}
+            {isMobile ? 'Armada Console' : pageTitle}
           </Typography>
 
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            {pageAction}
             <ThemeToggle />
           </Box>
         </Box>
