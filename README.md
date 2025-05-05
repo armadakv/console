@@ -90,6 +90,27 @@ ArmadaKV Console provides an intuitive interface for interacting with and monito
    ```
    Default is `http://localhost:5001`.
 
+### Using Docker
+
+You can run ArmadaKV Console using Docker:
+
+1. Build the Docker image:
+   ```
+   make docker-build
+   ```
+
+2. Run the Docker container:
+   ```
+   make docker-run
+   ```
+   
+   Or with custom configuration:
+   ```
+   docker run -p 8080:8080 -e ARMADA_URL=http://your-armada-server:5001 armadakv/console:latest
+   ```
+
+3. Access the console at `http://localhost:8080`
+
 ## Project Structure
 
 - `main.go` - Entry point for the application
@@ -106,6 +127,7 @@ ArmadaKV Console provides an intuitive interface for interacting with and monito
     - `pb/` - Generated Protocol Buffers code
 - `proto/` - Protocol Buffers definition files
 - `hack/` - Helper scripts for development and code generation
+- `Dockerfile` - Multi-stage Docker build configuration
 
 ## Development
 
@@ -151,6 +173,8 @@ This creates an optimized production build with:
 - `make fmt` - Format code
 - `make deps` - Update dependencies
 - `make proto` - Generate Protocol Buffer code
+- `make docker-build` - Build Docker image
+- `make docker-run` - Run Docker container locally
 - `make help` - Display available commands
 
 ### Frontend Linting and Formatting

@@ -1,0 +1,61 @@
+# Ignore version control files
+.git/
+.gitignore
+
+# Ignore build artifacts and binaries
+console
+*.exe
+*.dll
+*.so
+*.dylib
+dist/
+build/
+
+# Ignore frontend build artifacts
+frontend/dist/
+frontend/node_modules/
+frontend/.cache/
+frontend/.vite/
+frontend/coverage/
+frontend/npm-debug.log
+frontend/*.log
+frontend/.env*
+frontend/.DS_Store
+frontend/.eslintcache
+
+# Ignore backend build artifacts
+backend/armada/pb/
+
+# Ignore Go specific files
+*.test
+*.out
+coverage.txt
+
+# Ignore development and editor specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+*.env
+
+# Ignore temporary and log files
+tmp/
+temp/
+*.log
+logs/
+
+# Ignore Markdown files (except for README.md)
+*.md
+!README.md
+
+# Ignore Docker files themselves (prevent recursive copy)
+Dockerfile
+.dockerignore
+
+# Keep project configuration files
+!go.mod
+!go.sum
+!frontend/package.json
+!frontend/pnpm-lock.yaml

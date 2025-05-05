@@ -10,6 +10,9 @@ GOGET=$(GO) get
 GOMOD=$(GO) mod
 GOFMT=$(GO) fmt
 NPM=pnpm
+DOCKER=docker
+DOCKER_IMAGE=armadakv/console
+DOCKER_TAG=latest
 
 # Install frontend dependencies
 .PHONY: frontend-deps
@@ -73,6 +76,16 @@ deps:
 prod: frontend-build
 	$(GOBUILD) -o $(BINARY_NAME) -v -ldflags="-s -w"
 
+# Build Docker image
+.PHONY: docker-build
+docker-build:
+	$(DOCKER) build -t $(DOCKER_IMAGE):$(DOCKER_TAG) .
+
+# Run Docker image
+.PHONY: docker-run
+docker-run:
+	$(DOCKER) run -p 8080:8080 $(DOCKER_IMAGE):$(DOCKER_TAG)
+
 # Help
 .PHONY: help
 help:
@@ -88,6 +101,8 @@ help:
 	@echo "make frontend-deps - Install frontend dependencies"
 	@echo "make frontend-build - Build the frontend"
 	@echo "make proto - Generate gRPC client code"
+	@echo "make docker-build - Build Docker image"
+	@echo "make docker-run - Run Docker image locally"
 	@echo "make help - Show this help"
 
 # Default target
