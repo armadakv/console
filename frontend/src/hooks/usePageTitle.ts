@@ -1,5 +1,4 @@
 import { ReactNode, useEffect } from 'react';
-
 import { useNavigation } from '../context/NavigationContext';
 
 /**

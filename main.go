@@ -2,11 +2,12 @@ package main
 
 import (
 	"context"
-	"embed"
+	"errors"
 	"fmt"
 	"github.com/armadakv/console/backend/api"
 	"github.com/armadakv/console/backend/armada"
 	"github.com/armadakv/console/backend/metrics"
+	"github.com/armadakv/console/frontend"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -25,9 +26,6 @@ const (
 	staticDir        = "frontend/dist"
 	defaultArmadaURL = "http://localhost:5001"
 )
-
-//go:embed frontend/dist
-var frontendFS embed.FS
 
 type zapAdapter struct {
 	logger *zap.Logger
@@ -57,7 +55,7 @@ func main() {
 	}
 
 	// Get the frontend filesystem
-	frontendRoot, err := fs.Sub(frontendFS, staticDir)
+	frontendRoot, err := fs.Sub(frontend.FS, staticDir)
 	if err != nil {
 		logger.Fatal("Failed to get frontend filesystem", zap.Error(err))
 	}
@@ -141,7 +139,7 @@ func main() {
 		logger.Info("Connecting to Armada server", zap.String("url", armadaURL))
 		logger.Info("Server ready", zap.String("url", "http://localhost"+addr))
 
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Fatal("Server error", zap.Error(err))
 		}
 	}()

@@ -73,14 +73,18 @@ const DashboardPage: React.FC = () => {
   }, [statusData]);
 
   // Create refresh action button for header using RefreshButton component
-  const refreshButton = (
-    <RefreshButton
-      onClick={() => refetchStatus()}
-      disabled={isStatusLoading}
-      variant="header"
-      tooltipTitle="Refresh dashboard data"
-    />
-  );
+  const refreshButton = useMemo(() => {
+    return (
+      <RefreshButton
+        onClick={() => {
+          refetchStatus();
+        }}
+        disabled={isStatusLoading}
+        variant="header"
+        tooltipTitle="Refresh dashboard data"
+      />
+    );
+  }, [isStatusLoading, refetchStatus]);
 
   // Use the usePageTitle hook instead of PageHeader component
   usePageTitle('Dashboard', refreshButton);

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
 
 interface NavigationContextType {
     pageTitle: string;
@@ -18,13 +18,24 @@ export const NavigationProvider: React.FC<NavigationProviderProps> = ({ children
     const [pageTitle, setPageTitle] = useState<string>('Dashboard');
     const [pageAction, setPageAction] = useState<ReactNode | null>(null);
 
-    const resetPageAction = () => setPageAction(null);
+    // Memoize functions to prevent unnecessary re-renders
+    const memoizedSetPageTitle = useCallback((title: string) => {
+        setPageTitle(title);
+    }, []);
+
+    const memoizedSetPageAction = useCallback((action: ReactNode | null) => {
+        setPageAction(action);
+    }, []);
+
+    const resetPageAction = useCallback(() => {
+        setPageAction(null);
+    }, []);
 
     const value = {
         pageTitle,
         pageAction,
-        setPageTitle,
-        setPageAction,
+        setPageTitle: memoizedSetPageTitle,
+        setPageAction: memoizedSetPageAction,
         resetPageAction,
     };
 

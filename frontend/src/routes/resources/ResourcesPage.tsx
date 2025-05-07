@@ -1,5 +1,5 @@
 import { Box, Typography, Grid, Paper } from '@mui/material';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useClusterInfo, useStatus } from '../../hooks/useApi';
 
 import CardWithHeader from '../../components/shared/CardWithHeader';
@@ -19,17 +19,19 @@ const ResourcesPage: React.FC = () => {
   const error = statusErrorData || clusterErrorData;
 
   // Create refresh action button for header using RefreshButton component
-  const refreshButton = (
-    <RefreshButton
-      onClick={() => {
-        refetchStatus();
-        refetchCluster();
-      }}
-      disabled={isLoading}
-      variant="header"
-      tooltipTitle="Refresh resources data"
-    />
-  );
+  const refreshButton = useMemo(() => {
+    return (
+      <RefreshButton
+        onClick={() => {
+          refetchStatus();
+          refetchCluster();
+        }}
+        disabled={isLoading}
+        variant="header"
+        tooltipTitle="Refresh resources data"
+      />
+    );
+  }, [isLoading, refetchStatus, refetchCluster]);
 
   // Use the usePageTitle hook instead of PageHeader component
   usePageTitle('Resources', refreshButton);
