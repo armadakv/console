@@ -2,6 +2,8 @@
 // This file contains the data models used by the Armada client.
 package armada
 
+import "time"
+
 // Status represents the status of the Armada server.
 type Status struct {
 	// Status is the current status of the server (e.g., "ok", "error").
@@ -86,4 +88,11 @@ type Server struct {
 
 	// ClientURLs is the list of URLs the server exposes to clients for communication.
 	ClientURLs []string `json:"clientURLs"`
+}
+
+// MetricsData represents metrics data received from Armada
+type MetricsData struct {
+	Data      string    // The metrics data in Prometheus text format (or other requested format)
+	Timestamp time.Time // The timestamp when the metrics were collected
+	Source    string    // The cluster/server source of the metrics
 }

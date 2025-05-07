@@ -4,15 +4,13 @@ import (
 	"cmp"
 	"context"
 	"encoding/json"
-	"net/http"
-	"slices"
-	"sync"
-	"time"
-
 	"github.com/armadakv/console/backend/armada"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-rat/chix"
 	"go.uber.org/zap"
+	"net/http"
+	"slices"
+	"sync"
 )
 
 // ArmadaClient is the interface for interacting with the Armada server.
@@ -67,6 +65,11 @@ type ArmadaClient interface {
 	// It returns an error if the operation fails.
 	DeleteKey(ctx context.Context, table, key string) error
 
+	// GetMetrics retrieves all Prometheus metrics from the Armada server.
+	// The format parameter can specify the desired output format.
+	// It returns metrics data and collection timestamp.
+	GetMetrics(ctx context.Context, format string) (*armada.MetricsData, error)
+
 	// Close closes the connection to the Armada server.
 	// It should be called when the client is no longer needed.
 	Close() error
@@ -107,38 +110,11 @@ type Handler struct {
 }
 
 // NewHandler creates a new API handler
-func NewHandler(armadaURL string, logger *zap.Logger) *Handler {
+func NewHandler(client *armada.Client, logger *zap.Logger) *Handler {
 	return &Handler{
-		armadaURL: armadaURL,
-		logger:    logger,
+		client: client,
+		logger: logger,
 	}
-}
-
-// withArmadaClient is a middleware that adds the Armada client to the request context
-func (h *Handler) withArmadaClient(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		client, err := h.getClient()
-		if err != nil {
-			h.logger.Error("Failed to get Armada client", zap.Error(err))
-			http.Error(w, "Failed to connect to Armada server", http.StatusInternalServerError)
-			return
-		}
-
-		// Create a context with timeout
-		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
-		defer cancel()
-
-		// Add the client to the context
-		ctx = context.WithValue(ctx, "armadaClient", client)
-
-		// Call the next handler with the updated context
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
-}
-
-// getArmadaClientFromContext retrieves the Armada client from the request context
-func getArmadaClientFromContext(r *http.Request) ArmadaClient {
-	return r.Context().Value("armadaClient").(ArmadaClient)
 }
 
 // RegisterRoutes registers all API routes with the provided router
@@ -157,7 +133,6 @@ func getArmadaClientFromContext(r *http.Request) ArmadaClient {
 func (h *Handler) RegisterRoutes(r chi.Router) {
 	// Create a subrouter with the Armada client middleware
 	apiRouter := chi.NewRouter()
-	apiRouter.Use(h.withArmadaClient)
 
 	// Register API routes
 	apiRouter.Get("/status", h.handleStatus)
@@ -191,11 +166,10 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 // handleStatus handles the status API endpoint
 func (h *Handler) handleStatus(w http.ResponseWriter, r *http.Request) {
 	// Get the Armada client from the request context
-	client := getArmadaClientFromContext(r)
 	render := chix.NewRender(w)
 
 	// Get all servers from the Armada cluster
-	servers, err := client.GetAllServers(r.Context())
+	servers, err := h.client.GetAllServers(r.Context())
 	if err != nil {
 		h.logger.Error("Failed to get servers from Armada cluster", zap.Error(err))
 		http.Error(w, "Failed to get servers", http.StatusInternalServerError)
@@ -216,7 +190,7 @@ func (h *Handler) handleStatus(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Get the status of this server
-		status, err := client.GetStatus(r.Context(), serverAddress)
+		status, err := h.client.GetStatus(r.Context(), serverAddress)
 		if err != nil {
 			h.logger.Error("Failed to get status from Armada server",
 				zap.Error(err),
@@ -251,11 +225,9 @@ func (h *Handler) handleStatus(w http.ResponseWriter, r *http.Request) {
 
 // handleTables handles the tables API endpoint
 func (h *Handler) handleTables(w http.ResponseWriter, r *http.Request) {
-	// Get the Armada client from the request context
-	client := getArmadaClientFromContext(r)
 	render := chix.NewRender(w)
 	// Get the tables from the Armada server
-	tables, err := client.GetTables(r.Context())
+	tables, err := h.client.GetTables(r.Context())
 	if err != nil {
 		h.logger.Error("Failed to get tables from Armada server", zap.Error(err))
 		http.Error(w, "Failed to get tables", http.StatusInternalServerError)
@@ -267,8 +239,6 @@ func (h *Handler) handleTables(w http.ResponseWriter, r *http.Request) {
 
 // handleCreateTable handles the create table API endpoint
 func (h *Handler) handleCreateTable(w http.ResponseWriter, r *http.Request) {
-	// Get the Armada client from the request context
-	client := getArmadaClientFromContext(r)
 	render := chix.NewRender(w)
 
 	// Parse the request body
@@ -285,7 +255,7 @@ func (h *Handler) handleCreateTable(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create the table
-	tableID, err := client.CreateTable(r.Context(), req.Name)
+	tableID, err := h.client.CreateTable(r.Context(), req.Name)
 	if err != nil {
 		h.logger.Error("Failed to create table",
 			zap.Error(err),
@@ -300,8 +270,6 @@ func (h *Handler) handleCreateTable(w http.ResponseWriter, r *http.Request) {
 
 // handleDeleteTable handles the delete table API endpoint
 func (h *Handler) handleDeleteTable(w http.ResponseWriter, r *http.Request) {
-	// Get the Armada client from the request context
-	client := getArmadaClientFromContext(r)
 	render := chix.NewRender(w)
 
 	// Get the table name from the URL parameters
@@ -312,7 +280,7 @@ func (h *Handler) handleDeleteTable(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Delete the table
-	err := client.DeleteTable(r.Context(), tableName)
+	err := h.client.DeleteTable(r.Context(), tableName)
 	if err != nil {
 		h.logger.Error("Failed to delete table",
 			zap.Error(err),
@@ -327,8 +295,6 @@ func (h *Handler) handleDeleteTable(w http.ResponseWriter, r *http.Request) {
 
 // handleGetKeyValue handles the GET method for the key-value API endpoint
 func (h *Handler) handleGetKeyValue(w http.ResponseWriter, r *http.Request) {
-	// Get the Armada client from the request context
-	client := getArmadaClientFromContext(r)
 	render := chix.NewRender(w, r)
 	// Get the table from the URL parameters
 	table := chi.URLParam(r, "table")
@@ -362,7 +328,7 @@ func (h *Handler) handleGetKeyValue(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get key-value pairs with the specified filtering
-	pairs, err := client.GetKeyValuePairs(r.Context(), table, prefix, start, end, limit)
+	pairs, err := h.client.GetKeyValuePairs(r.Context(), table, prefix, start, end, limit)
 	if err != nil {
 		h.logger.Error("Failed to get key-value pairs",
 			zap.Error(err),
@@ -379,8 +345,6 @@ func (h *Handler) handleGetKeyValue(w http.ResponseWriter, r *http.Request) {
 
 // handlePutKeyValue handles the PUT method for the key-value API endpoint
 func (h *Handler) handlePutKeyValue(w http.ResponseWriter, r *http.Request) {
-	// Get the Armada client from the request context
-	client := getArmadaClientFromContext(r)
 	render := chix.NewRender(w)
 	// Get the table from the URL parameters
 	table := chi.URLParam(r, "table")
@@ -396,7 +360,7 @@ func (h *Handler) handlePutKeyValue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := client.PutKeyValue(r.Context(), table, pair.Key, pair.Value); err != nil {
+	if err := h.client.PutKeyValue(r.Context(), table, pair.Key, pair.Value); err != nil {
 		h.logger.Error("Failed to put key-value pair",
 			zap.Error(err),
 			zap.String("table", table),
@@ -410,8 +374,6 @@ func (h *Handler) handlePutKeyValue(w http.ResponseWriter, r *http.Request) {
 
 // handleDeleteKey handles the DELETE method for the key-value API endpoint
 func (h *Handler) handleDeleteKey(w http.ResponseWriter, r *http.Request) {
-	// Get the Armada client from the request context
-	client := getArmadaClientFromContext(r)
 	render := chix.NewRender(w)
 	// Get the table and key from the URL parameters
 	table := chi.URLParam(r, "table")
@@ -426,7 +388,7 @@ func (h *Handler) handleDeleteKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := client.DeleteKey(r.Context(), table, key); err != nil {
+	if err := h.client.DeleteKey(r.Context(), table, key); err != nil {
 		h.logger.Error("Failed to delete key",
 			zap.Error(err),
 			zap.String("table", table),
@@ -440,8 +402,6 @@ func (h *Handler) handleDeleteKey(w http.ResponseWriter, r *http.Request) {
 
 // handleGetSpecificKeyValue handles the GET method for retrieving a specific key-value pair
 func (h *Handler) handleGetSpecificKeyValue(w http.ResponseWriter, r *http.Request) {
-	// Get the Armada client from the request context
-	client := getArmadaClientFromContext(r)
 	render := chix.NewRender(w)
 
 	// Get the table and key from the URL parameters
@@ -458,7 +418,7 @@ func (h *Handler) handleGetSpecificKeyValue(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Get the specific key-value pair
-	pair, err := client.GetKeyValue(r.Context(), table, key)
+	pair, err := h.client.GetKeyValue(r.Context(), table, key)
 	if err != nil {
 		h.logger.Error("Failed to get key-value pair",
 			zap.Error(err),
@@ -473,11 +433,9 @@ func (h *Handler) handleGetSpecificKeyValue(w http.ResponseWriter, r *http.Reque
 
 // handleCluster handles the cluster API endpoint
 func (h *Handler) handleCluster(w http.ResponseWriter, r *http.Request) {
-	// Get the Armada client from the request context
-	client := getArmadaClientFromContext(r)
 	render := chix.NewRender(w)
 	// Get the cluster info from the Armada server
-	clusterInfo, err := client.GetClusterInfo(r.Context())
+	clusterInfo, err := h.client.GetClusterInfo(r.Context())
 	if err != nil {
 		h.logger.Error("Failed to get cluster info from Armada server", zap.Error(err))
 		http.Error(w, "Failed to get cluster info", http.StatusInternalServerError)
@@ -489,11 +447,9 @@ func (h *Handler) handleCluster(w http.ResponseWriter, r *http.Request) {
 
 // handleServers handles the servers API endpoint
 func (h *Handler) handleServers(w http.ResponseWriter, r *http.Request) {
-	// Get the Armada client from the request context
-	client := getArmadaClientFromContext(r)
 	render := chix.NewRender(w)
 	// Get all servers from the Armada cluster
-	servers, err := client.GetAllServers(r.Context())
+	servers, err := h.client.GetAllServers(r.Context())
 	if err != nil {
 		h.logger.Error("Failed to get servers from Armada cluster", zap.Error(err))
 		http.Error(w, "Failed to get servers", http.StatusInternalServerError)
@@ -501,32 +457,4 @@ func (h *Handler) handleServers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	render.JSON(servers)
-}
-
-// getClient returns the Armada client, creating it if necessary
-func (h *Handler) getClient() (ArmadaClient, error) {
-	h.clientLock.RLock()
-	client := h.client
-	h.clientLock.RUnlock()
-
-	if client != nil {
-		return client, nil
-	}
-
-	// Create a new client
-	h.clientLock.Lock()
-	defer h.clientLock.Unlock()
-
-	// Check again in case another goroutine created the client
-	if h.client != nil {
-		return h.client, nil
-	}
-
-	client, err := armada.NewClient(h.armadaURL, h.logger)
-	if err != nil {
-		return nil, err
-	}
-
-	h.client = client
-	return client, nil
 }

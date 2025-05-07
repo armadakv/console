@@ -6,6 +6,7 @@ package armada
 import (
 	"context"
 	"fmt"
+	"time"
 
 	regattapb "github.com/armadakv/console/backend/armada/pb"
 	"go.uber.org/zap"
@@ -26,7 +27,8 @@ type Client struct {
 
 // NewClient creates a new Armada client with a connection to the specified address.
 // It establishes a gRPC connection to the Armada server and initializes the necessary
-// gRPC clients for different operations.
+// gRPC clients for different operations. It also discovers and connects to all members
+// in the cluster for better availability and performance.
 //
 // Parameters:
 //   - address: The address of the Armada server (e.g., "localhost:8081").
@@ -56,6 +58,11 @@ func NewClient(address string, logger *zap.Logger) (*Client, error) {
 	}
 
 	return client, nil
+}
+
+// GetConnectionPool returns the connection pool used by this client
+func (c *Client) GetConnectionPool() *ConnectionPool {
+	return c.connectionPool
 }
 
 // GetStatus retrieves the current status of the Armada server.
@@ -89,7 +96,7 @@ func (c *Client) GetStatus(ctx context.Context, serverAddress string) (*Status, 
 	}
 
 	// Call the Status method of the Cluster service with config flag enabled
-	resp, err := serverConn.clusterClient.Status(ctx, &regattapb.StatusRequest{
+	resp, err := serverConn.ClusterClient.Status(ctx, &regattapb.StatusRequest{
 		Config: true, // Request config data
 	})
 	if err != nil {
@@ -149,7 +156,7 @@ func (c *Client) GetClusterInfo(ctx context.Context) (*ClusterInfo, error) {
 	}
 
 	// Call the MemberList method of the Cluster service
-	resp, err := serverConn.clusterClient.MemberList(ctx, &regattapb.MemberListRequest{})
+	resp, err := serverConn.ClusterClient.MemberList(ctx, &regattapb.MemberListRequest{})
 	if err != nil {
 		c.logger.Error("Failed to get cluster info from Armada server", zap.Error(err))
 		return nil, err
@@ -206,7 +213,7 @@ func (c *Client) GetAllServers(ctx context.Context) ([]Server, error) {
 	}
 
 	// Call the MemberList method of the Cluster service
-	resp, err := serverConn.clusterClient.MemberList(ctx, &regattapb.MemberListRequest{})
+	resp, err := serverConn.ClusterClient.MemberList(ctx, &regattapb.MemberListRequest{})
 	if err != nil {
 		c.logger.Error("Failed to get servers from Armada cluster", zap.Error(err))
 		return nil, err
@@ -248,7 +255,7 @@ func (c *Client) GetTables(ctx context.Context) ([]Table, error) {
 	req := &regattapb.ListTablesRequest{}
 
 	// Call the List method of the Tables service
-	resp, err := serverConn.tablesClient.List(ctx, req)
+	resp, err := serverConn.TablesClient.List(ctx, req)
 	if err != nil {
 		c.logger.Error("Failed to get tables from Armada server", zap.Error(err))
 		return nil, err
@@ -293,7 +300,7 @@ func (c *Client) CreateTable(ctx context.Context, tableName string) (string, err
 	}
 
 	// Call the Create method of the Tables service
-	resp, err := serverConn.tablesClient.Create(ctx, req)
+	resp, err := serverConn.TablesClient.Create(ctx, req)
 	if err != nil {
 		c.logger.Error("Failed to create table",
 			zap.Error(err),
@@ -330,7 +337,7 @@ func (c *Client) DeleteTable(ctx context.Context, tableName string) error {
 	}
 
 	// Call the Delete method of the Tables service
-	_, err = serverConn.tablesClient.Delete(ctx, req)
+	_, err = serverConn.TablesClient.Delete(ctx, req)
 	if err != nil {
 		c.logger.Error("Failed to delete table",
 			zap.Error(err),
@@ -401,7 +408,7 @@ func (c *Client) GetKeyValuePairs(ctx context.Context, table, prefix, start, end
 	}
 
 	// Call the Range method of the KV service
-	resp, err := serverConn.kvClient.Range(ctx, req)
+	resp, err := serverConn.KVClient.Range(ctx, req)
 	if err != nil {
 		c.logger.Error("Failed to get key-value pairs from Armada server",
 			zap.Error(err),
@@ -454,7 +461,7 @@ func (c *Client) GetKeyValue(ctx context.Context, table, key string) (*KeyValueP
 	}
 
 	// Call the Range method of the KV service
-	resp, err := serverConn.kvClient.Range(ctx, req)
+	resp, err := serverConn.KVClient.Range(ctx, req)
 	if err != nil {
 		c.logger.Error("Failed to get key-value pair from Armada server",
 			zap.Error(err),
@@ -508,7 +515,7 @@ func (c *Client) PutKeyValue(ctx context.Context, table, key, value string) erro
 	}
 
 	// Call the Put method of the KV service
-	_, err = serverConn.kvClient.Put(ctx, req)
+	_, err = serverConn.KVClient.Put(ctx, req)
 	if err != nil {
 		c.logger.Error("Failed to put key-value pair to Armada server",
 			zap.Error(err),
@@ -549,7 +556,7 @@ func (c *Client) DeleteKey(ctx context.Context, table, key string) error {
 	}
 
 	// Call the DeleteRange method of the KV service
-	_, err = serverConn.kvClient.DeleteRange(ctx, req)
+	_, err = serverConn.KVClient.DeleteRange(ctx, req)
 	if err != nil {
 		c.logger.Error("Failed to delete key from Armada server",
 			zap.Error(err),
@@ -577,6 +584,42 @@ func incrementLastByte(s string) string {
 	bytes := []byte(s)
 	bytes[len(bytes)-1]++
 	return string(bytes)
+}
+
+// GetMetrics retrieves all Prometheus metrics from the Armada server.
+// It calls the GetMetrics method of the Metrics gRPC service.
+//
+// Parameters:
+//   - ctx: The context for the request.
+//   - format: Optional format specification (default is Prometheus text format).
+//
+// Returns:
+//   - The metrics data and collection timestamp.
+//   - An error if the request fails.
+func (c *Client) GetMetrics(ctx context.Context, format string) (*MetricsData, error) {
+	c.logger.Info("Getting metrics from Armada server",
+		zap.String("address", c.address),
+		zap.String("format", format))
+
+	// Get connection from pool
+	serverConn, err := c.connectionPool.GetConnection(ctx, c.address)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to Armada server: %w", err)
+	}
+
+	req := &regattapb.MetricsRequest{
+		Format: format,
+	}
+
+	resp, err := serverConn.MetricsClient.GetMetrics(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get metrics: %w", err)
+	}
+
+	return &MetricsData{
+		Data:      resp.MetricsData,
+		Timestamp: time.Unix(resp.Timestamp, 0),
+	}, nil
 }
 
 // Close closes the connection to the Armada server.
