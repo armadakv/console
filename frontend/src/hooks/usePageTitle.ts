@@ -21,7 +21,7 @@ const usePageTitle = (title: string, action?: ReactNode) => {
         return () => {
             resetPageAction();
         };
-    }, [title, action, setPageTitle, setPageAction, resetPageAction]);
+    }, [title, action]);
 };
 
 export default usePageTitle;

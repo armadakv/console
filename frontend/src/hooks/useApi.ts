@@ -15,19 +15,27 @@ export const queryKeys = {
     end,
   ],
   keyValuePair: (table: string, key: string) => ['keyValuePair', table, key],
+  metrics: (query: string, time?: string) => ['metrics', query, time],
+  metricsRange: (query: string, start: string, end: string, step?: string) => [
+    'metrics-range',
+    query,
+    start,
+    end,
+    step,
+  ],
 };
 
 // Status hook
 export const useStatus = () => {
   return useQuery(queryKeys.status, api.getStatus, {
-    refetchInterval: 10000, // Refetch every 10 seconds
+    refetchInterval: 30000, // Refetch every 30 seconds
   });
 };
 
 // Cluster info hook
 export const useClusterInfo = () => {
   return useQuery(queryKeys.clusterInfo, api.getClusterInfo, {
-    refetchInterval: 10000, // Refetch every 10 seconds
+    refetchInterval: 30000, // Refetch every 30 seconds
   });
 };
 
@@ -71,6 +79,34 @@ export const useKeyValuePair = (table: string, key: string) => {
     },
     {
       enabled: !!table && !!key,
+    },
+  );
+};
+
+// Metrics query hook
+export const useMetricsQuery = (query: string, time?: string) => {
+  return useQuery(
+    queryKeys.metrics(query, time),
+    () => api.queryMetrics(query, time),
+    {
+      enabled: !!query,
+      refetchInterval: 10000, // Refetch every 10 seconds
+    },
+  );
+};
+
+// Metrics range query hook
+export const useMetricsRangeQuery = (
+  query: string,
+  start: string,
+  end: string,
+  step?: string,
+) => {
+  return useQuery(
+    queryKeys.metricsRange(query, start, end, step),
+    () => api.queryMetricsRange(query, start, end, step),
+    {
+      enabled: !!query && !!start && !!end,
     },
   );
 };

@@ -58,6 +58,33 @@ export interface CreateTableResponse {
   id: string;
 }
 
+type QueryResponse<T> = {
+  status: "success" | "error";
+  data: T;
+};
+
+type VectorResult = {
+  metric: Record<string, string>;
+  value: [number, string]; // Timestamp and value
+};
+
+type MatrixResult = {
+  metric: Record<string, string>;
+  values: [number, string][]; // Array of timestamp-value pairs
+};
+
+type ScalarResult = [number, string]; // Timestamp and value
+
+type StringResult = string;
+
+type QueryResult =
+    | { resultType: "vector"; result: VectorResult[] }
+    | { resultType: "matrix"; result: MatrixResult[] }
+    | { resultType: "scalar"; result: ScalarResult }
+    | { resultType: "string"; result: StringResult };
+
+export type MetricsQueryResponse = QueryResponse<QueryResult>;
+
 // Splash screen types
 declare global {
   interface Window {

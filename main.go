@@ -4,6 +4,12 @@ import (
 	"context"
 	"embed"
 	"fmt"
+	"github.com/armadakv/console/backend/api"
+	"github.com/armadakv/console/backend/armada"
+	"github.com/armadakv/console/backend/metrics"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"io/fs"
 	"net/http"
 	"os"
@@ -11,9 +17,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/armadakv/console/backend/api"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"go.uber.org/zap"
 )
 
@@ -75,9 +78,33 @@ func main() {
 	// Recoverer middleware recovers from panics, logs the panic, and returns a 500 Internal Server Error response
 	r.Use(middleware.Recoverer)
 
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: true,
+		MaxAge:           300,
+	}))
+
+	client, err := armada.NewClient(armadaURL, logger.Named("client"))
+	if err != nil {
+		logger.Fatal("Failed to create Armada client", zap.Error(err))
+	}
+
+	mm, err := metrics.NewMetricsManager(client.GetConnectionPool(), 30*time.Second, "/tmp/tsdb", logger)
+	if err != nil {
+		logger.Fatal("Failed to create metrics manager", zap.Error(err))
+	}
+	mm.Start(context.Background())
+	defer mm.Stop()
+
 	// Register API routes
-	apiHandler := api.NewHandler(armadaURL, logger)
+	apiHandler := api.NewHandler(client, logger.Named("api-handler"))
 	apiHandler.RegisterRoutes(r)
+
+	metricsHandler := metrics.NewMetricsHandler(mm, logger.Named("metrics-handler"))
+	metricsHandler.RegisterRoutes(r)
 
 	// Create a file server from the embedded filesystem
 	fileServer := http.FileServer(http.FS(frontendRoot))
