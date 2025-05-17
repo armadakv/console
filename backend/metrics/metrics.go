@@ -15,10 +15,15 @@ import (
 	"go.uber.org/zap"
 )
 
+type ClusterPool interface {
+	GetConnection(context.Context, string) (*armada.ServerConnection, error)
+	GetKnownAddresses() []string
+}
+
 // MetricsManager manages metrics collection and storage for multiple Armada clusters
 type MetricsManager struct {
 	storage        *tsdb.DB
-	clusterPool    *armada.ConnectionPool
+	clusterPool    ClusterPool
 	scrapeInterval time.Duration
 	logger         *zap.Logger
 	done           chan struct{}
@@ -30,12 +35,12 @@ type MetricsCollector struct {
 	clusterAddr string
 	manager     *MetricsManager
 	logger      *zap.Logger
-	pool        *armada.ConnectionPool
+	pool        ClusterPool
 }
 
 // NewMetricsManager creates a new metrics manager that periodically collects metrics
 // from all discovered Armada clusters and stores them in a local TSDB
-func NewMetricsManager(clusterPool *armada.ConnectionPool, scrapeInterval time.Duration, storageDir string, logger *zap.Logger) (*MetricsManager, error) {
+func NewMetricsManager(clusterPool ClusterPool, scrapeInterval time.Duration, storageDir string, logger *zap.Logger) (*MetricsManager, error) {
 	if logger == nil {
 		logger = zap.NewNop()
 	}

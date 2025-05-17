@@ -22,7 +22,7 @@ type Client struct {
 	logger *zap.Logger
 
 	// connectionPool manages all server connections
-	connectionPool *ConnectionPool
+	connectionPool ConnectionPoolInterface
 }
 
 // NewClient creates a new Armada client with a connection to the specified address.
@@ -61,7 +61,7 @@ func NewClient(address string, logger *zap.Logger) (*Client, error) {
 }
 
 // GetConnectionPool returns the connection pool used by this client
-func (c *Client) GetConnectionPool() *ConnectionPool {
+func (c *Client) GetConnectionPool() ConnectionPoolInterface {
 	return c.connectionPool
 }
 

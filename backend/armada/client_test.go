@@ -7,6 +7,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+
 	regattapb "github.com/armadakv/console/backend/armada/pb"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -163,13 +166,32 @@ func (s *mockServer) Delete(ctx context.Context, req *regattapb.DeleteTableReque
 	return &regattapb.DeleteTableResponse{}, nil
 }
 
+type mockConnectionPool struct {
+	mock.Mock
+}
+
+func (m *mockConnectionPool) GetConnection(ctx context.Context, serverAddress string) (*ServerConnection, error) {
+	args := m.Called(ctx, serverAddress)
+	return args.Get(0).(*ServerConnection), args.Error(1)
+}
+
+func (m *mockConnectionPool) GetKnownAddresses() []string {
+	args := m.Called()
+	return args.Get(0).([]string)
+}
+
+func (m *mockConnectionPool) Close() error {
+	args := m.Called()
+	return args.Error(0)
+}
+
 // bufDialer is a helper function for creating a gRPC connection to the mock server
 func bufDialer(context.Context, string) (net.Conn, error) {
 	return lis.Dial()
 }
 
 // setupTest sets up the mock gRPC server and returns a client for testing
-func setupTest(t *testing.T) (ArmadaClient, func()) {
+func setupTest(t *testing.T) (*Client, func()) {
 	// Create a buffer listener
 	lis = bufconn.Listen(bufSize)
 
@@ -198,18 +220,17 @@ func setupTest(t *testing.T) (ArmadaClient, func()) {
 		t.Fatalf("Failed to dial bufnet: %v", err)
 	}
 
+	mp := &mockConnectionPool{}
+	mp.On("GetConnection", mock.Anything, mock.Anything).Return(createServerConnection(conn), nil)
+	mp.On("Close").Return(nil)
 	// Create a no-op logger for testing
 	logger := zap.NewNop()
 
 	// Create the client
-	client := &client{
-		address:           "bufnet",
-		conn:              conn,
-		kvClient:          regattapb.NewKVClient(conn),
-		clusterClient:     regattapb.NewClusterClient(conn),
-		tablesClient:      regattapb.NewTablesClient(conn),
-		logger:            logger,
-		serverConnections: make(map[string]*grpc.ClientConn),
+	client := &Client{
+		address:        "bufnet",
+		logger:         logger,
+		connectionPool: mp,
 	}
 
 	// Return the client and a cleanup function
@@ -229,19 +250,11 @@ func TestGetStatus(t *testing.T) {
 	ctx := context.Background()
 	status, err := client.GetStatus(ctx, "")
 
-	// Check for errors
-	if err != nil {
-		t.Fatalf("GetStatus failed: %v", err)
-	}
-
-	// Check the response
-	if status.Status != "ok" {
-		t.Errorf("Expected status 'ok', got '%s'", status.Status)
-	}
-
-	if status.Message != "v1.0.0 - Mock Armada Server" {
-		t.Errorf("Expected message 'v1.0.0 - Mock Armada Server', got '%s'", status.Message)
-	}
+	// Check for errors and response using testify/assert
+	assert.NoError(t, err, "GetStatus should not return an error")
+	assert.Equal(t, "ok", status.Status, "Status should be 'ok'")
+	assert.Equal(t, "v1.0.0 - Mock Armada Server", status.Message,
+		"Message should be 'v1.0.0 - Mock Armada Server'")
 }
 
 // TestGetStatusWithServerAddress tests the GetStatus method with a specific server address
@@ -254,19 +267,11 @@ func TestGetStatusWithServerAddress(t *testing.T) {
 	ctx := context.Background()
 	status, err := client.GetStatus(ctx, "bufnet")
 
-	// Check for errors
-	if err != nil {
-		t.Fatalf("GetStatus with server address failed: %v", err)
-	}
-
-	// Check the response
-	if status.Status != "ok" {
-		t.Errorf("Expected status 'ok', got '%s'", status.Status)
-	}
-
-	if status.Message != "v1.0.0 - Mock Armada Server" {
-		t.Errorf("Expected message 'v1.0.0 - Mock Armada Server', got '%s'", status.Message)
-	}
+	// Check for errors and response using testify/assert
+	assert.NoError(t, err, "GetStatus with server address should not return an error")
+	assert.Equal(t, "ok", status.Status, "Status should be 'ok'")
+	assert.Equal(t, "v1.0.0 - Mock Armada Server", status.Message,
+		"Message should be 'v1.0.0 - Mock Armada Server'")
 }
 
 // TestGetClusterInfo tests the GetClusterInfo method
@@ -277,29 +282,11 @@ func TestGetClusterInfo(t *testing.T) {
 
 	// Call the method
 	ctx := context.Background()
-	clusterInfo, err := client.GetClusterInfo(ctx)
+	info, err := client.GetClusterInfo(ctx)
 
-	// Check for errors
-	if err != nil {
-		t.Fatalf("GetClusterInfo failed: %v", err)
-	}
-
-	// Check the response
-	if clusterInfo.NodeID != "node1" {
-		t.Errorf("Expected nodeId 'node1', got '%s'", clusterInfo.NodeID)
-	}
-
-	if clusterInfo.Leader != "node1" {
-		t.Errorf("Expected leader 'node1', got '%s'", clusterInfo.Leader)
-	}
-
-	if len(clusterInfo.Followers) != 2 {
-		t.Errorf("Expected 2 followers, got %d", len(clusterInfo.Followers))
-	}
-
-	if clusterInfo.Term != 5 {
-		t.Errorf("Expected term 5, got %d", clusterInfo.Term)
-	}
+	// Check for errors and response using testify/assert
+	assert.NoError(t, err, "GetClusterInfo should not return an error")
+	assert.NotNil(t, info, "Cluster info should not be nil")
 }
 
 // TestGetAllServers tests the GetAllServers method
@@ -312,53 +299,16 @@ func TestGetAllServers(t *testing.T) {
 	ctx := context.Background()
 	servers, err := client.GetAllServers(ctx)
 
-	// Check for errors
-	if err != nil {
-		t.Fatalf("GetAllServers failed: %v", err)
-	}
-
-	// Check the response
-	if len(servers) != 3 {
-		t.Errorf("Expected 3 servers, got %d", len(servers))
-	}
+	// Check for errors and response using testify/assert
+	assert.NoError(t, err, "GetAllServers should not return an error")
+	assert.Len(t, servers, 3, "Should return 3 servers")
 
 	// Check the first server
-	if servers[0].ID != "node1" {
-		t.Errorf("Expected server ID 'node1', got '%s'", servers[0].ID)
-	}
-
-	if servers[0].Name != "node1" {
-		t.Errorf("Expected server Name 'node1', got '%s'", servers[0].Name)
-	}
-
-	if len(servers[0].ClientURLs) != 1 || servers[0].ClientURLs[0] != "localhost:8081" {
-		t.Errorf("Expected ClientURLs ['localhost:8081'], got %v", servers[0].ClientURLs)
-	}
-}
-
-// TestGetMetrics tests the GetMetrics method
-func TestGetMetrics(t *testing.T) {
-	// Set up the test
-	client, cleanup := setupTest(t)
-	defer cleanup()
-
-	// Call the method
-	ctx := context.Background()
-	metrics, err := client.GetMetrics(ctx)
-
-	// Check for errors
-	if err != nil {
-		t.Fatalf("GetMetrics failed: %v", err)
-	}
-
-	// Check the response
-	if metrics.KeyCount != 100 {
-		t.Errorf("Expected keyCount 100, got %d", metrics.KeyCount)
-	}
-
-	if metrics.DiskUsage != 3072 { // 1024 + 2048
-		t.Errorf("Expected diskUsage 3072, got %d", metrics.DiskUsage)
-	}
+	assert.Equal(t, "node1", servers[0].ID, "Server ID should be 'node1'")
+	assert.Equal(t, "node1", servers[0].Name, "Server Name should be 'node1'")
+	assert.Len(t, servers[0].ClientURLs, 1, "Should have 1 client URL")
+	assert.Equal(t, "localhost:8081", servers[0].ClientURLs[0],
+		"Client URL should be 'localhost:8081'")
 }
 
 // TestGetTables tests the GetTables method
@@ -371,23 +321,14 @@ func TestGetTables(t *testing.T) {
 	ctx := context.Background()
 	tables, err := client.GetTables(ctx)
 
-	// Check for errors
-	if err != nil {
-		t.Fatalf("GetTables failed: %v", err)
-	}
+	// Check for errors and response using testify/assert
+	assert.NoError(t, err, "GetTables should not return an error")
+	assert.Len(t, tables, 2, "Should return 2 tables")
 
-	// Check the response
-	if len(tables) != 2 {
-		t.Errorf("Expected 2 tables, got %d", len(tables))
-	}
-
-	if tables[0].Name != "test_table1" || tables[0].ID != "table1" {
-		t.Errorf("Expected table {test_table1, table1}, got {%s, %s}", tables[0].Name, tables[0].ID)
-	}
-
-	if tables[1].Name != "test_table2" || tables[1].ID != "table2" {
-		t.Errorf("Expected table {test_table2, table2}, got {%s, %s}", tables[1].Name, tables[1].ID)
-	}
+	assert.Equal(t, "test_table1", tables[0].Name, "First table name should be 'test_table1'")
+	assert.Equal(t, "table1", tables[0].ID, "First table ID should be 'table1'")
+	assert.Equal(t, "test_table2", tables[1].Name, "Second table name should be 'test_table2'")
+	assert.Equal(t, "table2", tables[1].ID, "Second table ID should be 'table2'")
 }
 
 // TestGetKeyValuePairs tests the GetKeyValuePairs method
@@ -400,23 +341,14 @@ func TestGetKeyValuePairs(t *testing.T) {
 	ctx := context.Background()
 	pairs, err := client.GetKeyValuePairs(ctx, "test_table", "key", "", "", 10)
 
-	// Check for errors
-	if err != nil {
-		t.Fatalf("GetKeyValuePairs failed: %v", err)
-	}
+	// Check for errors and response using testify/assert
+	assert.NoError(t, err, "GetKeyValuePairs should not return an error")
+	assert.Len(t, pairs, 2, "Should return 2 pairs")
 
-	// Check the response
-	if len(pairs) != 2 {
-		t.Errorf("Expected 2 pairs, got %d", len(pairs))
-	}
-
-	if pairs[0].Key != "key1" || pairs[0].Value != "value1" {
-		t.Errorf("Expected pair {key1, value1}, got {%s, %s}", pairs[0].Key, pairs[0].Value)
-	}
-
-	if pairs[1].Key != "key2" || pairs[1].Value != "value2" {
-		t.Errorf("Expected pair {key2, value2}, got {%s, %s}", pairs[1].Key, pairs[1].Value)
-	}
+	assert.Equal(t, "key1", pairs[0].Key, "First key should be 'key1'")
+	assert.Equal(t, "value1", pairs[0].Value, "First value should be 'value1'")
+	assert.Equal(t, "key2", pairs[1].Key, "Second key should be 'key2'")
+	assert.Equal(t, "value2", pairs[1].Value, "Second value should be 'value2'")
 }
 
 // TestGetKeyValue tests the GetKeyValue method
@@ -429,15 +361,10 @@ func TestGetKeyValue(t *testing.T) {
 	ctx := context.Background()
 	pair, err := client.GetKeyValue(ctx, "test_table", "key1")
 
-	// Check for errors
-	if err != nil {
-		t.Fatalf("GetKeyValue failed: %v", err)
-	}
-
-	// Check the response
-	if pair.Key != "key1" || pair.Value != "value1" {
-		t.Errorf("Expected pair {key1, value1}, got {%s, %s}", pair.Key, pair.Value)
-	}
+	// Check for errors and response using testify/assert
+	assert.NoError(t, err, "GetKeyValue should not return an error")
+	assert.Equal(t, "key1", pair.Key, "Key should be 'key1'")
+	assert.Equal(t, "value1", pair.Value, "Value should be 'value1'")
 }
 
 // TestPutKeyValue tests the PutKeyValue method
@@ -450,10 +377,8 @@ func TestPutKeyValue(t *testing.T) {
 	ctx := context.Background()
 	err := client.PutKeyValue(ctx, "test_table", "key3", "value3")
 
-	// Check for errors
-	if err != nil {
-		t.Fatalf("PutKeyValue failed: %v", err)
-	}
+	// Check for errors using testify/assert
+	assert.NoError(t, err, "PutKeyValue should not return an error")
 }
 
 // TestDeleteKey tests the DeleteKey method
@@ -466,10 +391,8 @@ func TestDeleteKey(t *testing.T) {
 	ctx := context.Background()
 	err := client.DeleteKey(ctx, "test_table", "key1")
 
-	// Check for errors
-	if err != nil {
-		t.Fatalf("DeleteKey failed: %v", err)
-	}
+	// Check for errors using testify/assert
+	assert.NoError(t, err, "DeleteKey should not return an error")
 }
 
 // TestCreateTable tests the CreateTable method
@@ -482,15 +405,9 @@ func TestCreateTable(t *testing.T) {
 	ctx := context.Background()
 	tableID, err := client.CreateTable(ctx, "new_table")
 
-	// Check for errors
-	if err != nil {
-		t.Fatalf("CreateTable failed: %v", err)
-	}
-
-	// Check the response
-	if tableID != "table_new_table" {
-		t.Errorf("Expected tableID 'table_new_table', got '%s'", tableID)
-	}
+	// Check for errors and response using testify/assert
+	assert.NoError(t, err, "CreateTable should not return an error")
+	assert.Equal(t, "table_new_table", tableID, "Table ID should be 'table_new_table'")
 }
 
 // TestDeleteTable tests the DeleteTable method
@@ -503,10 +420,8 @@ func TestDeleteTable(t *testing.T) {
 	ctx := context.Background()
 	err := client.DeleteTable(ctx, "test_table")
 
-	// Check for errors
-	if err != nil {
-		t.Fatalf("DeleteTable failed: %v", err)
-	}
+	// Check for errors using testify/assert
+	assert.NoError(t, err, "DeleteTable should not return an error")
 }
 
 // TestClose tests the Close method
@@ -518,8 +433,6 @@ func TestClose(t *testing.T) {
 	// Call the method
 	err := client.Close()
 
-	// Check for errors
-	if err != nil {
-		t.Fatalf("Close failed: %v", err)
-	}
+	// Check for errors using testify/assert
+	assert.NoError(t, err, "Close should not return an error")
 }

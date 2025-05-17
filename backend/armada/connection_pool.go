@@ -18,6 +18,19 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+// ConnectionPoolInterface defines the interface for a connection pool
+// This makes it easier to mock in tests
+type ConnectionPoolInterface interface {
+	// GetConnection gets or creates a connection to a server
+	GetConnection(ctx context.Context, serverAddress string) (*ServerConnection, error)
+
+	// GetKnownAddresses returns a list of all known server addresses
+	GetKnownAddresses() []string
+
+	// Close closes all connections in the pool
+	Close() error
+}
+
 // reconnectConfig holds configuration for reconnection attempts
 type reconnectConfig struct {
 	// maxRetries is the maximum number of reconnection attempts before giving up
@@ -227,6 +240,137 @@ func extractHostname(address string) string {
 	return hostname
 }
 
+// isConnectionHealthy checks if a connection is in a healthy state (Ready or Idle)
+func isConnectionHealthy(conn *grpc.ClientConn) bool {
+	return conn != nil && (conn.GetState() == connectivity.Ready || conn.GetState() == connectivity.Idle)
+}
+
+// createServerConnection creates a new ServerConnection with proper clients
+func createServerConnection(conn *grpc.ClientConn) *ServerConnection {
+	return &ServerConnection{
+		conn:          conn,
+		KVClient:      regattapb.NewKVClient(conn),
+		ClusterClient: regattapb.NewClusterClient(conn),
+		TablesClient:  regattapb.NewTablesClient(conn),
+		MetricsClient: regattapb.NewMetricsClient(conn),
+	}
+}
+
+// getHealthyExistingConnection tries to get an existing healthy connection
+// with just a read lock for better concurrency
+func (p *ConnectionPool) getHealthyExistingConnection(serverAddress string) *ServerConnection {
+	p.connectionLock.RLock()
+	defer p.connectionLock.RUnlock()
+
+	serverConn, exists := p.addressToConnection[serverAddress]
+	if exists && serverConn != nil && isConnectionHealthy(serverConn.conn) {
+		p.logger.Debug("Using cached healthy connection", zap.String("address", serverAddress))
+		return serverConn
+	}
+
+	return nil
+}
+
+// getHealthyConnectionLocked checks for a healthy connection while holding the write lock
+// This is used after acquiring the write lock to double-check before creating a new connection
+func (p *ConnectionPool) getHealthyConnectionLocked(serverAddress string) *ServerConnection {
+	serverConn, exists := p.addressToConnection[serverAddress]
+	if exists && serverConn != nil && isConnectionHealthy(serverConn.conn) {
+		p.logger.Debug("Connection fixed by another goroutine", zap.String("address", serverAddress))
+		return serverConn
+	}
+
+	return nil
+}
+
+// createNewConnection creates a new connection to the server
+// The caller must hold the connection lock before calling this method
+func (p *ConnectionPool) createNewConnection(ctx context.Context, serverAddress string) (*ServerConnection, error) {
+	// Create a new gRPC connection
+	conn, err := createGRPCConnection(ctx, serverAddress, p.logger)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create connection to %s: %w", serverAddress, err)
+	}
+
+	// Create a new server connection with the appropriate clients
+	newServerConn := createServerConnection(conn)
+
+	// Fetch node information to identify the server
+	nodeInfo, err := p.fetchNodeInfo(ctx, newServerConn, serverAddress)
+	if err != nil {
+		p.logger.Warn("Failed to fetch node information, continuing with connection",
+			zap.String("address", serverAddress),
+			zap.Error(err))
+	} else {
+		// Add node info to the connection
+		newServerConn.NodeID = nodeInfo.NodeID
+		newServerConn.NodeName = nodeInfo.NodeName
+
+		// Check if we already have a connection for this server ID
+		if p.handleExistingNodeConnection(serverAddress, nodeInfo.NodeID, newServerConn, conn) {
+			// The method returns true if it handled an existing connection and we should return it
+			return p.addressToConnection[serverAddress], nil
+		}
+
+		// Update the ID-to-connection map with this connection
+		p.idToConnection[nodeInfo.NodeID] = newServerConn
+	}
+
+	// Add this address to the mapping
+	p.addressToConnection[serverAddress] = newServerConn
+
+	// Try to discover more cluster members
+	go p.discoverClusterMembers(context.Background(), serverAddress, newServerConn)
+
+	return newServerConn, nil
+}
+
+// handleExistingNodeConnection handles the case where we already have a connection to the same node
+// Returns true if an existing connection is reused, false if we should continue with the new one
+func (p *ConnectionPool) handleExistingNodeConnection(serverAddress string, nodeID string, newConn *ServerConnection, newGRPCConn *grpc.ClientConn) bool {
+	existingConn, idExists := p.idToConnection[nodeID]
+	if idExists && existingConn.conn != nil {
+		// We found an existing connection to this server via a different address
+
+		// Check if the existing connection is healthy
+		if isConnectionHealthy(existingConn.conn) {
+			// The existing connection is healthy, so close the new one
+			p.logger.Info("Found existing healthy connection to same server via different address",
+				zap.String("newAddress", serverAddress),
+				zap.String("serverID", nodeID),
+				zap.String("serverName", newConn.NodeName))
+
+			_ = newGRPCConn.Close() // Close the new connection since we don't need it
+
+			// Add this address to the mapping for the existing connection
+			p.addressToConnection[serverAddress] = existingConn
+			return true
+		}
+
+		// Existing connection is not healthy, continue with the new connection
+		// and update all references to use it instead
+		p.logger.Info("Found existing unhealthy connection to same server, replacing with new connection",
+			zap.String("newAddress", serverAddress),
+			zap.String("serverID", nodeID),
+			zap.String("serverName", newConn.NodeName))
+
+		// Close the old connection
+		_ = existingConn.conn.Close()
+
+		// Find and update all addresses pointing to this server to use the new connection
+		for addr, conn := range p.addressToConnection {
+			if conn == existingConn {
+				p.addressToConnection[addr] = newConn
+				p.logger.Debug("Updated address mapping to use new connection",
+					zap.String("address", addr),
+					zap.String("serverID", nodeID))
+			}
+		}
+	}
+
+	return false
+}
+
 // GetConnection gets or creates a gRPC connection to the specified server address.
 // It validates the connection health and attempts to reconnect if needed.
 // If the address is not already in the pool, it will try to discover additional
@@ -242,120 +386,22 @@ func extractHostname(address string) string {
 //   - The server connection containing gRPC connection and clients.
 //   - An error if the connection could not be established.
 func (p *ConnectionPool) GetConnection(ctx context.Context, serverAddress string) (*ServerConnection, error) {
-	// First check if we already have a connection for this address
-	p.connectionLock.RLock()
-	serverConn, addressExists := p.addressToConnection[serverAddress]
-	p.connectionLock.RUnlock()
-
-	if addressExists {
-		p.logger.Debug("Using cached address mapping", zap.String("address", serverAddress))
-
-		// Check if the connection is healthy
-		if serverConn.conn != nil && (serverConn.conn.GetState() == connectivity.Ready || serverConn.conn.GetState() == connectivity.Idle) {
-			return serverConn, nil
-		}
-
-		// The connection needs reconnection; we'll handle this below
-		// by creating a new connection and updating all the maps
+	// Try to get an existing healthy connection first with just a read lock
+	if conn := p.getHealthyExistingConnection(serverAddress); conn != nil {
+		return conn, nil
 	}
 
-	// We either need to create a new connection or reconnect an existing one
+	// We need to create or repair a connection
 	p.connectionLock.Lock()
 	defer p.connectionLock.Unlock()
 
-	// Double-check that another goroutine hasn't fixed/created the connection
-	if updatedConn, exists := p.addressToConnection[serverAddress]; exists {
-		if updatedConn.conn != nil && (updatedConn.conn.GetState() == connectivity.Ready || updatedConn.conn.GetState() == connectivity.Idle) {
-			return updatedConn, nil
-		}
+	// Double-check if another goroutine fixed the connection while we were waiting
+	if conn := p.getHealthyConnectionLocked(serverAddress); conn != nil {
+		return conn, nil
 	}
 
-	// Create a new gRPC connection
-	conn, err := createGRPCConnection(ctx, serverAddress, p.logger)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create gRPC clients
-	newServerConn := &ServerConnection{
-		conn:          conn,
-		KVClient:      regattapb.NewKVClient(conn),
-		ClusterClient: regattapb.NewClusterClient(conn),
-		TablesClient:  regattapb.NewTablesClient(conn),
-		MetricsClient: regattapb.NewMetricsClient(conn),
-	}
-
-	// Fetch node information for this connection to identify the server
-	nodeInfo, err := p.fetchNodeInfo(ctx, newServerConn, serverAddress)
-	if err != nil {
-		p.logger.Warn("Failed to fetch node information, continuing with connection anyway",
-			zap.String("address", serverAddress),
-			zap.Error(err))
-	} else {
-		newServerConn.NodeID = nodeInfo.NodeID
-		newServerConn.NodeName = nodeInfo.NodeName
-		p.logger.Debug("Added node information to connection",
-			zap.String("address", serverAddress),
-			zap.String("nodeID", nodeInfo.NodeID),
-			zap.String("nodeName", nodeInfo.NodeName))
-
-		// Check if we already have a connection for this server ID
-		if existingConn, idExists := p.idToConnection[nodeInfo.NodeID]; idExists && existingConn.conn != nil {
-			// We found an existing connection to this server via a different address
-
-			// Check if the existing connection is healthy
-			if existingConn.conn.GetState() == connectivity.Ready || existingConn.conn.GetState() == connectivity.Idle {
-				// The existing connection is healthy, so close the new one we just created
-				p.logger.Info("Found existing healthy connection to same server via different address",
-					zap.String("newAddress", serverAddress),
-					zap.String("serverID", nodeInfo.NodeID),
-					zap.String("serverName", nodeInfo.NodeName))
-
-				_ = conn.Close() // Close the new connection we just created since we don't need it
-
-				// Add this address to the mapping for the existing connection
-				p.addressToConnection[serverAddress] = existingConn
-				return existingConn, nil
-			}
-
-			// Existing connection is not healthy, continue with the new connection
-			// and update all references to use it instead
-			p.logger.Info("Found existing unhealthy connection to same server, replacing with new connection",
-				zap.String("newAddress", serverAddress),
-				zap.String("serverID", nodeInfo.NodeID),
-				zap.String("serverName", nodeInfo.NodeName))
-
-			// Close the old connection
-			_ = existingConn.conn.Close()
-
-			// Find all addresses pointing to this server and update them to use the new connection
-			addressesToUpdate := []string{}
-			for addr, conn := range p.addressToConnection {
-				if conn == existingConn {
-					addressesToUpdate = append(addressesToUpdate, addr)
-				}
-			}
-
-			for _, addr := range addressesToUpdate {
-				p.addressToConnection[addr] = newServerConn
-				p.logger.Debug("Updated address mapping to use new connection",
-					zap.String("address", addr),
-					zap.String("serverID", nodeInfo.NodeID))
-			}
-		}
-
-		// Update the ID-to-connection map with this connection
-		p.idToConnection[nodeInfo.NodeID] = newServerConn
-	}
-
-	// Add this address to the mapping
-	p.addressToConnection[serverAddress] = newServerConn
-
-	// Since this is a new address, try to discover more cluster members
-	// We do this in a goroutine so it doesn't block the caller
-	go p.discoverClusterMembers(context.Background(), serverAddress, newServerConn)
-
-	return newServerConn, nil
+	// Create a new connection
+	return p.createNewConnection(ctx, serverAddress)
 }
 
 // discoverClusterMembers discovers additional cluster members using a seed address
