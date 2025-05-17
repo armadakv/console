@@ -13,6 +13,7 @@ NPM=pnpm
 DOCKER=docker
 DOCKER_IMAGE=armadakv/console
 DOCKER_TAG=latest
+GOLANGCI_LINT=golangci-lint
 
 # Install frontend dependencies
 .PHONY: frontend-deps
@@ -23,11 +24,6 @@ frontend-deps:
 .PHONY: frontend-build
 frontend-build: frontend-deps
 	cd frontend && $(NPM) run build
-
-# Format frontend code with Prettier
-.PHONY: frontend-format
-frontend-format:
-	cd frontend && $(NPM) format
 
 # Generate gRPC client code
 .PHONY: proto
@@ -65,6 +61,13 @@ test:
 .PHONY: fmt
 fmt: frontend-format
 	$(GOFMT) ./...
+	cd frontend && $(NPM) format
+
+# Lint Go code with golangci-lint
+.PHONY: lint
+lint:
+	$(GOLANGCI_LINT) run ./...
+	cd frontend && $(NPM) lint
 
 # Update dependencies
 .PHONY: deps
@@ -95,7 +98,7 @@ help:
 	@echo "make dev - Run in development mode with hot reloading"
 	@echo "make test - Test the project"
 	@echo "make fmt - Format the code (backend and frontend)"
-	@echo "make frontend-format - Format only frontend code"
+	@echo "make lint - Lint Go code with golangci-lint"
 	@echo "make deps - Update dependencies"
 	@echo "make prod - Build for production"
 	@echo "make frontend-deps - Install frontend dependencies"
