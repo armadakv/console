@@ -171,11 +171,30 @@ This creates an optimized production build with:
 - `make dev` - Run in development mode with hot reloading
 - `make test` - Run all tests
 - `make fmt` - Format code
+- `make lint` - Lint Go code with golangci-lint
 - `make deps` - Update dependencies
 - `make proto` - Generate Protocol Buffer code
 - `make docker-build` - Build Docker image
 - `make docker-run` - Run Docker container locally
 - `make help` - Display available commands
+
+### Backend Linting and Formatting
+
+The Go codebase uses golangci-lint for code quality and consistent formatting:
+
+```bash
+# Format Go code
+make fmt
+
+# Lint Go code
+make lint
+```
+
+The linting configuration is defined in `.golangci.yml` and enables various linters including:
+- bodyclose - Checks for unclosed HTTP response bodies
+- govet - Reports suspicious code constructs
+- staticcheck - Advanced Go static analysis
+- and many more
 
 ### Frontend Linting and Formatting
 

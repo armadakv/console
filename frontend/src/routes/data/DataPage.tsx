@@ -25,7 +25,7 @@ const DataPage: React.FC = () => {
   const [filterMode, setFilterMode] = useState<'prefix' | 'range'>('prefix');
   const deleteMutation = useDeleteKeyValuePair();
 
-  // Create add button for the header
+  // Create add button for the card
   const addButton = table ? (
     <Button
       component={RouterLink}
@@ -42,9 +42,8 @@ const DataPage: React.FC = () => {
     </Button>
   ) : undefined;
 
-  // Use the usePageTitle hook instead of PageHeader component
-  // Dynamic title based on whether a table is selected
-  usePageTitle(table ? `Table: ${table}` : 'Key-Value Data', addButton);
+  // Use the usePageTitle hook without button in header
+  usePageTitle(table ? `Table: ${table}` : 'Key-Value Data');
 
   // Handle filter mode change
   const handleFilterModeChange = (mode: 'prefix' | 'range') => {
@@ -114,6 +113,7 @@ const DataPage: React.FC = () => {
         <Grid item xs={12}>
           <CardWithHeader
             title="Browse Data"
+            action={!isMobile ? addButton : undefined}
             sx={{
               borderRadius: 2,
               boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
