@@ -24,7 +24,7 @@ COPY . ./
 RUN make build
 
 # Final image
-FROM alpine:3.19
+FROM alpine:3.22
 WORKDIR /app
 
 # Add CA certificates for HTTPS
