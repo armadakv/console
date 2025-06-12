@@ -1,19 +1,21 @@
-import { Chip, ChipProps } from '@mui/material';
 import React from 'react';
+
+import { Chip } from '../ui';
 
 type StatusType = 'success' | 'error' | 'warning' | 'info' | 'default';
 
-interface StatusChipProps extends Omit<ChipProps, 'color'> {
+interface StatusChipProps {
   status: string;
   colorMapping?: Record<string, StatusType>;
   defaultColor?: StatusType;
+  className?: string;
 }
 
 /**
  * A component for displaying status indicators consistently across the application.
  * Maps status text to semantic colors based on provided mapping or defaults.
  */
-const StatusChip: React.FC<StatusChipProps> = ({
+export const StatusChip: React.FC<StatusChipProps> = ({
   status,
   colorMapping = {
     ok: 'success',
@@ -29,7 +31,7 @@ const StatusChip: React.FC<StatusChipProps> = ({
     unknown: 'default',
   },
   defaultColor = 'default',
-  ...props
+  className,
 }) => {
   // Determine color based on status and color mapping
   const getStatusColor = (statusText: string): StatusType => {
@@ -37,7 +39,9 @@ const StatusChip: React.FC<StatusChipProps> = ({
     return (colorMapping[normalizedStatus] as StatusType) || defaultColor;
   };
 
-  return <Chip label={status} color={getStatusColor(status)} size="small" {...props} />;
+  return (
+    <Chip variant={getStatusColor(status)} className={className}>
+      {status}
+    </Chip>
+  );
 };
-
-export default StatusChip;

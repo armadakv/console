@@ -1,19 +1,10 @@
-import {
-  Box,
-  Container,
-  CssBaseline,
-  Drawer,
-  Toolbar,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
 import React, { Suspense, useState, lazy } from 'react';
 import { Route, Routes } from 'react-router-dom';
 
 import Footer from './components/Footer';
 import Header from './components/Header';
+import { LoadingState } from './components/shared/LoadingState';
 import Sidebar from './components/Sidebar';
-import LoadingState from './components/shared/LoadingState';
 import { NavigationProvider } from './context/NavigationContext';
 
 // Lazy load route components for code splitting
@@ -28,9 +19,17 @@ const SettingsPage = lazy(() => import('./routes/settings/SettingsPage'));
 const drawerWidth = 240;
 
 const App: React.FC = () => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  React.useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -38,64 +37,34 @@ const App: React.FC = () => {
 
   return (
     <NavigationProvider>
-      <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-        <CssBaseline />
-
+      <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
         {/* App bar */}
         <Header drawerWidth={drawerWidth} onDrawerToggle={handleDrawerToggle} />
 
         {/* Sidebar / Navigation drawer */}
-        <Box component="nav" sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}>
+        <nav className={`${isMobile ? 'w-0' : 'w-60'} shrink-0`}>
           {/* Mobile drawer */}
           {isMobile && (
-            <Drawer
-              variant="temporary"
-              open={mobileOpen}
-              onClose={handleDrawerToggle}
-              ModalProps={{
-                keepMounted: true, // Better open performance on mobile
-              }}
-              sx={{
-                '& .MuiDrawer-paper': {
-                  boxSizing: 'border-box',
-                  width: drawerWidth,
-                },
-              }}
-            >
-              <Sidebar onClose={handleDrawerToggle} />
-            </Drawer>
+            <div className={`fixed inset-0 z-40 ${mobileOpen ? 'block' : 'hidden'}`}>
+              <div className="fixed inset-0 bg-black bg-opacity-50" onClick={handleDrawerToggle} />
+              <div className="fixed left-0 top-0 h-full w-60 bg-white dark:bg-gray-800 shadow-lg">
+                <Sidebar onClose={handleDrawerToggle} />
+              </div>
+            </div>
           )}
 
           {/* Desktop drawer - permanent */}
           {!isMobile && (
-            <Drawer
-              variant="permanent"
-              sx={{
-                '& .MuiDrawer-paper': {
-                  boxSizing: 'border-box',
-                  width: drawerWidth,
-                  borderRight: '1px solid rgba(0, 0, 0, 0.12)',
-                },
-              }}
-              open
-            >
+            <div className="fixed left-0 top-0 h-full w-60 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
               <Sidebar />
-            </Drawer>
+            </div>
           )}
-        </Box>
+        </nav>
 
         {/* Main content */}
-        <Box
-          component="main"
-          sx={{
-            flexGrow: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            width: { md: `calc(100% - ${drawerWidth}px)` },
-          }}
-        >
-          <Toolbar /> {/* This adds spacing below the app bar */}
-          <Container sx={{ flexGrow: 1, py: 3 }}>
+        <main className={`flex flex-col flex-grow ${isMobile ? 'w-full' : 'w-[calc(100%-15rem)]'}`}>
+          <div className="h-16" /> {/* This adds spacing below the app bar */}
+          <div className="flex-grow px-6 py-6">
             <Suspense fallback={<LoadingState />}>
               <Routes>
                 <Route path="/" element={<DashboardPage />} />
@@ -107,10 +76,10 @@ const App: React.FC = () => {
                 <Route path="/settings" element={<SettingsPage />} />
               </Routes>
             </Suspense>
-          </Container>
+          </div>
           <Footer />
-        </Box>
-      </Box>
+        </main>
+      </div>
     </NavigationProvider>
   );
 };

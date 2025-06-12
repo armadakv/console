@@ -1,4 +1,4 @@
-import { Components, ThemeOptions } from '@mui/material/styles';
+import { ThemeOptions } from '@mui/material/styles';
 
 // Theme options shared between light and dark modes
 const getBaseThemeOptions = (): Omit<ThemeOptions, 'palette'> => ({

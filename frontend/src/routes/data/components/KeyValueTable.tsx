@@ -1,15 +1,15 @@
-import DeleteIcon from '@mui/icons-material/Delete';
-import EditIcon from '@mui/icons-material/Edit';
-import { Box, IconButton, TableRow, TableCell, Typography, Tooltip } from '@mui/material';
+import { Edit, Trash2 } from 'lucide-react';
 import React from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 
-import ErrorState from '../../../components/shared/ErrorState';
-import LoadingState from '../../../components/shared/LoadingState';
-import StyledTable from '../../../components/shared/StyledTable';
-import { useKeyValuePairs } from '../../../hooks/useApi';
-
 import KeyValueCells from './KeyValueCells';
+
+import { useKeyValuePairs } from '@/hooks/useApi';
+import { ErrorState } from '@/shared/ErrorState';
+import { LoadingState } from '@/shared/LoadingState';
+import { Button } from '@/ui/Button';
+import { Table, TableHeader, TableBody, TableRow, TableCell } from '@/ui/Table';
+import { Typography } from '@/ui/Typography';
 
 interface KeyValueTableProps {
   table: string;
@@ -33,60 +33,61 @@ const KeyValueTable: React.FC<KeyValueTableProps> = ({
     refetch,
   } = useKeyValuePairs(table, prefix, start, end);
 
-  // Define table columns
-  const columns = [
-    { id: 'key', label: 'Key', minWidth: 150 },
-    { id: 'value', label: 'Value', minWidth: 200 },
-    { id: 'actions', label: 'Actions', align: 'center' as const, minWidth: 140 },
-  ];
-
   if (isLoading) {
     return <LoadingState message="Loading key-value pairs..." height={150} />;
   }
 
   if (isError) {
-    return <ErrorState message="Error loading key-value pairs." onRetry={refetch} sx={{ mt: 2 }} />;
+    return <ErrorState message="Error loading key-value pairs." onRetry={refetch} />;
   }
 
   if (!keyValuePairs || keyValuePairs.length === 0) {
     return (
-      <Box sx={{ p: 2, mt: 2, textAlign: 'center' }}>
-        <Typography color="text.secondary">
+      <div className="p-4 mt-4 text-center">
+        <Typography variant="body2" className="text-gray-600 dark:text-gray-400">
           No key-value pairs found with the current filter.
         </Typography>
-      </Box>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ mt: 2 }}>
-      <StyledTable columns={columns}>
-        {keyValuePairs.map((pair) => (
-          <TableRow key={pair.key} hover>
-            <KeyValueCells keyName={pair.key} value={pair.value} />
-            <TableCell align="center">
-              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
-                <Tooltip title="Edit value">
-                  <IconButton
-                    component={RouterLink}
-                    to={`/data/${table}/edit/${encodeURIComponent(pair.key)}`}
-                    size="small"
-                    color="primary"
-                  >
-                    <EditIcon />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Delete key-value pair">
-                  <IconButton size="small" onClick={() => onDeletePair(pair.key)} color="error">
-                    <DeleteIcon />
-                  </IconButton>
-                </Tooltip>
-              </Box>
-            </TableCell>
+    <div className="mt-4">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableCell className="font-bold">Key</TableCell>
+            <TableCell className="font-bold">Value</TableCell>
+            <TableCell className="font-bold text-center">Actions</TableCell>
           </TableRow>
-        ))}
-      </StyledTable>
-    </Box>
+        </TableHeader>
+        <TableBody>
+          {keyValuePairs.map((pair) => (
+            <TableRow key={pair.key} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+              <KeyValueCells keyName={pair.key} value={pair.value} />
+              <TableCell className="text-center">
+                <div className="flex justify-center gap-2">
+                  <RouterLink to={`/data/${table}/edit/${encodeURIComponent(pair.key)}`}>
+                    <Button variant="ghost" size="sm" className="p-2" title="Edit value">
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                  </RouterLink>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="p-2 text-red-600 hover:text-red-700"
+                    onClick={() => onDeletePair(pair.key)}
+                    title="Delete key-value pair"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 };
 

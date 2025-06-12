@@ -1,71 +1,57 @@
-import MenuIcon from '@mui/icons-material/Menu';
-import {
-  AppBar,
-  Toolbar,
-  Typography,
-  IconButton,
-  Box,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
+import { Menu } from 'lucide-react';
 import React from 'react';
 
-import { useNavigation } from '../context/NavigationContext';
 import ThemeToggle from './ThemeToggle';
+
+import { useNavigation } from '@/context/NavigationContext';
 
 interface HeaderProps {
   drawerWidth: number;
   onDrawerToggle: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ drawerWidth, onDrawerToggle }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+const Header: React.FC<HeaderProps> = ({ onDrawerToggle }) => {
+  const [isMobile, setIsMobile] = React.useState(window.innerWidth < 768);
   const { pageTitle, pageAction } = useNavigation();
 
+  React.useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   return (
-    <AppBar
-      position="fixed"
-      elevation={1}
-      sx={{
-        width: { md: `calc(100% - ${drawerWidth}px)` },
-        ml: { md: `${drawerWidth}px` },
-        bgcolor: 'background.paper',
-        color: 'text.primary',
-      }}
+    <header
+      className={`fixed top-0 z-30 h-16 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm ${
+        isMobile ? 'left-0 right-0' : `left-60 right-0`
+      }`}
     >
-      <Toolbar>
+      <div className="flex items-center justify-between h-full px-6">
         {isMobile && (
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            edge="start"
+          <button
+            className="p-2 rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
             onClick={onDrawerToggle}
-            sx={{ mr: 2 }}
+            aria-label="open drawer"
           >
-            <MenuIcon />
-          </IconButton>
+            <Menu className="h-5 w-5" />
+          </button>
         )}
 
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            width: '100%',
-            justifyContent: 'space-between',
-          }}
-        >
-          <Typography variant="h6" noWrap component="div">
+        <div className="flex items-center justify-between w-full">
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">
             {isMobile ? 'Armada Console' : pageTitle}
-          </Typography>
+          </h1>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <div className="flex items-center gap-4">
             {pageAction}
             <ThemeToggle />
-          </Box>
-        </Box>
-      </Toolbar>
-    </AppBar>
+          </div>
+        </div>
+      </div>
+    </header>
   );
 };
 

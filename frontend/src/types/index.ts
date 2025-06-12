@@ -59,7 +59,7 @@ export interface CreateTableResponse {
 }
 
 type QueryResponse<T> = {
-  status: "success" | "error";
+  status: 'success' | 'error';
   data: T;
 };
 
@@ -78,10 +78,10 @@ type ScalarResult = [number, string]; // Timestamp and value
 type StringResult = string;
 
 type QueryResult =
-    | { resultType: "vector"; result: VectorResult[] }
-    | { resultType: "matrix"; result: MatrixResult[] }
-    | { resultType: "scalar"; result: ScalarResult }
-    | { resultType: "string"; result: StringResult };
+  | { resultType: 'vector'; result: VectorResult[] }
+  | { resultType: 'matrix'; result: MatrixResult[] }
+  | { resultType: 'scalar'; result: ScalarResult }
+  | { resultType: 'string'; result: StringResult };
 
 export type MetricsQueryResponse = QueryResponse<QueryResult>;
 

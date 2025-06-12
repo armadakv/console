@@ -1,25 +1,23 @@
-import { Box, Typography, Link, Divider } from '@mui/material';
 import React from 'react';
 
 const Footer: React.FC = () => {
   const year = new Date().getFullYear();
 
   return (
-    <Box component="footer" sx={{ py: 2, mt: 'auto' }}>
-      <Divider sx={{ mb: 2 }} />
-      <Typography variant="body2" color="text.secondary" align="center">
+    <footer className="py-4 mt-auto">
+      <div className="border-t border-gray-200 dark:border-gray-700 mb-4" />
+      <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
         &copy; {year} Armada Console |{' '}
-        <Link
+        <a
           href="https://github.com/armadakv/armada"
           target="_blank"
           rel="noopener noreferrer"
-          color="inherit"
-          underline="hover"
+          className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 underline"
         >
           Armada Project
-        </Link>
-      </Typography>
-    </Box>
+        </a>
+      </p>
+    </footer>
   );
 };
 

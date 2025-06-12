@@ -1,9 +1,10 @@
-import { Alert } from '@mui/material';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import usePageTitle from '../../hooks/usePageTitle';
 import KeyValueForm from './components/KeyValueForm';
+
+import { usePageTitle } from '@/hooks/usePageTitle';
+import { Alert } from '@/ui';
 
 const AddKeyValuePage: React.FC = () => {
   const { table } = useParams<{ table: string }>();
@@ -23,7 +24,7 @@ const AddKeyValuePage: React.FC = () => {
   // If no table is specified in the URL, show an error message
   if (!table) {
     return (
-      <Alert severity="error" sx={{ mt: 2 }}>
+      <Alert variant="error" className="mt-4">
         No table specified. Please select a table from the Data page first.
       </Alert>
     );

@@ -1,28 +1,27 @@
-import { Alert, AlertTitle } from '@mui/material';
 import React, { ReactNode } from 'react';
+
+import { Alert } from '../ui';
 
 interface SuccessStateProps {
   message?: string;
   title?: string;
-  sx?: object;
+  className?: string;
   action?: ReactNode;
 }
 
 /**
  * A consistent success state component with optional action
  */
-const SuccessState: React.FC<SuccessStateProps> = ({
+export const SuccessState: React.FC<SuccessStateProps> = ({
   message = 'Operation completed successfully!',
   title = 'Success',
-  sx = {},
+  className = '',
   action,
 }) => {
   return (
-    <Alert severity="success" variant="outlined" sx={{ mb: 3, ...sx }} action={action}>
-      {title && <AlertTitle>{title}</AlertTitle>}
+    <Alert variant="success" className={`mb-6 ${className}`} action={action}>
+      {title && <div className="font-semibold mb-1">{title}</div>}
       {message}
     </Alert>
   );
 };
-
-export default SuccessState;

@@ -1,13 +1,6 @@
-import {
-  TableContainer,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  Paper,
-} from '@mui/material';
 import React, { ReactNode } from 'react';
+
+import { Table, TableContainer, TableHeader, TableBody, TableRow, TableCell } from '../ui';
 
 interface Column {
   id: string;
@@ -19,7 +12,7 @@ interface Column {
 interface StyledTableProps {
   columns: Column[];
   children: ReactNode;
-  containerSx?: object;
+  className?: string;
   isEmpty?: boolean;
   emptyContent?: ReactNode;
 }
@@ -27,33 +20,37 @@ interface StyledTableProps {
 /**
  * A styled table component that follows the design language
  */
-const StyledTable: React.FC<StyledTableProps> = ({
+export const StyledTable: React.FC<StyledTableProps> = ({
   columns,
   children,
-  containerSx = {},
+  className = '',
   isEmpty = false,
   emptyContent,
 }) => {
   return (
-    <TableContainer component={Paper} variant="outlined" sx={{ ...containerSx }}>
+    <TableContainer className={className}>
       <Table>
-        <TableHead>
+        <TableHeader>
           <TableRow>
             {columns.map((column) => (
               <TableCell
                 key={column.id}
-                align={column.align || 'left'}
-                style={{ minWidth: column.minWidth }}
+                isHeader
+                className={
+                  column.align === 'center'
+                    ? 'text-center'
+                    : column.align === 'right'
+                      ? 'text-right'
+                      : ''
+                }
               >
                 {column.label}
               </TableCell>
             ))}
           </TableRow>
-        </TableHead>
+        </TableHeader>
         <TableBody>{isEmpty && emptyContent ? emptyContent : children}</TableBody>
       </Table>
     </TableContainer>
   );
 };
-
-export default StyledTable;

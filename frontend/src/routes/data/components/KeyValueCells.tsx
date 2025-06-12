@@ -1,9 +1,10 @@
-import CodeIcon from '@mui/icons-material/Code';
-import TextFormatIcon from '@mui/icons-material/TextFormat';
-import { TableCell, Typography, Box, ToggleButtonGroup, ToggleButton, Paper } from '@mui/material';
+import { Code, Type } from 'lucide-react';
 import React, { useState, useCallback } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
+
+import { Button } from '@/ui/Button';
+import { Typography } from '@/ui/Typography';
 
 interface TableRowProps {
   keyName: string;
@@ -22,21 +23,12 @@ const KeyValueCells: React.FC<TableRowProps> = ({ keyName, value }) => {
     }
   }, [value]);
 
-  const handleViewModeChange = (
-    _event: React.MouseEvent<HTMLElement>,
-    newMode: 'raw' | 'json' | null,
-  ) => {
-    if (newMode !== null) {
-      setViewMode(newMode);
-    }
-  };
-
   const renderValue = () => {
     if (viewMode === 'json' && isValidJson()) {
       try {
         const formattedJson = JSON.stringify(JSON.parse(value), null, 2);
         return (
-          <Box sx={{ maxHeight: 300, overflow: 'auto' }}>
+          <div className="max-h-72 overflow-auto">
             <SyntaxHighlighter
               language="json"
               style={vs}
@@ -48,86 +40,54 @@ const KeyValueCells: React.FC<TableRowProps> = ({ keyName, value }) => {
             >
               {formattedJson}
             </SyntaxHighlighter>
-          </Box>
+          </div>
         );
       } catch {
-        return <Typography color="error">Invalid JSON</Typography>;
+        return <Typography className="text-red-500">Invalid JSON</Typography>;
       }
     }
 
     return (
-      <Paper
-        variant="outlined"
-        sx={{
-          maxHeight: 300,
-          overflow: 'auto',
-          p: 1,
-          bgcolor: 'rgba(0, 0, 0, 0.03)',
-        }}
-      >
-        <Typography
-          component="pre"
-          sx={{
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word',
-            m: 0,
-            fontFamily: '"Roboto Mono", "Courier New", monospace',
-            fontSize: '0.875rem',
-          }}
-        >
-          {value}
-        </Typography>
-      </Paper>
+      <div className="max-h-72 overflow-auto p-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded">
+        <pre className="whitespace-pre-wrap break-words m-0 font-mono text-sm">{value}</pre>
+      </div>
     );
   };
 
   return (
     <>
-      <TableCell component="th" scope="row" width="30%" sx={{ verticalAlign: 'top' }}>
-        <Paper
-          variant="outlined"
-          sx={{
-            p: 1,
-            bgcolor: 'rgba(0, 0, 0, 0.03)',
-            maxWidth: '100%',
-            overflow: 'hidden',
-          }}
-        >
-          <Typography
-            fontWeight="medium"
-            sx={{
-              fontFamily: '"Roboto Mono", "Courier New", monospace',
-              fontSize: '0.875rem',
-              overflowWrap: 'break-word',
-              wordBreak: 'break-word',
-            }}
-          >
-            {keyName}
-          </Typography>
-        </Paper>
-      </TableCell>
-      <TableCell>
+      <td className="align-top w-1/3 px-4 py-2">
+        <div className="p-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded max-w-full overflow-hidden">
+          <div className="font-medium font-mono text-sm break-words">{keyName}</div>
+        </div>
+      </td>
+      <td className="px-4 py-2">
         {isValidJson() && (
-          <Box sx={{ mb: 1 }}>
-            <ToggleButtonGroup
-              size="small"
-              exclusive
-              value={viewMode}
-              onChange={handleViewModeChange}
-            >
-              <ToggleButton value="raw" aria-label="raw view">
-                <TextFormatIcon fontSize="small" sx={{ mr: 0.5 }} />
+          <div className="mb-2">
+            <div className="flex rounded border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <Button
+                variant={viewMode === 'raw' ? 'primary' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode('raw')}
+                className="rounded-none border-0 border-r border-gray-200 dark:border-gray-700"
+              >
+                <Type className="w-4 h-4 mr-1" />
                 Raw
-              </ToggleButton>
-              <ToggleButton value="json" aria-label="json view">
-                <CodeIcon fontSize="small" sx={{ mr: 0.5 }} />
+              </Button>
+              <Button
+                variant={viewMode === 'json' ? 'primary' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode('json')}
+                className="rounded-none border-0"
+              >
+                <Code className="w-4 h-4 mr-1" />
                 JSON
-              </ToggleButton>
-            </ToggleButtonGroup>
-          </Box>
+              </Button>
+            </div>
+          </div>
         )}
         {renderValue()}
-      </TableCell>
+      </td>
     </>
   );
 };

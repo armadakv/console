@@ -1,10 +1,11 @@
-import AddIcon from '@mui/icons-material/Add';
-import TableChartIcon from '@mui/icons-material/TableChart';
-import { Box, Typography, Button, Card, CardContent } from '@mui/material';
+import { Plus, Table } from 'lucide-react';
 import React from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 
-import { useTables } from '../../../hooks/useApi';
+import { useTables } from '@/hooks/useApi';
+import { Button } from '@/ui/Button';
+import { Card, CardContent } from '@/ui/Card';
+import { Typography } from '@/ui/Typography';
 
 const NoTableSelected: React.FC = () => {
   const { data: tables, isLoading } = useTables();
@@ -13,30 +14,17 @@ const NoTableSelected: React.FC = () => {
   const noTablesExist = !isLoading && (!tables || tables.length === 0);
 
   return (
-    <Card
-      sx={{
-        borderRadius: 2,
-        minHeight: 200,
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 3,
-        textAlign: 'center',
-      }}
-    >
+    <Card className="min-h-48 flex flex-col justify-center items-center p-6 text-center">
       <CardContent>
-        <TableChartIcon sx={{ fontSize: 60, color: 'text.secondary', mb: 2, opacity: 0.5 }} />
+        <Table className="w-15 h-15 text-gray-400 mb-4 opacity-50 mx-auto" />
 
-        <Typography variant="h6" gutterBottom>
+        <Typography variant="h6" className="mb-2">
           {noTablesExist ? 'No Tables Found' : 'Select a Table'}
         </Typography>
 
         <Typography
           variant="body2"
-          color="text.secondary"
-          paragraph
-          sx={{ maxWidth: 400, mx: 'auto' }}
+          className="text-gray-600 dark:text-gray-400 max-w-md mx-auto mb-4"
         >
           {noTablesExist
             ? "You don't have any tables created yet. Create a table to start adding key-value pairs."
@@ -44,21 +32,17 @@ const NoTableSelected: React.FC = () => {
         </Typography>
 
         {noTablesExist && (
-          <Box sx={{ mt: 2 }}>
+          <div className="mt-4">
             <Button
-              component={RouterLink}
+              as={RouterLink}
               to="/settings"
-              variant="contained"
-              color="primary"
-              startIcon={<AddIcon />}
-              sx={{
-                borderRadius: 1,
-                textTransform: 'none',
-              }}
+              variant="primary"
+              className="inline-flex items-center"
             >
+              <Plus className="w-4 h-4 mr-2" />
               Create New Table
             </Button>
-          </Box>
+          </div>
         )}
       </CardContent>
     </Card>

@@ -1,4 +1,3 @@
-import { CssBaseline } from '@mui/material';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import React, { useEffect } from 'react';
@@ -7,6 +6,7 @@ import { BrowserRouter } from 'react-router-dom';
 
 import App from './App';
 import { ThemeProvider } from './theme/ThemeProvider';
+import './index.css';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -40,7 +40,6 @@ root.render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <CssBaseline />
         <BrowserRouter>
           <AppInitializer>
             <App />

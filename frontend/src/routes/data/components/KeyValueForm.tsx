@@ -1,24 +1,9 @@
-import AddIcon from '@mui/icons-material/Add';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import SaveIcon from '@mui/icons-material/Save';
-import {
-  TextField,
-  Button,
-  Grid,
-  CircularProgress,
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  CardHeader,
-  IconButton,
-} from '@mui/material';
+import { Plus, ArrowLeft, Save, Loader2 } from 'lucide-react';
 import React, { useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 
-import ErrorState from '../../../components/shared/ErrorState';
-import SuccessState from '../../../components/shared/SuccessState';
-import { useAddKeyValuePair } from '../../../hooks/useApi';
+import { useAddKeyValuePair } from '@/hooks/useApi';
+import { Alert, Button, Card, CardContent, CardHeader, Input, Textarea } from '@/ui';
 
 interface KeyValueFormProps {
   selectedTable: string;
@@ -74,117 +59,85 @@ const KeyValueForm: React.FC<KeyValueFormProps> = ({
   };
 
   return (
-    <Box>
-      <Box sx={{ mb: 3, display: 'flex', alignItems: 'center' }}>
-        <IconButton
-          component={RouterLink}
+    <div className="space-y-6">
+      <div className="flex items-center space-x-3">
+        <RouterLink
           to={`/data/${selectedTable}`}
-          sx={{ mr: 2 }}
+          className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 transition-colors"
           aria-label="back to data page"
         >
-          <ArrowBackIcon />
-        </IconButton>
-        <Typography variant="h5" component="h1">
+          <ArrowLeft className="w-5 h-5" />
+        </RouterLink>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
           {isEdit ? 'Edit Key-Value Pair' : 'Add New Key-Value Pair'}
-        </Typography>
-      </Box>
+        </h1>
+      </div>
 
-      <Card sx={{ borderRadius: 2, overflow: 'hidden' }}>
-        <CardHeader
-          title={isEdit ? 'Edit Value' : 'Enter Key-Value Details'}
-          sx={{
-            borderBottom: '1px solid',
-            borderColor: 'divider',
-            bgcolor: 'background.default',
-            px: 3,
-            py: 2,
-          }}
-        />
-        <CardContent sx={{ p: 3 }}>
+      <Card>
+        <CardHeader>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            {isEdit ? 'Edit Value' : 'Enter Key-Value Details'}
+          </h2>
+        </CardHeader>
+        <CardContent>
           {success && (
-            <SuccessState
-              message={`Key-value pair ${isEdit ? 'updated' : 'added'} successfully!`}
-              sx={{ mb: 3 }}
-            />
+            <Alert variant="success" className="mb-6">
+              Key-value pair {isEdit ? 'updated' : 'added'} successfully!
+            </Alert>
           )}
 
-          {error && <ErrorState message={error} sx={{ mb: 3 }} />}
+          {error && (
+            <Alert variant="error" className="mb-6">
+              {error}
+            </Alert>
+          )}
 
-          <form onSubmit={handleSubmit}>
-            <Grid container spacing={3}>
-              <Grid item xs={12}>
-                <TextField
-                  label="Key"
-                  variant="outlined"
-                  value={key}
-                  onChange={(e) => setKey(e.target.value)}
-                  required
-                  disabled={isEdit || mutation.isLoading}
-                  fullWidth
-                  InputProps={{
-                    readOnly: isEdit,
-                    sx: {
-                      fontFamily: '"Roboto Mono", "Courier New", monospace',
-                      fontSize: '0.875rem',
-                    },
-                  }}
-                />
-              </Grid>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-4">
+              <Input
+                label="Key"
+                value={key}
+                onChange={(e) => setKey(e.target.value)}
+                required
+                disabled={isEdit || mutation.isLoading}
+                fullWidth
+                readOnly={isEdit}
+                className="font-mono text-sm"
+              />
 
-              <Grid item xs={12}>
-                <TextField
-                  label="Value"
-                  variant="outlined"
-                  value={value}
-                  onChange={(e) => setValue(e.target.value)}
-                  required
-                  disabled={mutation.isLoading}
-                  fullWidth
-                  multiline
-                  minRows={8}
-                  maxRows={15}
-                  InputProps={{
-                    sx: {
-                      fontFamily: '"Roboto Mono", "Courier New", monospace',
-                      fontSize: '0.875rem',
-                    },
-                  }}
-                />
-              </Grid>
+              <Textarea
+                label="Value"
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                required
+                disabled={mutation.isLoading}
+                fullWidth
+                rows={8}
+                className="font-mono text-sm resize-y"
+              />
+            </div>
 
-              <Grid item xs={12}>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  color="primary"
-                  disabled={!key || !value || mutation.isLoading}
-                  startIcon={
-                    mutation.isLoading ? (
-                      <CircularProgress size={20} />
-                    ) : isEdit ? (
-                      <SaveIcon />
-                    ) : (
-                      <AddIcon />
-                    )
-                  }
-                  sx={{
-                    textTransform: 'none',
-                    borderRadius: 1,
-                    px: 3,
-                  }}
-                >
-                  {mutation.isLoading
-                    ? 'Saving...'
-                    : isEdit
-                      ? 'Save Changes'
-                      : 'Add Key-Value Pair'}
-                </Button>
-              </Grid>
-            </Grid>
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={!key || !value || mutation.isLoading}
+              className="inline-flex items-center space-x-2"
+            >
+              {mutation.isLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : isEdit ? (
+                <Save className="w-5 h-5" />
+              ) : (
+                <Plus className="w-5 h-5" />
+              )}
+              <span>
+                {mutation.isLoading ? 'Saving...' : isEdit ? 'Save Changes' : 'Add Key-Value Pair'}
+              </span>
+            </Button>
           </form>
         </CardContent>
       </Card>
-    </Box>
+    </div>
   );
 };
 

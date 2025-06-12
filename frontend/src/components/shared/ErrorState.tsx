@@ -1,25 +1,26 @@
-import RefreshIcon from '@mui/icons-material/Refresh';
-import { Alert, AlertTitle, Button } from '@mui/material';
+import { RotateCcw } from 'lucide-react';
 import React, { ReactNode } from 'react';
+
+import { Alert, Button } from '../ui';
 
 interface ErrorStateProps {
   message?: string;
   title?: string;
   onRetry?: () => void;
   error?: Error | unknown;
-  sx?: object;
+  className?: string;
   action?: ReactNode;
 }
 
 /**
  * A consistent error state component with optional retry action
  */
-const ErrorState: React.FC<ErrorStateProps> = ({
+export const ErrorState: React.FC<ErrorStateProps> = ({
   message,
   title = 'Error',
   onRetry,
   error,
-  sx = {},
+  className = '',
   action,
 }) => {
   // Format error message from error object or use provided message
@@ -28,22 +29,25 @@ const ErrorState: React.FC<ErrorStateProps> = ({
 
   return (
     <Alert
-      severity="error"
-      variant="outlined"
-      sx={{ mb: 3, ...sx }}
+      variant="error"
+      className={`mb-6 ${className}`}
       action={
         action ||
         (onRetry && (
-          <Button color="inherit" size="small" onClick={onRetry} startIcon={<RefreshIcon />}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onRetry}
+            className="text-red-600 hover:text-red-700"
+          >
+            <RotateCcw className="h-4 w-4 mr-2" />
             Retry
           </Button>
         ))
       }
     >
-      {title && <AlertTitle>{title}</AlertTitle>}
+      {title && <div className="font-semibold mb-1">{title}</div>}
       {errorMessage}
     </Alert>
   );
 };
-
-export default ErrorState;

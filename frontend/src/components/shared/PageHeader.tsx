@@ -1,30 +1,23 @@
-import { Box, Typography } from '@mui/material';
 import React, { ReactNode } from 'react';
+
+import { Typography } from '../ui';
 
 interface PageHeaderProps {
   title: string;
   action?: ReactNode;
-  sx?: object;
+  className?: string;
 }
 
 /**
  * A consistent header component for page titles with optional action buttons
  */
-const PageHeader: React.FC<PageHeaderProps> = ({ title, action, sx = {} }) => {
+export const PageHeader: React.FC<PageHeaderProps> = ({ title, action, className = '' }) => {
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        mb: 3,
-        ...sx,
-      }}
-    >
-      <Typography variant="h5">{title}</Typography>
-      {action && <Box>{action}</Box>}
-    </Box>
+    <div className={`flex justify-between items-center mb-6 ${className}`}>
+      <Typography variant="h5" className="text-gray-900 dark:text-gray-100">
+        {title}
+      </Typography>
+      {action && <div className="flex items-center gap-2">{action}</div>}
+    </div>
   );
 };
-
-export default PageHeader;

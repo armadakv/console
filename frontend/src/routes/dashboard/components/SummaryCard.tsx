@@ -1,73 +1,61 @@
 import React, { ReactNode } from 'react';
-import { Typography, Box, Paper } from '@mui/material';
+
+import { Typography } from '../../../components/ui';
 
 interface SummaryCardProps {
-    title: string;
-    value: string | number;
-    subtitle: string;
-    color: 'primary' | 'success' | 'warning' | 'error';
-    icon?: ReactNode;
+  title: string;
+  value: string | number;
+  subtitle?: string;
+  color?: 'primary' | 'success' | 'warning' | 'error';
+  icon?: ReactNode;
 }
 
 /**
  * A reusable card component for displaying summary metrics on the dashboard
  */
-const SummaryCard: React.FC<SummaryCardProps> = ({ title, value, subtitle, color, icon }) => {
-    // Define color mappings based on the color prop
-    const colorMap = {
-        primary: {
-            bgColor: (theme: any) => theme.palette.primary.light,
-            textColor: (theme: any) => theme.palette.primary.contrastText,
-            borderColor: (theme: any) => theme.palette.primary.main,
-        },
-        success: {
-            bgColor: 'rgba(76, 175, 80, 0.1)',
-            textColor: 'success.main',
-            borderColor: 'success.main',
-        },
-        warning: {
-            bgColor: 'rgba(255, 152, 0, 0.1)',
-            textColor: 'warning.dark',
-            borderColor: 'warning.main',
-        },
-        error: {
-            bgColor: 'rgba(244, 67, 54, 0.1)',
-            textColor: 'error.main',
-            borderColor: 'error.main',
-        }
-    };
+const SummaryCard: React.FC<SummaryCardProps> = ({
+  title,
+  value,
+  subtitle,
+  color = 'primary',
+  icon,
+}) => {
+  // Define color mappings based on the color prop
+  const colorClasses = {
+    primary:
+      'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 border-primary-200 dark:border-primary-700',
+    success:
+      'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border-green-200 dark:border-green-700',
+    warning:
+      'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-700',
+    error:
+      'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border-red-200 dark:border-red-700',
+  };
 
-    const colorStyle = colorMap[color];
+  return (
+    <div
+      className={`p-6 text-center rounded-lg h-full flex flex-col justify-between border ${colorClasses[color]}`}
+    >
+      <Typography variant="h6" className="mb-2">
+        {title}
+      </Typography>
 
-    return (
-        <Paper
-            elevation={0}
-            sx={{
-                p: 3,
-                textAlign: 'center',
-                borderRadius: 2,
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                bgcolor: colorStyle.bgColor,
-                color: colorStyle.textColor,
-                border: '1px solid',
-                borderColor: colorStyle.borderColor,
-            }}
-        >
-            <Typography variant="h6">{title}</Typography>
-            <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    {icon && <Box sx={{ mr: 1 }}>{icon}</Box>}
-                    <Typography variant="h2" sx={{ fontWeight: 'medium' }}>
-                        {value}
-                    </Typography>
-                </Box>
-            </Box>
-            <Typography variant="body2">{subtitle}</Typography>
-        </Paper>
-    );
+      <div className="flex-1 flex items-center justify-center flex-col">
+        <div className="flex items-center gap-2">
+          {icon && <div className="flex-shrink-0">{icon}</div>}
+          <Typography variant="h2" className="font-medium">
+            {value}
+          </Typography>
+        </div>
+      </div>
+
+      {subtitle && (
+        <Typography variant="body2" className="mt-2 opacity-80">
+          {subtitle}
+        </Typography>
+      )}
+    </div>
+  );
 };
 
 export default SummaryCard;

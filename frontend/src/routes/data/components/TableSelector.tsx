@@ -1,26 +1,14 @@
-import AddIcon from '@mui/icons-material/Add';
-import SearchIcon from '@mui/icons-material/Search';
-import TableChartIcon from '@mui/icons-material/TableChart';
-import {
-  Box,
-  CircularProgress,
-  Typography,
-  Alert,
-  Button,
-  Grid,
-  Card,
-  CardContent,
-  CardActionArea,
-  Divider,
-  useTheme,
-  useMediaQuery,
-  InputAdornment,
-  TextField,
-} from '@mui/material';
+import { Plus, Search, Table } from 'lucide-react';
 import React from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 
-import { useTables } from '../../../hooks/useApi';
+import { useTables } from '@/hooks/useApi';
+import { LoadingState } from '@/shared/LoadingState';
+import { Alert } from '@/ui/Alert';
+import { Button } from '@/ui/Button';
+import { Card, CardContent } from '@/ui/Card';
+import { Input } from '@/ui/Input';
+import { Typography } from '@/ui/Typography';
 
 interface TableSelectorProps {
   selectedTable: string;
@@ -29,8 +17,6 @@ interface TableSelectorProps {
 
 const TableSelector: React.FC<TableSelectorProps> = ({ selectedTable, onTableChange }) => {
   const [searchQuery, setSearchQuery] = React.useState('');
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const { data: tables, isLoading, isError, error, refetch } = useTables();
 
@@ -44,146 +30,97 @@ const TableSelector: React.FC<TableSelectorProps> = ({ selectedTable, onTableCha
   }, [tables, searchQuery]);
 
   if (isLoading) {
-    return (
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 4 }}>
-        <CircularProgress size={24} sx={{ mr: 1 }} />
-        <Typography>Loading tables...</Typography>
-      </Box>
-    );
+    return <LoadingState message="Loading tables..." />;
   }
 
   if (isError) {
     return (
-      <Box sx={{ py: 2 }}>
-        <Alert severity="error" sx={{ mb: 2 }}>
+      <div className="py-4">
+        <Alert variant="error" className="mb-4">
           {error instanceof Error
             ? error.message
             : 'Failed to fetch tables. Please try again later.'}
         </Alert>
-        <Button variant="contained" onClick={() => refetch()} color="primary">
+        <Button variant="primary" onClick={() => refetch()}>
           Try Again
         </Button>
-      </Box>
+      </div>
     );
   }
 
   const noTablesExist = !tables || tables.length === 0;
 
   return (
-    <Box>
+    <div>
       {/* Search and Create Table Section */}
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexDirection: isMobile ? 'column' : 'row',
-          gap: 2,
-          mb: 2,
-        }}
-      >
-        <TextField
-          placeholder="Search tables..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          variant="outlined"
-          size="small"
-          sx={{ flexGrow: 1, maxWidth: isMobile ? '100%' : 400 }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon fontSize="small" />
-              </InputAdornment>
-            ),
-          }}
-        />
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
+          <Input
+            placeholder="Search tables..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
 
-        <Button
-          component={RouterLink}
-          to="/settings"
-          variant="contained"
-          color="primary"
-          startIcon={<AddIcon />}
-          sx={{
-            borderRadius: 1,
-            textTransform: 'none',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          Create New Table
-        </Button>
-      </Box>
+        <RouterLink to="/settings">
+          <Button variant="primary" className="inline-flex items-center whitespace-nowrap">
+            <Plus className="w-4 h-4 mr-2" />
+            Create New Table
+          </Button>
+        </RouterLink>
+      </div>
 
-      <Divider sx={{ mb: 3 }} />
+      <div className="border-b border-gray-200 dark:border-gray-700 mb-6" />
 
       {/* Tables Grid/List */}
       {noTablesExist ? (
-        <Box sx={{ textAlign: 'center', py: 4 }}>
-          <TableChartIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2, opacity: 0.5 }} />
-          <Typography variant="h6" gutterBottom>
+        <div className="text-center py-8">
+          <Table className="w-12 h-12 text-gray-400 opacity-50 mx-auto mb-4" />
+          <Typography variant="h6" className="mb-2">
             No Tables Found
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          <Typography variant="body2" className="text-gray-600 dark:text-gray-400 mb-4">
             Create your first table to start storing key-value pairs.
           </Typography>
-        </Box>
+        </div>
       ) : (
-        <Grid container spacing={2}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {filteredTables.map((table) => (
-            <Grid item xs={12} sm={6} md={4} key={table.id}>
-              <Card
-                variant="outlined"
-                sx={{
-                  borderRadius: 2,
-                  borderColor: selectedTable === table.name ? 'primary.main' : 'divider',
-                  bgcolor:
-                    selectedTable === table.name ? 'rgba(25, 118, 210, 0.04)' : 'background.paper',
-                  transition: 'all 0.2s ease',
-                  '&:hover': {
-                    borderColor: 'primary.main',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                  },
-                }}
-              >
-                <CardActionArea
-                  onClick={() => onTableChange(table.name)}
-                  sx={{
-                    py: 1.5,
-                    px: 2,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'flex-start',
-                  }}
-                >
-                  <TableChartIcon
-                    sx={{
-                      mr: 1.5,
-                      color: selectedTable === table.name ? 'primary.main' : 'text.secondary',
-                    }}
-                  />
-                  <CardContent sx={{ p: 0 }}>
-                    <Typography variant="subtitle1" fontWeight="medium">
-                      {table.name}
-                    </Typography>
-                  </CardContent>
-                </CardActionArea>
-              </Card>
-            </Grid>
+            <Card
+              key={table.id}
+              className={`cursor-pointer transition-all border-2 hover:border-blue-500 hover:shadow-lg ${
+                selectedTable === table.name
+                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
+                  : 'border-gray-200 dark:border-gray-700'
+              }`}
+              onClick={() => onTableChange(table.name)}
+            >
+              <CardContent className="flex items-center p-4">
+                <Table
+                  className={`w-5 h-5 mr-3 ${
+                    selectedTable === table.name ? 'text-blue-600' : 'text-gray-500'
+                  }`}
+                />
+                <Typography variant="subtitle1" className="font-medium">
+                  {table.name}
+                </Typography>
+              </CardContent>
+            </Card>
           ))}
 
           {/* Show message when no search results */}
           {filteredTables.length === 0 && searchQuery && (
-            <Grid item xs={12}>
-              <Box sx={{ textAlign: 'center', py: 4 }}>
-                <Typography variant="body2" color="text.secondary">
-                  No tables matching "{searchQuery}" found.
-                </Typography>
-              </Box>
-            </Grid>
+            <div className="col-span-full text-center py-8">
+              <Typography variant="body2" className="text-gray-600 dark:text-gray-400">
+                No tables matching "{searchQuery}" found.
+              </Typography>
+            </div>
           )}
-        </Grid>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 

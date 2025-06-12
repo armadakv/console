@@ -1,20 +1,16 @@
-import AddIcon from '@mui/icons-material/Add';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { Box, Grid, Button, Fab, Tooltip, useTheme, useMediaQuery } from '@mui/material';
+import { Plus, ArrowLeft } from 'lucide-react';
 import React, { useState } from 'react';
-import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
-
-import CardWithHeader from '../../components/shared/CardWithHeader';
-import usePageTitle from '../../hooks/usePageTitle';
-import { useDeleteKeyValuePair } from '../../hooks/useApi';
+import { useNavigate, useParams, Link as RouterLink } from 'react-router-dom';
 
 import KeyValueFilter from './components/KeyValueFilter';
 import KeyValueTable from './components/KeyValueTable';
 import TableSelector from './components/TableSelector';
 
+import { useDeleteKeyValuePair } from '@/hooks/useApi';
+import { usePageTitle } from '@/hooks/usePageTitle';
+import { CardWithHeader } from '@/shared/CardWithHeader';
+
 const DataPage: React.FC = () => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { table } = useParams<{ table: string }>();
   const navigate = useNavigate();
 
@@ -25,24 +21,7 @@ const DataPage: React.FC = () => {
   const [filterMode, setFilterMode] = useState<'prefix' | 'range'>('prefix');
   const deleteMutation = useDeleteKeyValuePair();
 
-  // Create add button for the card
-  const addButton = table ? (
-    <Button
-      component={RouterLink}
-      to={`/data/${table}/add`}
-      variant="contained"
-      color="primary"
-      startIcon={<AddIcon />}
-      sx={{
-        borderRadius: 1,
-        textTransform: 'none',
-      }}
-    >
-      Add Key-Value Pair
-    </Button>
-  ) : undefined;
-
-  // Use the usePageTitle hook without button in header
+  // Use the usePageTitle hook
   usePageTitle(table ? `Table: ${table}` : 'Key-Value Data');
 
   // Handle filter mode change
@@ -65,21 +44,13 @@ const DataPage: React.FC = () => {
   // Table selection page
   if (!table) {
     return (
-      <Grid container spacing={3}>
-        <Grid item xs={12}>
-          <CardWithHeader
-            title="Tables"
-            sx={{
-              borderRadius: 2,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-            }}
-          >
-            <Box sx={{ p: 2 }}>
-              <TableSelector selectedTable="" onTableChange={handleTableChange} />
-            </Box>
-          </CardWithHeader>
-        </Grid>
-      </Grid>
+      <div className="space-y-6">
+        <CardWithHeader title="Tables">
+          <div className="p-6">
+            <TableSelector selectedTable="" onTableChange={handleTableChange} />
+          </div>
+        </CardWithHeader>
+      </div>
     );
   }
 
@@ -95,82 +66,73 @@ const DataPage: React.FC = () => {
     }
   };
 
+  // Create add button for the card header
+  const addButton = (
+    <RouterLink
+      to={`/data/${table}/add`}
+      className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+    >
+      <Plus className="w-4 h-4 mr-2" />
+      Add Key-Value Pair
+    </RouterLink>
+  );
+
   // Table data page (with specified table)
   return (
-    <>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-        <Button
-          component={RouterLink}
+    <div className="space-y-6">
+      {/* Back to Tables Button */}
+      <div className="flex items-center">
+        <RouterLink
           to="/data"
-          startIcon={<ArrowBackIcon />}
-          sx={{ mr: 2, textTransform: 'none' }}
+          className="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
         >
+          <ArrowLeft className="w-4 h-4 mr-2" />
           Tables
-        </Button>
-      </Box>
+        </RouterLink>
+      </div>
 
-      <Grid container spacing={3}>
-        <Grid item xs={12}>
-          <CardWithHeader
-            title="Browse Data"
-            action={!isMobile ? addButton : undefined}
-            sx={{
-              borderRadius: 2,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-            }}
-          >
-            <Grid container spacing={3}>
-              <Grid item xs={12}>
-                {/* Filter form */}
-                <Box sx={{ px: 3, py: 2 }}>
-                  <KeyValueFilter
-                    prefix={prefix}
-                    setPrefix={setPrefix}
-                    start={start}
-                    setStart={setStart}
-                    end={end}
-                    setEnd={setEnd}
-                    filterMode={filterMode}
-                    onFilterModeChange={handleFilterModeChange}
-                    onFilter={() => {
-                      /* refetch happens automatically on dependencies change */
-                    }}
-                    disabled={false}
-                  />
-                </Box>
+      {/* Browse Data Card */}
+      <CardWithHeader title="Browse Data" action={addButton}>
+        <div className="space-y-6">
+          {/* Filter form */}
+          <div className="px-6 py-4">
+            <KeyValueFilter
+              prefix={prefix}
+              setPrefix={setPrefix}
+              start={start}
+              setStart={setStart}
+              end={end}
+              setEnd={setEnd}
+              filterMode={filterMode}
+              onFilterModeChange={handleFilterModeChange}
+              onFilter={() => {
+                /* refetch happens automatically on dependencies change */
+              }}
+              disabled={false}
+            />
+          </div>
 
-                {/* Data table */}
-                <KeyValueTable
-                  table={table}
-                  prefix={filterMode === 'prefix' ? prefix : ''}
-                  start={filterMode === 'range' ? start : ''}
-                  end={filterMode === 'range' ? end : ''}
-                  onDeletePair={deleteKeyValuePair}
-                />
-              </Grid>
-            </Grid>
-          </CardWithHeader>
-        </Grid>
-      </Grid>
+          {/* Data table */}
+          <KeyValueTable
+            table={table}
+            prefix={filterMode === 'prefix' ? prefix : ''}
+            start={filterMode === 'range' ? start : ''}
+            end={filterMode === 'range' ? end : ''}
+            onDeletePair={deleteKeyValuePair}
+          />
+        </div>
+      </CardWithHeader>
 
-      {/* Floating action button for mobile */}
-      {isMobile && (
-        <Tooltip title="Add Key-Value Pair">
-          <Fab
-            color="primary"
-            component={RouterLink}
-            to={`/data/${table}/add`}
-            sx={{
-              position: 'fixed',
-              bottom: theme.spacing(2),
-              right: theme.spacing(2),
-            }}
-          >
-            <AddIcon />
-          </Fab>
-        </Tooltip>
-      )}
-    </>
+      {/* Mobile Add Button - Fixed Position */}
+      <div className="fixed bottom-6 right-6 sm:hidden">
+        <RouterLink
+          to={`/data/${table}/add`}
+          className="w-14 h-14 rounded-full bg-blue-600 text-white shadow-lg flex items-center justify-center hover:bg-blue-700 transition-colors"
+        >
+          <Plus className="w-6 h-6" />
+        </RouterLink>
+      </div>
+    </div>
   );
 };
 

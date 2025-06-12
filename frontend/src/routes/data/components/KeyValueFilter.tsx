@@ -1,15 +1,6 @@
-import {
-  Box,
-  Button,
-  FormControl,
-  FormControlLabel,
-  Grid,
-  Radio,
-  RadioGroup,
-  TextField,
-  Typography,
-} from '@mui/material';
 import React from 'react';
+
+import { Button, Input, Typography } from '@/ui';
 
 interface KeyValueFilterProps {
   prefix: string;
@@ -25,11 +16,11 @@ interface KeyValueFilterProps {
 }
 
 const KeyValueFilter: React.FC<KeyValueFilterProps> = ({
-  prefix: _prefix,
+  prefix,
   setPrefix,
-  start: _start,
+  start,
   setStart,
-  end: _end,
+  end,
   setEnd,
   filterMode,
   onFilterModeChange,
@@ -41,80 +32,80 @@ const KeyValueFilter: React.FC<KeyValueFilterProps> = ({
   };
 
   return (
-    <Box sx={{ mb: 3, p: 2, border: '1px solid #ddd', borderRadius: 1 }}>
-      <Typography variant="h6" gutterBottom>
+    <div className="mb-6 p-4 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800">
+      <Typography variant="h6" className="mb-4 text-gray-900 dark:text-gray-100">
         Filter Key-Value Pairs
       </Typography>
 
-      <FormControl component="fieldset" sx={{ mb: 2 }}>
-        <RadioGroup row value={filterMode} onChange={handleModeChange} name="filter-mode">
-          <FormControlLabel
-            value="prefix"
-            control={<Radio />}
-            label="Filter by Prefix"
-            disabled={disabled}
-          />
-          <FormControlLabel
-            value="range"
-            control={<Radio />}
-            label="Filter by Range"
-            disabled={disabled}
-          />
-        </RadioGroup>
-      </FormControl>
+      <div className="mb-4">
+        <div className="flex gap-6">
+          <label className="flex items-center">
+            <input
+              type="radio"
+              name="filter-mode"
+              value="prefix"
+              checked={filterMode === 'prefix'}
+              onChange={handleModeChange}
+              disabled={disabled}
+              className="mr-2 text-primary-600 focus:ring-primary-500"
+            />
+            <span className="text-sm text-gray-700 dark:text-gray-300">Filter by Prefix</span>
+          </label>
+          <label className="flex items-center">
+            <input
+              type="radio"
+              name="filter-mode"
+              value="range"
+              checked={filterMode === 'range'}
+              onChange={handleModeChange}
+              disabled={disabled}
+              className="mr-2 text-primary-600 focus:ring-primary-500"
+            />
+            <span className="text-sm text-gray-700 dark:text-gray-300">Filter by Range</span>
+          </label>
+        </div>
+      </div>
 
-      <Grid container spacing={2} alignItems="center">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
         {filterMode === 'prefix' ? (
-          <Grid item xs={12} md={10}>
-            <TextField
-              fullWidth
+          <div className="md:col-span-10">
+            <Input
               label="Key Prefix"
-              value={_prefix}
+              value={prefix}
               onChange={(e) => setPrefix(e.target.value)}
               placeholder="Enter key prefix to filter"
               disabled={disabled}
-              size="small"
             />
-          </Grid>
+          </div>
         ) : (
           <>
-            <Grid item xs={12} md={5}>
-              <TextField
-                fullWidth
+            <div className="md:col-span-5">
+              <Input
                 label="Start Key"
-                value={_start}
+                value={start}
                 onChange={(e) => setStart(e.target.value)}
                 placeholder="Enter start key (inclusive)"
                 disabled={disabled}
-                size="small"
               />
-            </Grid>
-            <Grid item xs={12} md={5}>
-              <TextField
-                fullWidth
+            </div>
+            <div className="md:col-span-5">
+              <Input
                 label="End Key"
-                value={_end}
+                value={end}
                 onChange={(e) => setEnd(e.target.value)}
                 placeholder="Enter end key (exclusive)"
                 disabled={disabled}
-                size="small"
               />
-            </Grid>
+            </div>
           </>
         )}
-        <Grid item xs={12} md={2}>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={onFilter}
-            disabled={disabled}
-            fullWidth
-          >
+        <div className="md:col-span-2">
+          <Button variant="primary" onClick={onFilter} disabled={disabled} className="w-full">
             Apply Filter
           </Button>
-        </Grid>
-      </Grid>
-    </Box>
+        </div>
+      </div>
+    </div>
   );
 };
 

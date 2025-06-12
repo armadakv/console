@@ -1,10 +1,11 @@
-import AddIcon from '@mui/icons-material/Add';
-import { TextField, Button, Grid, CircularProgress } from '@mui/material';
+import { Loader, Plus } from 'lucide-react';
 import React, { useState } from 'react';
 
-import ErrorState from '../../../components/shared/ErrorState';
-import SuccessState from '../../../components/shared/SuccessState';
-import { useAddKeyValuePair } from '../../../hooks/useApi';
+import { useAddKeyValuePair } from '@/hooks/useApi';
+import { ErrorState } from '@/shared/ErrorState';
+import { SuccessState } from '@/shared/SuccessState';
+import { Button } from '@/ui/Button';
+import { Input } from '@/ui/Input';
 
 interface AddKeyValueFormProps {
   selectedTable: string;
@@ -45,7 +46,6 @@ const AddKeyValueForm: React.FC<AddKeyValueFormProps> = ({ selectedTable }) => {
         <ErrorState
           title="No Table Selected"
           message="Please select a table first to add key-value pairs."
-          sx={{ mb: 2 }}
         />
       )}
 
@@ -53,57 +53,56 @@ const AddKeyValueForm: React.FC<AddKeyValueFormProps> = ({ selectedTable }) => {
         <ErrorState
           error={addMutation.error}
           message="Failed to add key-value pair. Please try again."
-          sx={{ mb: 2 }}
         />
       )}
 
-      {addMutation.isSuccess && (
-        <SuccessState message="Key-value pair added successfully!" sx={{ mb: 2 }} />
-      )}
+      {addMutation.isSuccess && <SuccessState message="Key-value pair added successfully!" />}
 
       <form onSubmit={addKeyValuePair}>
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={5}>
-            <TextField
+        <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
+          <div className="sm:col-span-5">
+            <Input
               label="Key"
-              variant="outlined"
               value={newKey}
               onChange={(e) => setNewKey(e.target.value)}
               required
               disabled={!selectedTable || addMutation.isLoading}
-              fullWidth
-              size="medium"
+              placeholder="Enter key name"
             />
-          </Grid>
-          <Grid item xs={12} sm={5}>
-            <TextField
+          </div>
+          <div className="sm:col-span-5">
+            <Input
               label="Value"
-              variant="outlined"
               value={newValue}
               onChange={(e) => setNewValue(e.target.value)}
               required
               disabled={!selectedTable || addMutation.isLoading}
-              fullWidth
-              size="medium"
+              placeholder="Enter value"
               multiline
-              minRows={1}
-              maxRows={3}
+              rows={3}
             />
-          </Grid>
-          <Grid item xs={12} sm={2}>
+          </div>
+          <div className="sm:col-span-2 flex items-end">
             <Button
               type="submit"
-              variant="contained"
-              color="primary"
+              variant="primary"
               disabled={!selectedTable || !newKey || !newValue || addMutation.isLoading}
-              fullWidth
-              sx={{ height: '100%' }}
-              startIcon={addMutation.isLoading ? <CircularProgress size={20} /> : <AddIcon />}
+              className="w-full h-10"
             >
-              {addMutation.isLoading ? 'Adding...' : 'Add'}
+              {addMutation.isLoading ? (
+                <>
+                  <Loader className="w-4 h-4 mr-2 animate-spin" />
+                  Adding...
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add
+                </>
+              )}
             </Button>
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       </form>
     </>
   );

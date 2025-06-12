@@ -1,34 +1,25 @@
-import { Box, CircularProgress, Typography } from '@mui/material';
+import { Loader } from 'lucide-react';
 import React from 'react';
 
 interface LoadingStateProps {
   message?: string;
   height?: number | string;
-  sx?: object;
 }
 
 /**
  * A consistent loading state component with spinner and optional message
  */
-const LoadingState: React.FC<LoadingStateProps> = ({
+export const LoadingState: React.FC<LoadingStateProps> = ({
   message = 'Loading...',
   height = 300,
-  sx = {},
 }) => {
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height,
-        ...sx,
-      }}
+    <div
+      className="flex justify-center items-center"
+      style={{ height: typeof height === 'number' ? `${height}px` : height }}
     >
-      <CircularProgress size={24} sx={{ mr: 2 }} />
-      {message && <Typography variant="body1">{message}</Typography>}
-    </Box>
+      <Loader className="h-6 w-6 animate-spin mr-2 text-primary-600" />
+      {message && <span className="text-base text-gray-900 dark:text-gray-100">{message}</span>}
+    </div>
   );
 };
-
-export default LoadingState;

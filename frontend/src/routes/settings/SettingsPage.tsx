@@ -1,133 +1,52 @@
-import PersonIcon from '@mui/icons-material/Person';
-import SettingsSystemDaydreamIcon from '@mui/icons-material/SettingsSystemDaydream';
-import TableChartIcon from '@mui/icons-material/TableChart';
-import { Box, Tab, Tabs, Paper, Card, Typography, useTheme } from '@mui/material';
+import { Database, Settings, User } from 'lucide-react';
 import React from 'react';
 
-import usePageTitle from '../../hooks/usePageTitle';
 import ServerConfig from './components/ServerConfig';
 import TableManagement from './components/TableManagement';
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`settings-tabpanel-${index}`}
-      aria-labelledby={`settings-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box sx={{ p: 0 }}>{children}</Box>}
-    </div>
-  );
-}
-
-function a11yProps(index: number) {
-  return {
-    id: `settings-tab-${index}`,
-    'aria-controls': `settings-tabpanel-${index}`,
-  };
-}
+import { usePageTitle } from '@/hooks/usePageTitle';
+import { Card, Tab, TabList, TabPanel, Tabs } from '@/ui';
 
 const SettingsPage: React.FC = () => {
-  const theme = useTheme();
-  const isDarkMode = theme.palette.mode === 'dark';
   const [value, setValue] = React.useState(0);
 
   // Use the usePageTitle hook instead of PageHeader component
   usePageTitle('Settings');
 
-  const handleChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleChange = (newValue: number) => {
     setValue(newValue);
   };
 
   return (
-    <Card>
-      <Box
-        sx={{
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-          bgcolor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
-        }}
-      >
-        <Tabs
-          value={value}
-          onChange={handleChange}
-          aria-label="settings tabs"
-          textColor="primary"
-          indicatorColor="primary"
-          variant="scrollable"
-          scrollButtons="auto"
-          sx={{
-            px: 2,
-            '& .MuiTab-root': {
-              py: 1.5,
-              px: 2,
-              textTransform: 'none',
-              color: isDarkMode ? theme.palette.text.secondary : theme.palette.text.primary,
-              '&.Mui-selected': {
-                color: isDarkMode ? theme.palette.primary.light : theme.palette.primary.dark,
-                fontWeight: 500,
-              },
-              '&:hover': {
-                color: isDarkMode ? theme.palette.primary.light : theme.palette.primary.dark,
-                opacity: 0.8,
-              },
-            },
-          }}
-        >
-          <Tab icon={<TableChartIcon />} iconPosition="start" label="Tables" {...a11yProps(0)} />
-          <Tab
-            icon={<SettingsSystemDaydreamIcon />}
-            iconPosition="start"
-            label="System"
-            {...a11yProps(1)}
-          />
-          <Tab
-            icon={<PersonIcon />}
-            iconPosition="start"
-            label="User Preferences"
-            {...a11yProps(2)}
-          />
-        </Tabs>
-      </Box>
+    <Card className="w-full">
+      <Tabs value={value} onChange={handleChange}>
+        <TabList>
+          <Tab value={0} label="Tables" icon={<Database />} />
+          <Tab value={1} label="System" icon={<Settings />} />
+          <Tab value={2} label="User Preferences" icon={<User />} />
+        </TabList>
 
-      <TabPanel value={value} index={0}>
-        <TableManagement />
-      </TabPanel>
+        <TabPanel value={value} index={0}>
+          <TableManagement />
+        </TabPanel>
 
-      <TabPanel value={value} index={1}>
-        <ServerConfig />
-      </TabPanel>
+        <TabPanel value={value} index={1}>
+          <ServerConfig />
+        </TabPanel>
 
-      <TabPanel value={value} index={2}>
-        <Box sx={{ p: 3 }}>
-          <Typography variant="subtitle1" sx={{ mb: 2 }}>
-            User Preferences
-          </Typography>
-          <Paper
-            variant="outlined"
-            sx={{
-              p: 3,
-              textAlign: 'center',
-              borderLeft: 4,
-              borderLeftColor: 'primary.light',
-            }}
-          >
-            <Typography variant="body2" color="text.secondary">
-              User preferences settings coming soon.
-            </Typography>
-          </Paper>
-        </Box>
-      </TabPanel>
+        <TabPanel value={value} index={2}>
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              User Preferences
+            </h2>
+            <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-6 text-center border-l-4 border-l-blue-500">
+              <p className="text-gray-600 dark:text-gray-400">
+                User preferences settings coming soon.
+              </p>
+            </div>
+          </div>
+        </TabPanel>
+      </Tabs>
     </Card>
   );
 };

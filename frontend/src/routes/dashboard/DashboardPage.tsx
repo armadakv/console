@@ -1,182 +1,92 @@
-import { Grid, useTheme } from '@mui/material';
-import React, { useMemo } from 'react';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import React from 'react';
 
-import ErrorState from '../../components/shared/ErrorState';
-import LoadingState from '../../components/shared/LoadingState';
-import RefreshButton from '../../components/shared/RefreshButton';
-import usePageTitle from '../../hooks/usePageTitle';
-import { useStatus, useTables } from '../../hooks/useApi';
-
-import SummaryCard from './components/SummaryCard';
+import ClusterSummarySection from './components/ClusterSummarySection';
+import ErrorAccordion from './components/ErrorAccordion';
 import ServerStatusSection from './components/ServerStatusSection';
 import TablesSection from './components/TablesSection';
-import ClusterSummarySection from './components/ClusterSummarySection';
+
+import { useStatus, useTables } from '@/hooks/useApi';
+import { usePageTitle } from '@/hooks/usePageTitle';
+import { ErrorState } from '@/shared/ErrorState';
+import { LoadingState } from '@/shared/LoadingState';
+import { RefreshButton } from '@/shared/RefreshButton';
 
 /**
  * Dashboard page displaying overall system status, server health, and tables
  */
 const DashboardPage: React.FC = () => {
-  const theme = useTheme();
-  const { data: statusData, isLoading: isStatusLoading, isError: isStatusError, error: statusError, refetch: refetchStatus } = useStatus();
-  const { data: tablesData, isLoading: isTablesLoading } = useTables();
+  usePageTitle('Dashboard');
 
-  // Calculate cluster health
-  const clusterHealth = useMemo(() => {
-    if (!statusData?.servers || statusData.servers.length === 0) {
-      return { status: 'Unknown', message: 'No servers found' };
-    }
+  const {
+    data: status,
+    isLoading: statusLoading,
+    error: statusError,
+    refetch: refetchStatus,
+  } = useStatus();
+  const {
+    data: tables,
+    isLoading: tablesLoading,
+    error: tablesError,
+    refetch: refetchTables,
+  } = useTables();
 
-    // Check if any server has errors
-    const serversWithErrors = statusData.servers.filter(
-      server => server.errors && server.errors.length > 0
-    );
+  const isLoading = statusLoading || tablesLoading;
+  const hasError = statusError || tablesError;
 
-    // Check if any server has a status that's not 'ok'
-    const serversWithIssues = statusData.servers.filter(
-      server => server.status !== 'ok'
-    );
-
-    if (serversWithIssues.length > 0) {
-      return {
-        status: 'Error',
-        message: `${serversWithIssues.length} ${serversWithIssues.length === 1 ? 'server has' : 'servers have'} issues`
-      };
-    }
-
-    if (serversWithErrors.length > 0) {
-      return {
-        status: 'Warning',
-        message: `${serversWithErrors.length} ${serversWithErrors.length === 1 ? 'server has' : 'servers have'} warnings`
-      };
-    }
-
-    return { status: 'Healthy', message: 'All systems operational' };
-  }, [statusData]);
-
-  // Count total available tables across all servers
-  const totalTables = useMemo(() => {
-    if (!statusData?.servers) return 0;
-
-    const tableNames = new Set<string>();
-    statusData.servers.forEach(server => {
-      if (server.tables) {
-        Object.keys(server.tables).forEach(tableName => {
-          tableNames.add(tableName);
-        });
-      }
-    });
-
-    return tableNames.size;
-  }, [statusData]);
-
-  // Create refresh action button for header using RefreshButton component
-  const refreshButton = useMemo(() => {
-    return (
-      <RefreshButton
-        onClick={() => {
-          refetchStatus();
-        }}
-        disabled={isStatusLoading}
-        variant="header"
-        tooltipTitle="Refresh dashboard data"
-      />
-    );
-  }, [isStatusLoading, refetchStatus]);
-
-  // Use the usePageTitle hook instead of PageHeader component
-  usePageTitle('Dashboard', refreshButton);
-
-  if (isStatusLoading) {
-    return <LoadingState message="Loading dashboard data..." />;
+  if (isLoading) {
+    return <LoadingState />;
   }
 
-  if (isStatusError) {
+  if (hasError) {
     return (
       <ErrorState
-        error={statusError}
-        message="Failed to fetch dashboard data. Please try again later."
-        onRetry={refetchStatus}
+        error={statusError || tablesError}
+        onRetry={() => {
+          refetchStatus();
+          refetchTables();
+        }}
       />
     );
   }
 
-  // Get the appropriate icon for cluster health status
-  const getClusterHealthIcon = () => {
-    switch (clusterHealth.status) {
-      case 'Healthy':
-        return <CheckCircleOutlineIcon />;
-      case 'Warning':
-        return <WarningAmberIcon />;
-      case 'Error':
-      case 'Unknown':
-      default:
-        return <ErrorOutlineIcon />;
-    }
-  };
-
   return (
-    <Grid container spacing={3}>
-      {/* Summary Cards */}
-      <Grid item xs={12} md={4}>
-        <SummaryCard
-          title="Servers"
-          value={statusData?.servers?.length || 0}
-          subtitle={`${statusData?.servers?.length === 1 ? 'Server' : 'Servers'} online`}
-          color="primary"
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Dashboard</h1>
+        <RefreshButton
+          onClick={() => {
+            refetchStatus();
+            refetchTables();
+          }}
+          variant="button"
+          label="Refresh"
         />
-      </Grid>
-
-      <Grid item xs={12} md={4}>
-        <SummaryCard
-          title="Tables"
-          value={totalTables}
-          subtitle="Available tables"
-          color="success"
-        />
-      </Grid>
-
-      <Grid item xs={12} md={4}>
-        <SummaryCard
-          title="Cluster Health"
-          value={clusterHealth.status}
-          subtitle={clusterHealth.message}
-          color={
-            clusterHealth.status === 'Healthy'
-              ? 'success'
-              : clusterHealth.status === 'Warning'
-                ? 'warning'
-                : 'error'
-          }
-          icon={getClusterHealthIcon()}
-        />
-      </Grid>
+      </div>
 
       {/* Server Status Section */}
-      <Grid item xs={12}>
-        <ServerStatusSection servers={statusData?.servers || []} />
-      </Grid>
-
-      {/* Tables Summary Section */}
-      <Grid item xs={12} md={6}>
-        <TablesSection
-          tables={tablesData}
-          loading={isTablesLoading}
-        />
-      </Grid>
+      <ServerStatusSection servers={status?.servers || []} />
 
       {/* Cluster Summary Section */}
-      <Grid item xs={12} md={6}>
-        <ClusterSummarySection
-          status={clusterHealth.status}
-          message={clusterHealth.message}
-          totalServers={statusData?.servers?.length || 0}
-          totalTables={totalTables}
+      <ClusterSummarySection
+        status={status?.servers?.[0]?.status || 'unknown'}
+        message={status?.servers?.[0]?.message || 'No status available'}
+        totalServers={status?.servers?.length || 0}
+        totalTables={tables?.length || 0}
+      />
+
+      {/* Tables Section */}
+      <TablesSection tables={tables} loading={tablesLoading} />
+
+      {/* Error Display */}
+      {(statusError || tablesError) && (
+        <ErrorAccordion
+          errors={[
+            ...(statusError ? [String(statusError)] : []),
+            ...(tablesError ? [String(tablesError)] : []),
+          ]}
         />
-      </Grid>
-    </Grid>
+      )}
+    </div>
   );
 };
 

@@ -1,51 +1,51 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
 
 interface NavigationContextType {
-    pageTitle: string;
-    pageAction: ReactNode | null;
-    setPageTitle: (title: string) => void;
-    setPageAction: (action: ReactNode | null) => void;
-    resetPageAction: () => void;
+  pageTitle: string;
+  pageAction: ReactNode | null;
+  setPageTitle: (newTitle: string) => void;
+  setPageAction: (newAction: ReactNode | null) => void;
+  resetPageAction: () => void;
 }
 
 const NavigationContext = createContext<NavigationContextType | undefined>(undefined);
 
 interface NavigationProviderProps {
-    children: ReactNode;
+  children: ReactNode;
 }
 
 export const NavigationProvider: React.FC<NavigationProviderProps> = ({ children }) => {
-    const [pageTitle, setPageTitle] = useState<string>('Dashboard');
-    const [pageAction, setPageAction] = useState<ReactNode | null>(null);
+  const [pageTitle, setPageTitle] = useState<string>('Dashboard');
+  const [pageAction, setPageAction] = useState<ReactNode | null>(null);
 
-    // Memoize functions to prevent unnecessary re-renders
-    const memoizedSetPageTitle = useCallback((title: string) => {
-        setPageTitle(title);
-    }, []);
+  // Memoize functions to prevent unnecessary re-renders
+  const memoizedSetPageTitle = useCallback((newTitle: string) => {
+    setPageTitle(newTitle);
+  }, []);
 
-    const memoizedSetPageAction = useCallback((action: ReactNode | null) => {
-        setPageAction(action);
-    }, []);
+  const memoizedSetPageAction = useCallback((newAction: ReactNode | null) => {
+    setPageAction(newAction);
+  }, []);
 
-    const resetPageAction = useCallback(() => {
-        setPageAction(null);
-    }, []);
+  const resetPageAction = useCallback(() => {
+    setPageAction(null);
+  }, []);
 
-    const value = {
-        pageTitle,
-        pageAction,
-        setPageTitle: memoizedSetPageTitle,
-        setPageAction: memoizedSetPageAction,
-        resetPageAction,
-    };
+  const value = {
+    pageTitle,
+    pageAction,
+    setPageTitle: memoizedSetPageTitle,
+    setPageAction: memoizedSetPageAction,
+    resetPageAction,
+  };
 
-    return <NavigationContext.Provider value={value}>{children}</NavigationContext.Provider>;
+  return <NavigationContext.Provider value={value}>{children}</NavigationContext.Provider>;
 };
 
 export const useNavigation = (): NavigationContextType => {
-    const context = useContext(NavigationContext);
-    if (context === undefined) {
-        throw new Error('useNavigation must be used within a NavigationProvider');
-    }
-    return context;
+  const context = useContext(NavigationContext);
+  if (context === undefined) {
+    throw new Error('useNavigation must be used within a NavigationProvider');
+  }
+  return context;
 };

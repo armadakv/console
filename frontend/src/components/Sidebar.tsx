@@ -1,44 +1,16 @@
-// filepath: /Users/jakubcoufal/Projects/oss/armadakv/console/frontend/src/components/Sidebar.tsx
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import ExpandLess from '@mui/icons-material/ExpandLess';
-import ExpandMore from '@mui/icons-material/ExpandMore';
-import MemoryIcon from '@mui/icons-material/Memory';
-import SettingsIcon from '@mui/icons-material/Settings';
-import StorageIcon from '@mui/icons-material/Storage';
-import TableChartIcon from '@mui/icons-material/TableChart';
 import {
-  Box,
-  Collapse,
-  Divider,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Toolbar,
-  Typography,
-} from '@mui/material';
-import { styled } from '@mui/material/styles';
+  LayoutDashboard,
+  ChevronDown,
+  ChevronUp,
+  Cpu,
+  Settings,
+  Database,
+  Table,
+} from 'lucide-react';
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { useTables } from '../hooks/useApi';
-
-// Logo styling
-const LogoContainer = styled(Box)(({ theme }) => ({
-  padding: theme.spacing(2),
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-}));
-
-const Logo = styled(Typography)(({ theme }) => ({
-  fontWeight: 'bold',
-  fontSize: '1.2rem',
-  color: theme.palette.primary.main,
-  letterSpacing: '0.5px',
-  fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-}));
+import { useTables } from '@/hooks/useApi';
 
 interface SidebarProps {
   onClose?: () => void;
@@ -54,9 +26,9 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
 
   // Navigation items
   const navItems = [
-    { text: 'Dashboard', path: '/', icon: <DashboardIcon /> },
-    { text: 'Resources', path: '/resources', icon: <MemoryIcon /> },
-    { text: 'Settings', path: '/settings', icon: <SettingsIcon /> },
+    { text: 'Dashboard', path: '/', icon: <LayoutDashboard className="h-5 w-5" /> },
+    { text: 'Resources', path: '/resources', icon: <Cpu className="h-5 w-5" /> },
+    { text: 'Settings', path: '/settings', icon: <Settings className="h-5 w-5" /> },
   ];
 
   // Handle navigation
@@ -80,135 +52,119 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
     }
   };
 
+  const isActive = (path: string) => location.pathname === path;
+  const isDataActive = location.pathname.startsWith('/data');
+
   return (
-    <div>
-      <Toolbar>
-        <LogoContainer>
-          <Logo variant="h6">Armada Console</Logo>
-        </LogoContainer>
-      </Toolbar>
-      <Divider />
-      <List>
-        {/* Main navigation items except Data which has a submenu */}
-        {navItems.map((item) => (
-          <ListItem key={item.path} disablePadding>
-            <ListItemButton
-              selected={item.path === location.pathname}
-              onClick={() => handleNavClick(item.path)}
-              sx={{
-                '&.Mui-selected': {
-                  backgroundColor: 'rgba(25, 118, 210, 0.08)',
-                  borderLeft: 4,
-                  borderColor: 'primary.main',
-                },
-                '&.Mui-selected:hover': {
-                  backgroundColor: 'rgba(25, 118, 210, 0.12)',
-                },
-              }}
-            >
-              <ListItemIcon
-                sx={{
-                  color: item.path === location.pathname ? 'primary.main' : 'inherit',
-                  minWidth: '40px',
-                }}
+    <div className="h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
+      {/* Logo */}
+      <div className="h-16 flex items-center justify-center border-b border-gray-200 dark:border-gray-700">
+        <h1 className="text-lg font-bold text-primary-600 dark:text-primary-400 tracking-wide">
+          Armada Console
+        </h1>
+      </div>
+
+      {/* Navigation */}
+      <nav className="p-4">
+        <ul className="space-y-1">
+          {/* Main navigation items */}
+          {navItems.map((item) => (
+            <li key={item.path}>
+              <button
+                onClick={() => handleNavClick(item.path)}
+                className={`w-full flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  isActive(item.path)
+                    ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 border-l-4 border-primary-600'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
               >
-                {item.icon}
-              </ListItemIcon>
-              <ListItemText primary={item.text} />
-            </ListItemButton>
-          </ListItem>
-        ))}
+                <span className="mr-3">{item.icon}</span>
+                {item.text}
+              </button>
+            </li>
+          ))}
 
-        {/* Data item with tables submenu */}
-        <ListItem disablePadding>
-          <ListItemButton
-            selected={location.pathname.startsWith('/data')}
-            onClick={handleToggleTables}
-            sx={{
-              '&.Mui-selected': {
-                backgroundColor: 'rgba(25, 118, 210, 0.08)',
-                borderLeft: 4,
-                borderColor: 'primary.main',
-              },
-              '&.Mui-selected:hover': {
-                backgroundColor: 'rgba(25, 118, 210, 0.12)',
-              },
-            }}
-          >
-            <ListItemIcon
-              sx={{
-                color: location.pathname.startsWith('/data') ? 'primary.main' : 'inherit',
-                minWidth: '40px',
-              }}
+          {/* Data item with tables submenu */}
+          <li>
+            <button
+              onClick={handleToggleTables}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isDataActive
+                  ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 border-l-4 border-primary-600'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
             >
-              <StorageIcon />
-            </ListItemIcon>
-            <ListItemText primary="Data" />
-            {tablesOpen ? <ExpandLess /> : <ExpandMore />}
-          </ListItemButton>
-        </ListItem>
+              <div className="flex items-center">
+                <Database className="h-5 w-5 mr-3" />
+                Data
+              </div>
+              {tablesOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </button>
 
-        {/* Tables submenu */}
-        <Collapse in={tablesOpen} timeout="auto" unmountOnExit>
-          <List component="div" disablePadding>
-            {/* All Tables option */}
-            <ListItemButton
-              selected={location.pathname === '/data'}
-              onClick={() => handleNavClick('/data')}
-              sx={{ pl: 4 }}
-            >
-              <ListItemIcon sx={{ minWidth: '40px' }}>
-                <TableChartIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText primary="All Tables" />
-            </ListItemButton>
+            {/* Tables submenu */}
+            {tablesOpen && (
+              <ul className="mt-1 ml-6 space-y-1">
+                {/* All Tables option */}
+                <li>
+                  <button
+                    onClick={() => handleNavClick('/data')}
+                    className={`w-full flex items-center px-3 py-2 rounded-lg text-sm transition-colors ${
+                      isActive('/data')
+                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+                    }`}
+                  >
+                    <Table className="h-4 w-4 mr-3" />
+                    All Tables
+                  </button>
+                </li>
 
-            {/* Individual tables */}
-            {!tablesLoading &&
-              tables &&
-              tables.map((table) => (
-                <ListItemButton
-                  key={table.id}
-                  selected={location.pathname === `/data/${table.name}`}
-                  onClick={() => handleTableClick(table.name)}
-                  sx={{ pl: 4 }}
-                >
-                  <ListItemIcon sx={{ minWidth: '40px' }}>
-                    <TableChartIcon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText primary={table.name} />
-                </ListItemButton>
-              ))}
+                {/* Individual tables */}
+                {!tablesLoading &&
+                  tables &&
+                  tables.map((table) => (
+                    <li key={table.id}>
+                      <button
+                        onClick={() => handleTableClick(table.name)}
+                        className={`w-full flex items-center px-3 py-2 rounded-lg text-sm transition-colors ${
+                          isActive(`/data/${table.name}`)
+                            ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+                        }`}
+                      >
+                        <Table className="h-4 w-4 mr-3" />
+                        {table.name}
+                      </button>
+                    </li>
+                  ))}
 
-            {/* Show loading indicator or no tables message */}
-            {tablesLoading && (
-              <ListItem sx={{ pl: 4 }}>
-                <Typography variant="caption" color="text.secondary">
-                  Loading tables...
-                </Typography>
-              </ListItem>
+                {/* Loading indicator */}
+                {tablesLoading && (
+                  <li className="px-3 py-2">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      Loading tables...
+                    </span>
+                  </li>
+                )}
+
+                {/* No tables message */}
+                {!tablesLoading && (!tables || tables.length === 0) && (
+                  <li className="px-3 py-2">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      No tables available
+                    </span>
+                  </li>
+                )}
+              </ul>
             )}
+          </li>
+        </ul>
+      </nav>
 
-            {!tablesLoading && (!tables || tables.length === 0) && (
-              <ListItem sx={{ pl: 4 }}>
-                <Typography variant="caption" color="text.secondary">
-                  No tables available
-                </Typography>
-              </ListItem>
-            )}
-          </List>
-        </Collapse>
-      </List>
-      <Divider />
-      <Box sx={{ p: 2 }}>
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{ display: 'block', textAlign: 'center' }}
-        >
-          Armada KV Database
-        </Typography>
-      </Box>
+      {/* Footer */}
+      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 dark:border-gray-700">
+        <p className="text-xs text-center text-gray-500 dark:text-gray-400">Armada KV Database</p>
+      </div>
     </div>
   );
 };
