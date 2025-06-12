@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"sync"
 	"time"
 
 	"github.com/armadakv/console/backend/armada"
@@ -28,6 +29,7 @@ type MetricsManager struct {
 	logger         *zap.Logger
 	done           chan struct{}
 	collectors     map[string]*MetricsCollector
+	stopOnce       sync.Once
 }
 
 // MetricsCollector handles metrics collection for a single cluster
@@ -74,10 +76,12 @@ func (m *MetricsManager) Start(ctx context.Context) {
 
 // Stop stops the metrics collection process
 func (m *MetricsManager) Stop() {
-	close(m.done)
-	if err := m.storage.Close(); err != nil {
-		m.logger.Error("Error closing TSDB", zap.Error(err))
-	}
+	m.stopOnce.Do(func() {
+		close(m.done)
+		if err := m.storage.Close(); err != nil {
+			m.logger.Error("Error closing TSDB", zap.Error(err))
+		}
+	})
 }
 
 // GetStorage returns the underlying TSDB storage

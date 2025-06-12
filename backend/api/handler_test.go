@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/armadakv/console/backend/armada"
 	"github.com/go-chi/chi/v5"
@@ -18,7 +19,7 @@ import (
 type mockArmadaClient struct {
 	statusResponse  *armada.Status
 	clusterResponse *armada.ClusterInfo
-	metricsResponse *armada.Metrics
+	metricsResponse *armada.MetricsData
 	kvPairs         []armada.KeyValuePair
 	servers         []armada.Server
 	singleKvPair    *armada.KeyValuePair
@@ -41,23 +42,22 @@ func (m *mockArmadaClient) GetClusterInfo(ctx context.Context) (*armada.ClusterI
 	return &armada.ClusterInfo{
 		NodeID:      "node1",
 		NodeAddress: "localhost:8081",
-		Leader:      "node1",
-		Followers:   []string{"node2", "node3"},
-		Term:        1,
+		Members: []armada.Server{
+			{ID: "node1", Name: "server1", ClientURLs: []string{"http://localhost:8081"}},
+			{ID: "node2", Name: "server2", ClientURLs: []string{"http://localhost:8082"}},
+			{ID: "node3", Name: "server3", ClientURLs: []string{"http://localhost:8083"}},
+		},
 	}, nil
 }
 
-func (m *mockArmadaClient) GetMetrics(ctx context.Context) (*armada.Metrics, error) {
+func (m *mockArmadaClient) GetMetrics(ctx context.Context, format string) (*armada.MetricsData, error) {
 	if m.metricsResponse != nil {
 		return m.metricsResponse, nil
 	}
-	return &armada.Metrics{
-		RequestCount:   100,
-		KeyCount:       50,
-		DiskUsage:      1024 * 1024 * 10, // 10 MB
-		MemoryUsage:    1024 * 1024 * 5,  // 5 MB
-		UpTime:         3600,             // 1 hour
-		RequestLatency: 5,                // 5 ms
+	return &armada.MetricsData{
+		Data:      "# HELP armada_request_count Total number of requests\narmada_request_count 100\n",
+		Timestamp: time.Now(),
+		Source:    "test-cluster",
 	}, nil
 }
 
@@ -142,7 +142,8 @@ func (m *mockArmadaClient) Close() error {
 func createTestHandler() *Handler {
 	// Create a no-op logger for testing
 	logger := zap.NewNop()
-	handler := NewHandler("http://localhost:8081", logger)
+	// Create a mock armada client (we'll pass nil and set it manually)
+	handler := NewHandler(nil, logger)
 	handler.client = &mockArmadaClient{}
 	return handler
 }
@@ -277,53 +278,6 @@ func TestHandleCluster(t *testing.T) {
 	if response.NodeID != "node1" {
 		t.Errorf("handler returned unexpected nodeId: got %v want %v",
 			response.NodeID, "node1")
-	}
-}
-
-func TestHandleMetrics(t *testing.T) {
-	// Create a new API handler with a mock client
-	handler := createTestHandler()
-
-	// Create a request to pass to our handler
-	req, err := http.NewRequest("GET", "/api/metrics", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Create a context with the Armada client
-	ctx := context.WithValue(req.Context(), "armadaClient", handler.client)
-	req = req.WithContext(ctx)
-
-	// Create a ResponseRecorder to record the response
-	rr := httptest.NewRecorder()
-	handlerFunc := http.HandlerFunc(handler.handleMetrics)
-
-	// Call the handler function directly and pass our request and ResponseRecorder
-	handlerFunc.ServeHTTP(rr, req)
-
-	// Check the status code
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
-	}
-
-	// Check the content type
-	expectedContentType := "application/json; charset=utf-8"
-	if contentType := rr.Header().Get("Content-Type"); contentType != expectedContentType {
-		t.Errorf("handler returned wrong content type: got %v want %v",
-			contentType, expectedContentType)
-	}
-
-	// Parse the response body
-	var response armada.Metrics
-	if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
-		t.Errorf("Failed to parse response body: %v", err)
-	}
-
-	// Check the response fields
-	if response.RequestCount != 100 {
-		t.Errorf("handler returned unexpected requestCount: got %v want %v",
-			response.RequestCount, 100)
 	}
 }
 
@@ -619,7 +573,7 @@ func TestHandleKeyValue(t *testing.T) {
 	// Test DELETE request
 	t.Run("DELETE", func(t *testing.T) {
 		// Create a request to pass to our handler
-		req, err := http.NewRequest("DELETE", "/api/kv/test/key1", nil)
+		req, err := http.NewRequest("DELETE", "/api/kv/test?key=key1", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -627,10 +581,9 @@ func TestHandleKeyValue(t *testing.T) {
 		// Create a context with the Armada client
 		ctx := context.WithValue(req.Context(), "armadaClient", handler.client)
 
-		// Add URL parameters to the context
+		// Add URL parameters to the context (only table needed)
 		rctx := chi.NewRouteContext()
 		rctx.URLParams.Add("table", "test")
-		rctx.URLParams.Add("key", "key1")
 		ctx = context.WithValue(ctx, chi.RouteCtxKey, rctx)
 
 		req = req.WithContext(ctx)
@@ -716,6 +669,10 @@ func TestHandleGetSpecificKeyValue(t *testing.T) {
 
 	// Test key not found
 	t.Run("KeyNotFound", func(t *testing.T) {
+		// Reset the mock client to use default behavior
+		mockClient := handler.client.(*mockArmadaClient)
+		mockClient.singleKvPair = nil
+
 		// Create a request to pass to our handler
 		req, err := http.NewRequest("GET", "/api/kv/testtable/nonexistentkey", nil)
 		if err != nil {

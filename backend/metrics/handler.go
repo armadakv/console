@@ -67,6 +67,12 @@ type QueryRangeParamsResponse struct {
 	Step  time.Duration `json:"step"`  // Step duration between samples
 }
 
+// ErrorResponse is the response format for errors
+type ErrorResponse struct {
+	Status string `json:"status"` // Always "error"
+	Error  string `json:"error"`  // Error message
+}
+
 // handleQuery handles instant queries against stored metrics
 // @Summary Query stored metrics
 // @Description Execute a PromQL query against stored metrics at a specific time
@@ -260,7 +266,8 @@ func renderJSON(w http.ResponseWriter, v interface{}) {
 func renderError(w http.ResponseWriter, status int, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(map[string]string{
-		"error": message,
+	json.NewEncoder(w).Encode(ErrorResponse{
+		Status: "error",
+		Error:  message,
 	})
 }
