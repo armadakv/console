@@ -67,11 +67,11 @@ const ResourceMetricsGrid: React.FC<ResourceMetricsGridProps> = ({
   serverAddress: _serverAddress,
 }) => {
   // Query for CPU usage as percentage
-  const cpuQuery = `cpu_usage_percent{node_id="${serverId}"}`;
+  const cpuQuery = `rate(process_cpu_seconds_total{node_id="${serverId}"}[1m]) * 100`;
   const { data: cpuData, isLoading: cpuLoading, isError: cpuError } = useMetricsQuery(cpuQuery);
 
   // Query for memory usage in MB
-  const memoryQuery = `sum(increase(go_memstats_alloc_bytes_total{node_id="${serverId}"}[5m])) / 1024 / 1024`;
+  const memoryQuery = `sum(increase(go_memstats_alloc_bytes_total{node_id="${serverId}"}[1m])) / 1024 / 1024`;
   const {
     data: memoryData,
     isLoading: memoryLoading,

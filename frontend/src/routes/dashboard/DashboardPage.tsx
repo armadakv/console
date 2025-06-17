@@ -5,6 +5,7 @@ import ErrorAccordion from './components/ErrorAccordion';
 import ServerStatusSection from './components/ServerStatusSection';
 import TablesSection from './components/TablesSection';
 
+import { useNavigation } from '@/context/NavigationContext';
 import { useStatus, useTables } from '@/hooks/useApi';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { ErrorState } from '@/shared/ErrorState';
@@ -16,6 +17,7 @@ import { RefreshButton } from '@/shared/RefreshButton';
  */
 const DashboardPage: React.FC = () => {
   usePageTitle('Dashboard');
+  const { setPageAction, resetPageAction } = useNavigation();
 
   const {
     data: status,
@@ -29,6 +31,19 @@ const DashboardPage: React.FC = () => {
     error: tablesError,
     refetch: refetchTables,
   } = useTables();
+
+  const handleRefresh = React.useCallback(() => {
+    refetchStatus();
+    refetchTables();
+  }, [refetchStatus, refetchTables]);
+
+  // Set up the refresh button in the header
+  React.useEffect(() => {
+    setPageAction(<RefreshButton onClick={handleRefresh} variant="header" label="Refresh" />);
+
+    // Clean up when component unmounts
+    return () => resetPageAction();
+  }, [setPageAction, resetPageAction, handleRefresh]);
 
   const isLoading = statusLoading || tablesLoading;
   const hasError = statusError || tablesError;
@@ -51,22 +66,6 @@ const DashboardPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Dashboard</h1>
-        <RefreshButton
-          onClick={() => {
-            refetchStatus();
-            refetchTables();
-          }}
-          variant="button"
-          label="Refresh"
-        />
-      </div>
-
-      {/* Server Status Section */}
-      <ServerStatusSection servers={status?.servers || []} />
-
-      {/* Cluster Summary Section */}
       <ClusterSummarySection
         status={status?.servers?.[0]?.status || 'unknown'}
         message={status?.servers?.[0]?.message || 'No status available'}
@@ -74,10 +73,10 @@ const DashboardPage: React.FC = () => {
         totalTables={tables?.length || 0}
       />
 
-      {/* Tables Section */}
+      <ServerStatusSection servers={status?.servers || []} />
+
       <TablesSection tables={tables} loading={tablesLoading} />
 
-      {/* Error Display */}
       {(statusError || tablesError) && (
         <ErrorAccordion
           errors={[

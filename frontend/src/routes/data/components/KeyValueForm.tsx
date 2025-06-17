@@ -1,6 +1,5 @@
-import { Plus, ArrowLeft, Save, Loader2 } from 'lucide-react';
+import { Plus, Save, Loader2 } from 'lucide-react';
 import React, { useState } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
 
 import { useAddKeyValuePair } from '@/hooks/useApi';
 import { Alert, Button, Card, CardContent, CardHeader, Input, Textarea } from '@/ui';
@@ -21,7 +20,7 @@ const KeyValueForm: React.FC<KeyValueFormProps> = ({
   onSuccess,
 }) => {
   const [key, setKey] = useState<string>(initialKey);
-  const [value, setValue] = useState<string>(initialValue);
+  const [val, setValue] = useState<string>(initialValue);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<boolean>(false);
   const mutation = useAddKeyValuePair();
@@ -31,7 +30,7 @@ const KeyValueForm: React.FC<KeyValueFormProps> = ({
     setError(null);
     setSuccess(false);
 
-    if (!selectedTable || !key || !value) {
+    if (!selectedTable || !key || !val) {
       return;
     }
 
@@ -39,7 +38,7 @@ const KeyValueForm: React.FC<KeyValueFormProps> = ({
       await mutation.mutateAsync({
         table: selectedTable,
         key,
-        value,
+        value: val,
       });
 
       setSuccess(true);
@@ -60,19 +59,6 @@ const KeyValueForm: React.FC<KeyValueFormProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center space-x-3">
-        <RouterLink
-          to={`/data/${selectedTable}`}
-          className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 transition-colors"
-          aria-label="back to data page"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </RouterLink>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-          {isEdit ? 'Edit Key-Value Pair' : 'Add New Key-Value Pair'}
-        </h1>
-      </div>
-
       <Card>
         <CardHeader>
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -107,7 +93,7 @@ const KeyValueForm: React.FC<KeyValueFormProps> = ({
 
               <Textarea
                 label="Value"
-                value={value}
+                value={val}
                 onChange={(e) => setValue(e.target.value)}
                 required
                 disabled={mutation.isLoading}
@@ -120,7 +106,7 @@ const KeyValueForm: React.FC<KeyValueFormProps> = ({
             <Button
               type="submit"
               variant="primary"
-              disabled={!key || !value || mutation.isLoading}
+              disabled={!key || !val || mutation.isLoading}
               className="inline-flex items-center space-x-2"
             >
               {mutation.isLoading ? (

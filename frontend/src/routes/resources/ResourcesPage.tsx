@@ -5,6 +5,7 @@ import ServerResourcesCard from './components/ServerResourcesCard';
 
 import { useClusterInfo, useStatus } from '@/hooks/useApi';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import { Breadcrumb } from '@/shared/Breadcrumb';
 import { CardWithHeader } from '@/shared/CardWithHeader';
 import { ErrorState } from '@/shared/ErrorState';
 import { LoadingState } from '@/shared/LoadingState';
@@ -86,6 +87,8 @@ const ResourcesPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Breadcrumbs */}
+      <Breadcrumb items={[{ label: 'Resources', current: true }]} />
       {/* Overall Cluster Metrics */}
       <CardWithHeader title="Cluster Resources">
         <div className="p-4">

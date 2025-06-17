@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import KeyValueForm from './components/KeyValueForm';
 
+import { useKeyValuePair } from '@/hooks/useApi';
 import { usePageTitle } from '@/hooks/usePageTitle';
-import { Alert } from '@/ui';
+import { Breadcrumb } from '@/shared/Breadcrumb';
+import { Alert } from '@/ui/Alert';
 
 const EditKeyValuePage: React.FC = () => {
   const { table, key } = useParams<{ table: string; key: string }>();
@@ -20,6 +22,8 @@ const EditKeyValuePage: React.FC = () => {
     }, 1500);
   };
 
+  const { data } = useKeyValuePair(table || '', key || '');
+
   // If no table or key is specified in the URL, show an error message
   if (!table || !key) {
     return (
@@ -30,7 +34,22 @@ const EditKeyValuePage: React.FC = () => {
   }
 
   return (
-    <KeyValueForm selectedTable={table} selectedKey={key} isEditing onSuccess={handleSuccess} />
+    <div className="space-y-6">
+      <Breadcrumb
+        items={[
+          { label: 'Data', href: '/data' },
+          { label: table, href: `/data/${table}` },
+          { label: `Edit: ${key}`, current: true },
+        ]}
+      />
+      <KeyValueForm
+        selectedTable={table}
+        initialKey={key}
+        initialValue={data?.value}
+        isEdit
+        onSuccess={handleSuccess}
+      />
+    </div>
   );
 };
 

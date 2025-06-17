@@ -4,7 +4,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import KeyValueForm from './components/KeyValueForm';
 
 import { usePageTitle } from '@/hooks/usePageTitle';
-import { Alert } from '@/ui';
+import { Breadcrumb } from '@/shared/Breadcrumb';
+import { Alert } from '@/ui/Alert';
 
 const AddKeyValuePage: React.FC = () => {
   const { table } = useParams<{ table: string }>();
@@ -30,7 +31,18 @@ const AddKeyValuePage: React.FC = () => {
     );
   }
 
-  return <KeyValueForm selectedTable={table} onSuccess={handleSuccess} />;
+  return (
+    <div className="space-y-6">
+      <Breadcrumb
+        items={[
+          { label: 'Data', href: '/data' },
+          { label: table, href: `/data/${table}` },
+          { label: 'Add Key-Value', current: true },
+        ]}
+      />
+      <KeyValueForm selectedTable={table} onSuccess={handleSuccess} />
+    </div>
+  );
 };
 
 export default AddKeyValuePage;
