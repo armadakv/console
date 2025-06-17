@@ -1,8 +1,12 @@
 import { Plus, Save, Loader2 } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+
+import ValueEditor from './ValueEditor';
 
 import { useAddKeyValuePair } from '@/hooks/useApi';
-import { Alert, Button, Card, CardContent, CardHeader, Input, Textarea } from '@/ui';
+import { Alert } from '@/ui/Alert';
+import { Button } from '@/ui/Button';
+import { Card, CardContent, CardHeader } from '@/ui/Card';
 
 interface KeyValueFormProps {
   selectedTable: string;
@@ -24,6 +28,12 @@ const KeyValueForm: React.FC<KeyValueFormProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<boolean>(false);
   const mutation = useAddKeyValuePair();
+
+  // Sync state with props when they change (e.g., switching from add to edit mode)
+  useEffect(() => {
+    setKey(initialKey);
+    setValue(initialValue);
+  }, [initialKey, initialValue]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,26 +90,27 @@ const KeyValueForm: React.FC<KeyValueFormProps> = ({
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">
-              <Input
+              <ValueEditor
                 label="Key"
+                name="key"
                 value={key}
-                onChange={(e) => setKey(e.target.value)}
-                required
-                disabled={isEdit || mutation.isLoading}
-                fullWidth
+                onChange={setKey}
+                placeholder="Enter key (max 1KB)"
+                disabled={mutation.isLoading}
                 readOnly={isEdit}
+                maxLength={1024} // 1KB limit for keys
+                rows={2}
                 className="font-mono text-sm"
               />
 
-              <Textarea
+              <ValueEditor
                 label="Value"
+                name="value"
                 value={val}
-                onChange={(e) => setValue(e.target.value)}
-                required
+                onChange={setValue}
+                placeholder="Enter value (supports text, JSON, XML, or binary data)"
                 disabled={mutation.isLoading}
-                fullWidth
                 rows={8}
-                className="font-mono text-sm resize-y"
               />
             </div>
 
