@@ -4,13 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/armadakv/console/backend/api"
-	"github.com/armadakv/console/backend/armada"
-	"github.com/armadakv/console/backend/metrics"
-	"github.com/armadakv/console/frontend"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/cors"
 	"io/fs"
 	"net/http"
 	"os"
@@ -18,12 +11,20 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/armadakv/console/backend/api"
+	"github.com/armadakv/console/backend/armada"
+	"github.com/armadakv/console/backend/metrics"
+	"github.com/armadakv/console/frontend"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
+
 	"go.uber.org/zap"
 )
 
 const (
 	defaultPort      = "8080"
-	staticDir        = "frontend/dist"
+	staticDir        = "dist"
 	defaultArmadaURL = "http://localhost:5001"
 )
 
