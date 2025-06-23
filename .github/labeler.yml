@@ -1,0 +1,6 @@
+code:
+- changed-files:
+  - any-glob-to-any-file: "**/**.go"
+proto:
+- changed-files:
+  - any-glob-to-any-file: "proto/**"
