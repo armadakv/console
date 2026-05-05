@@ -4,10 +4,12 @@ import React, { lazy, Suspense } from 'react';
 import App from './App';
 import { LoadingState } from './components/shared/LoadingState';
 
-const DashboardPage = lazy(() => import('./routes/dashboard/DashboardPage'));
+const ClusterPage = lazy(() => import('./routes/dashboard/ClusterPage'));
 const DataPage = lazy(() => import('./routes/data/DataPage'));
 const AddKeyValuePage = lazy(() => import('./routes/data/AddKeyValuePage'));
 const EditKeyValuePage = lazy(() => import('./routes/data/EditKeyValuePage'));
+const NodesPage = lazy(() => import('./routes/nodes/NodesPage'));
+const NodePage = lazy(() => import('./routes/nodes/NodePage'));
 const ResourcesPage = lazy(() => import('./routes/resources/ResourcesPage'));
 const SettingsPage = lazy(() => import('./routes/settings/SettingsPage'));
 
@@ -22,7 +24,7 @@ export const indexRoute = createRoute({
   path: '/',
   component: () => (
     <Lazy>
-      <DashboardPage />
+      <ClusterPage />
     </Lazy>
   ),
 });
@@ -67,6 +69,26 @@ export const dataTableEditRoute = createRoute({
   ),
 });
 
+export const nodesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/nodes',
+  component: () => (
+    <Lazy>
+      <NodesPage />
+    </Lazy>
+  ),
+});
+
+export const nodeRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/nodes/$nodeId',
+  component: () => (
+    <Lazy>
+      <NodePage />
+    </Lazy>
+  ),
+});
+
 export const resourcesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/resources',
@@ -93,6 +115,8 @@ const routeTree = rootRoute.addChildren([
   dataTableRoute,
   dataTableAddRoute,
   dataTableEditRoute,
+  nodesRoute,
+  nodeRoute,
   resourcesRoute,
   settingsRoute,
 ]);

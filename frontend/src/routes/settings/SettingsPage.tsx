@@ -5,18 +5,16 @@ import ServerConfig from './components/ServerConfig';
 import TableManagement from './components/TableManagement';
 import UserPreferences from './components/UserPreferences';
 
-import { usePageTitle } from '@/hooks/usePageTitle';
-import { Breadcrumb } from '@/shared/Breadcrumb';
+import { useBreadcrumbs } from '@/hooks/usePageTitle';
 import { Card, Tab, TabList, TabPanel, Tabs } from '@/ui';
 
 const SettingsPage: React.FC = () => {
   const [value, setValue] = React.useState(0);
 
-  usePageTitle('Settings');
+  useBreadcrumbs([{ label: 'Settings', current: true }]);
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: 'Settings', current: true }]} />
       <Card className="w-full">
         <Tabs value={value} onChange={setValue}>
           <TabList>

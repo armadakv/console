@@ -1,9 +1,11 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
 
+import { BreadcrumbItem } from '@/shared/Breadcrumb';
+
 interface NavigationContextType {
-  pageTitle: string;
+  breadcrumbs: BreadcrumbItem[];
   pageAction: ReactNode | null;
-  setPageTitle: (newTitle: string) => void;
+  setBreadcrumbs: (items: BreadcrumbItem[]) => void;
   setPageAction: (newAction: ReactNode | null) => void;
   resetPageAction: () => void;
 }
@@ -15,12 +17,11 @@ interface NavigationProviderProps {
 }
 
 export const NavigationProvider: React.FC<NavigationProviderProps> = ({ children }) => {
-  const [pageTitle, setPageTitle] = useState<string>('Dashboard');
+  const [breadcrumbs, setBreadcrumbsState] = useState<BreadcrumbItem[]>([]);
   const [pageAction, setPageAction] = useState<ReactNode | null>(null);
 
-  // Memoize functions to prevent unnecessary re-renders
-  const memoizedSetPageTitle = useCallback((newTitle: string) => {
-    setPageTitle(newTitle);
+  const setBreadcrumbs = useCallback((items: BreadcrumbItem[]) => {
+    setBreadcrumbsState(items);
   }, []);
 
   const memoizedSetPageAction = useCallback((newAction: ReactNode | null) => {
@@ -32,9 +33,9 @@ export const NavigationProvider: React.FC<NavigationProviderProps> = ({ children
   }, []);
 
   const value = {
-    pageTitle,
+    breadcrumbs,
     pageAction,
-    setPageTitle: memoizedSetPageTitle,
+    setBreadcrumbs,
     setPageAction: memoizedSetPageAction,
     resetPageAction,
   };

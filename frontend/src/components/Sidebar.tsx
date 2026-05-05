@@ -7,6 +7,7 @@ import {
   Settings,
   Database,
   Table2,
+  Server,
 } from 'lucide-react';
 import React, { useState } from 'react';
 
@@ -32,7 +33,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
     onClose?.();
   };
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) =>
+    path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
   const isDataActive = location.pathname.startsWith('/data');
 
   const linkCls = (active: boolean) =>
@@ -43,7 +45,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
     }`;
 
   const navItems = [
-    { label: 'Dashboard', path: '/', icon: <LayoutDashboard className="h-4 w-4" /> },
+    { label: 'Cluster', path: '/', icon: <LayoutDashboard className="h-4 w-4" /> },
+    { label: 'Nodes', path: '/nodes', icon: <Server className="h-4 w-4" /> },
     { label: 'Resources', path: '/resources', icon: <Cpu className="h-4 w-4" /> },
     { label: 'Settings', path: '/settings', icon: <Settings className="h-4 w-4" /> },
   ];

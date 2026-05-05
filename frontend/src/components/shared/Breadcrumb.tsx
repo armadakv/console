@@ -2,7 +2,7 @@ import { Link } from '@tanstack/react-router';
 import { ChevronRight, Home } from 'lucide-react';
 import React from 'react';
 
-interface BreadcrumbItem {
+export interface BreadcrumbItem {
   label: string;
   href?: string;
   current?: boolean;
@@ -13,9 +13,6 @@ interface BreadcrumbProps {
   className?: string;
 }
 
-/**
- * Breadcrumb navigation component following the design language
- */
 export const Breadcrumb: React.FC<BreadcrumbProps> = ({ items, className = '' }) => {
   return (
     <nav aria-label="Breadcrumb" className={`flex items-center space-x-2 text-sm ${className}`}>

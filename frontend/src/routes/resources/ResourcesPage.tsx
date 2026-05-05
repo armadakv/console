@@ -1,17 +1,20 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 
 import ResourceMetricsGrid from './components/ResourceMetricsGrid';
 import ServerResourcesCard from './components/ServerResourcesCard';
 
+import { useNavigation } from '@/context/NavigationContext';
 import { useClusterInfo, useStatus } from '@/hooks/useApi';
-import { usePageTitle } from '@/hooks/usePageTitle';
-import { Breadcrumb } from '@/shared/Breadcrumb';
+import { useBreadcrumbs } from '@/hooks/usePageTitle';
 import { CardWithHeader } from '@/shared/CardWithHeader';
 import { ErrorState } from '@/shared/ErrorState';
 import { LoadingState } from '@/shared/LoadingState';
 import { RefreshButton } from '@/shared/RefreshButton';
 
 const ResourcesPage: React.FC = () => {
+  useBreadcrumbs([{ label: 'Resources', current: true }]);
+  const { setPageAction, resetPageAction } = useNavigation();
+
   const {
     data: statusData,
     isLoading: statusLoading,
@@ -31,23 +34,22 @@ const ResourcesPage: React.FC = () => {
   const isError = statusError || clusterError;
   const error = statusErrorData || clusterErrorData;
 
-  // Create refresh action button for header using RefreshButton component
-  const refreshButton = useMemo(() => {
-    return (
+  const handleRefresh = React.useCallback(() => {
+    refetchStatus();
+    refetchCluster();
+  }, [refetchStatus, refetchCluster]);
+
+  React.useEffect(() => {
+    setPageAction(
       <RefreshButton
-        onClick={() => {
-          refetchStatus();
-          refetchCluster();
-        }}
+        onClick={handleRefresh}
         disabled={isLoading}
         variant="header"
         tooltipTitle="Refresh resources data"
-      />
+      />,
     );
-  }, [isLoading, refetchStatus, refetchCluster]);
-
-  // Use the usePageTitle hook instead of PageHeader component
-  usePageTitle('Resources', refreshButton);
+    return () => resetPageAction();
+  }, [setPageAction, resetPageAction, handleRefresh, isLoading]);
 
   if (isLoading) {
     return <LoadingState message="Loading resources data..." />;
@@ -87,8 +89,6 @@ const ResourcesPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumbs */}
-      <Breadcrumb items={[{ label: 'Resources', current: true }]} />
       {/* Overall Cluster Metrics */}
       <CardWithHeader title="Cluster Resources">
         <div className="p-4">

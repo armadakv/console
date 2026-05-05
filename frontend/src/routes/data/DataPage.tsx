@@ -7,8 +7,7 @@ import KeyValueTable from './components/KeyValueTable';
 import TableSelector from './components/TableSelector';
 
 import { useDeleteKeyValuePair, useKeyValuePairs, useStatus } from '@/hooks/useApi';
-import { usePageTitle } from '@/hooks/usePageTitle';
-import { Breadcrumb } from '@/shared/Breadcrumb';
+import { useBreadcrumbs } from '@/hooks/usePageTitle';
 import { CardWithHeader } from '@/shared/CardWithHeader';
 import ConfirmDialog from '@/shared/ConfirmDialog';
 
@@ -57,7 +56,14 @@ const DataPage: React.FC = () => {
     return null;
   }, [status, table]);
 
-  usePageTitle(table ? `Table: ${table}` : 'Key-Value Data');
+  useBreadcrumbs(
+    table
+      ? [
+          { label: 'Data', href: '/data' },
+          { label: table, current: true },
+        ]
+      : [{ label: 'Data', current: true }],
+  );
 
   const handleFilterModeChange = (mode: 'prefix' | 'range') => {
     setFilterMode(mode);
@@ -89,7 +95,6 @@ const DataPage: React.FC = () => {
   if (!table) {
     return (
       <div className="space-y-6">
-        <Breadcrumb items={[{ label: 'Data', current: true }]} />
         <CardWithHeader title="Tables">
           <div className="p-6">
             <TableSelector selectedTable="" onTableChange={handleTableChange} />
@@ -132,13 +137,6 @@ const DataPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <Breadcrumb
-        items={[
-          { label: 'Data', href: '/data' },
-          { label: table, current: true },
-        ]}
-      />
-
       {deleteError && (
         <div className="rounded-lg border border-red-800 bg-red-900/20 px-4 py-3 text-sm text-red-300">
           {deleteError}

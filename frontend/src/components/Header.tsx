@@ -2,6 +2,7 @@ import { Menu } from 'lucide-react';
 import React from 'react';
 
 import { useNavigation } from '@/context/NavigationContext';
+import { Breadcrumb } from '@/shared/Breadcrumb';
 
 interface HeaderProps {
   onDrawerToggle: () => void;
@@ -9,7 +10,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ onDrawerToggle }) => {
   const [isMobile, setIsMobile] = React.useState(window.innerWidth < 768);
-  const { pageTitle, pageAction } = useNavigation();
+  const { breadcrumbs, pageAction } = useNavigation();
 
   React.useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -33,11 +34,13 @@ const Header: React.FC<HeaderProps> = ({ onDrawerToggle }) => {
             <Menu className="h-5 w-5" />
           </button>
         )}
-        <div className="flex items-center justify-between w-full">
-          <h1 className="text-sm font-medium text-slate-200 truncate">
-            {isMobile ? 'Armada Console' : pageTitle}
-          </h1>
-          <div className="flex items-center gap-3">{pageAction}</div>
+        <div className="flex items-center justify-between w-full min-w-0">
+          {isMobile ? (
+            <span className="text-sm font-medium text-slate-200">Armada Console</span>
+          ) : (
+            <Breadcrumb items={breadcrumbs} />
+          )}
+          <div className="flex items-center gap-3 shrink-0 ml-4">{pageAction}</div>
         </div>
       </div>
     </header>
