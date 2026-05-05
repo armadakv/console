@@ -181,41 +181,65 @@ func (h *Handler) handleStatus(w http.ResponseWriter, r *http.Request) {
 		Servers: make([]ServerStatus, 0, len(servers)),
 	}
 
-	// Get the status of each server individually
-	for _, server := range servers {
-		// Use the first PeerURL as the server address
-		var serverAddress string
-		if len(server.ClientURLs) > 0 {
-			serverAddress = server.ClientURLs[0]
-		}
+	// Get the status of each server concurrently.
+	type serverStatusResult struct {
+		status ServerStatus
+		index  int
+	}
+	results := make([]serverStatusResult, len(servers))
+	var wg sync.WaitGroup
+	for i, server := range servers {
+		wg.Add(1)
+		go func(i int, server armada.Server) {
+			defer wg.Done()
 
-		// Get the status of this server
-		status, err := h.client.GetStatus(r.Context(), serverAddress)
-		if err != nil {
-			h.logger.Error("Failed to get status from Armada server",
-				zap.Error(err),
-				zap.String("serverID", server.ID),
-				zap.String("serverAddress", serverAddress))
+			// Prefer ClientURLs; fall back to PeerURLs if ClientURLs is not populated.
+			// Without a fallback the handler would silently query the seed node for every
+			// cluster member, producing identical (and incorrect) status data for all nodes.
+			var serverAddress string
+			if len(server.ClientURLs) > 0 {
+				serverAddress = server.ClientURLs[0]
+			} else if len(server.PeerURLs) > 0 {
+				serverAddress = server.PeerURLs[0]
+			}
 
-			// Add a fallback status for this server
-			response.Servers = append(response.Servers, ServerStatus{
-				ID:      server.ID,
-				Name:    server.Name,
-				Status:  "error",
-				Message: "Failed to connect to Armada server: " + err.Error(),
-			})
-		} else {
-			// Add the status for this server
-			response.Servers = append(response.Servers, ServerStatus{
-				ID:      server.ID,
-				Name:    server.Name,
-				Status:  status.Status,
-				Message: status.Message,
-				Config:  status.Config, // Include the config data
-				Tables:  status.Tables, // Include the tables data
-				Errors:  status.Errors, // Include the errors data
-			})
-		}
+			// Get the status of this server
+			status, err := h.client.GetStatus(r.Context(), serverAddress)
+			if err != nil {
+				h.logger.Error("Failed to get status from Armada server",
+					zap.Error(err),
+					zap.String("serverID", server.ID),
+					zap.String("serverAddress", serverAddress))
+
+				results[i] = serverStatusResult{
+					index: i,
+					status: ServerStatus{
+						ID:      server.ID,
+						Name:    server.Name,
+						Status:  "error",
+						Message: "Failed to connect to Armada server: " + err.Error(),
+					},
+				}
+			} else {
+				results[i] = serverStatusResult{
+					index: i,
+					status: ServerStatus{
+						ID:      server.ID,
+						Name:    server.Name,
+						Status:  status.Status,
+						Message: status.Message,
+						Config:  status.Config,
+						Tables:  status.Tables,
+						Errors:  status.Errors,
+					},
+				}
+			}
+		}(i, server)
+	}
+	wg.Wait()
+
+	for _, r := range results {
+		response.Servers = append(response.Servers, r.status)
 	}
 	slices.SortFunc(response.Servers, func(e ServerStatus, e2 ServerStatus) int {
 		return cmp.Compare(e.Name, e2.Name)

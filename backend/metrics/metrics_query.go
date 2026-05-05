@@ -169,6 +169,7 @@ func (q *QueryEngine) QueryRange(ctx context.Context, queryStr string, start, en
 
 	// Create query result with stats
 	result := QueryResult{
+		Type:  res.Value.Type(),
 		Value: res.Value,
 		Stats: QueryStats{
 			ExecutionTime: executionTime,

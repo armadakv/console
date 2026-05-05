@@ -253,8 +253,8 @@ func TestGetStatus(t *testing.T) {
 	// Check for errors and response using testify/assert
 	assert.NoError(t, err, "GetStatus should not return an error")
 	assert.Equal(t, "ok", status.Status, "Status should be 'ok'")
-	assert.Equal(t, "v1.0.0 - Mock Armada Server", status.Message,
-		"Message should be 'v1.0.0 - Mock Armada Server'")
+	assert.Equal(t, "v1.0.0 — Mock Armada Server", status.Message,
+		"Message should be 'v1.0.0 — Mock Armada Server'")
 }
 
 // TestGetStatusWithServerAddress tests the GetStatus method with a specific server address
@@ -270,8 +270,8 @@ func TestGetStatusWithServerAddress(t *testing.T) {
 	// Check for errors and response using testify/assert
 	assert.NoError(t, err, "GetStatus with server address should not return an error")
 	assert.Equal(t, "ok", status.Status, "Status should be 'ok'")
-	assert.Equal(t, "v1.0.0 - Mock Armada Server", status.Message,
-		"Message should be 'v1.0.0 - Mock Armada Server'")
+	assert.Equal(t, "v1.0.0 — Mock Armada Server", status.Message,
+		"Message should be 'v1.0.0 — Mock Armada Server'")
 }
 
 // TestGetClusterInfo tests the GetClusterInfo method

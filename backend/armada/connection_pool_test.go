@@ -21,6 +21,16 @@ const poolBufSize = 1024 * 1024
 type mockPoolServer struct {
 	regattapb.UnimplementedClusterServer
 	memberResponse *regattapb.MemberListResponse
+	nodeID         string
+	nodeName       string
+}
+
+func (s *mockPoolServer) Status(ctx context.Context, req *regattapb.StatusRequest) (*regattapb.StatusResponse, error) {
+	id := s.nodeID
+	if id == "" {
+		id = "node1"
+	}
+	return &regattapb.StatusResponse{Id: id}, nil
 }
 
 func (s *mockPoolServer) MemberList(ctx context.Context, req *regattapb.MemberListRequest) (*regattapb.MemberListResponse, error) {

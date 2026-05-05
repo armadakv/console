@@ -170,56 +170,43 @@ func createGRPCConnection(_ context.Context, serverAddress string, logger *zap.L
 	return conn, nil
 }
 
-// fetchNodeInfo fetches node information for a given server connection
+// fetchNodeInfo fetches node information for a given server connection by calling
+// the Status RPC, which returns the responding node's own member ID directly.
+// This avoids fragile address matching (e.g. localhost vs 127.0.0.1).
 func (p *ConnectionPool) fetchNodeInfo(ctx context.Context, serverConn *ServerConnection, serverAddress string) (*NodeInfo, error) {
 	p.logger.Debug("Fetching node information", zap.String("address", serverAddress))
 
-	// Call the MemberList method to get cluster information
-	resp, err := serverConn.ClusterClient.MemberList(ctx, &regattapb.MemberListRequest{})
+	resp, err := serverConn.ClusterClient.Status(ctx, &regattapb.StatusRequest{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get member list from server: %w", err)
+		return nil, fmt.Errorf("failed to get status from server: %w", err)
 	}
 
-	// Find the member that matches our server address
-	for _, member := range resp.GetMembers() {
-		// Check if this member's client URLs match our server address
-		for _, clientURL := range member.GetClientURLs() {
-			if clientURL == serverAddress {
-				p.logger.Debug("Found node information",
-					zap.String("address", serverAddress),
-					zap.String("nodeID", member.GetId()),
-					zap.String("nodeName", member.GetName()))
+	if resp.GetId() == "" {
+		return nil, fmt.Errorf("server at %s returned empty node ID", serverAddress)
+	}
 
-				return &NodeInfo{
-					NodeID:   member.GetId(),
-					NodeName: member.GetName(),
-				}, nil
+	// Status doesn't include the node name; look it up from MemberList.
+	nodeName := resp.GetId() // fall back to ID if MemberList fails
+	if membersResp, err := serverConn.ClusterClient.MemberList(ctx, &regattapb.MemberListRequest{}); err == nil {
+		for _, m := range membersResp.GetMembers() {
+			if m.GetId() == resp.GetId() {
+				if m.GetName() != "" {
+					nodeName = m.GetName()
+				}
+				break
 			}
 		}
 	}
 
-	// If we couldn't find an exact match, try to match by hostname part
-	serverHost := extractHostname(serverAddress)
-	for _, member := range resp.GetMembers() {
-		for _, clientURL := range member.GetClientURLs() {
-			clientHost := extractHostname(clientURL)
-			if clientHost == serverHost {
-				p.logger.Debug("Found node information by hostname match",
-					zap.String("address", serverAddress),
-					zap.String("hostname", serverHost),
-					zap.String("nodeID", member.GetId()),
-					zap.String("nodeName", member.GetName()))
+	p.logger.Debug("Found node information via Status API",
+		zap.String("address", serverAddress),
+		zap.String("nodeID", resp.GetId()),
+		zap.String("nodeName", nodeName))
 
-				return &NodeInfo{
-					NodeID:   member.GetId(),
-					NodeName: member.GetName(),
-				}, nil
-			}
-		}
-	}
-
-	// If we couldn't find a match, return an error
-	return nil, fmt.Errorf("could not find node information for server at %s", serverAddress)
+	return &NodeInfo{
+		NodeID:   resp.GetId(),
+		NodeName: nodeName,
+	}, nil
 }
 
 // extractHostname extracts the hostname part from a URL or address
@@ -422,7 +409,8 @@ func (p *ConnectionPool) discoverClusterMembers(ctx context.Context, seedAddress
 		return
 	}
 
-	// Extract all client URLs from the member list
+	// Extract all client URLs from the member list.
+	// Fall back to PeerURLs when ClientURLs is not populated (ArmadaKV may omit ClientURLs).
 	newAddresses := make([]string, 0)
 	for _, member := range resp.GetMembers() {
 		// Skip members we already have a connection to by ID
@@ -434,7 +422,13 @@ func (p *ConnectionPool) discoverClusterMembers(ctx context.Context, seedAddress
 			continue
 		}
 
-		for _, url := range member.GetClientURLs() {
+		// Prefer ClientURLs; fall back to PeerURLs if ClientURLs is empty
+		urls := member.GetClientURLs()
+		if len(urls) == 0 {
+			urls = member.GetPeerURLs()
+		}
+
+		for _, url := range urls {
 			if url != "" && url != seedAddress {
 				p.connectionLock.RLock()
 				_, exists := p.addressToConnection[url]

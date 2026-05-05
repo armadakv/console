@@ -126,10 +126,26 @@ func (c *Client) GetStatus(ctx context.Context, serverAddress string) (*Status, 
 		}
 	}
 
+	// Build a meaningful message from version + info, omitting unknown/empty parts.
+	version := resp.GetVersion()
+	info := resp.GetInfo()
+	if version == "UNKNOWN" {
+		version = ""
+	}
+	var msg string
+	switch {
+	case version != "" && info != "":
+		msg = version + " — " + info
+	case version != "":
+		msg = version
+	case info != "":
+		msg = info
+	}
+
 	// Convert the response to our Status type
 	return &Status{
 		Status:  "ok",
-		Message: resp.Version + " - " + resp.Info,
+		Message: msg,
 		Config:  configMap,
 		Tables:  tables,
 		Errors:  resp.Errors,
@@ -162,7 +178,11 @@ func (c *Client) GetClusterInfo(ctx context.Context) (*ClusterInfo, error) {
 		return nil, err
 	}
 
-	// Extract the current node ID (this server's ID)
+	// The pool already resolved which NodeID our seed address maps to via fetchNodeInfo
+	// (which uses hostname-based matching). Use that to identify the current node instead
+	// of a fragile exact URL string comparison.
+	currentNodeID := serverConn.NodeID
+
 	nodeID := ""
 	var nodeAddress string
 
@@ -177,10 +197,37 @@ func (c *Client) GetClusterInfo(ctx context.Context) (*ClusterInfo, error) {
 			ClientURLs: member.GetClientURLs(),
 		})
 
-		// If this is the node we're connected to, record its ID and address
-		if len(member.ClientURLs) > 0 && member.ClientURLs[0] == c.address {
-			nodeID = member.Id
-			nodeAddress = member.ClientURLs[0]
+		// Identify the current node using the NodeID resolved by the pool.
+		// Fall back to hostname comparison if the pool didn't resolve an ID.
+		if currentNodeID != "" {
+			if member.GetId() == currentNodeID {
+				nodeID = member.GetId()
+				if len(member.GetClientURLs()) > 0 {
+					nodeAddress = member.GetClientURLs()[0]
+				} else if len(member.GetPeerURLs()) > 0 {
+					nodeAddress = member.GetPeerURLs()[0]
+				} else {
+					nodeAddress = c.address
+				}
+			}
+		} else {
+			// Fallback: normalize both sides and compare hostnames
+			for _, url := range member.GetClientURLs() {
+				if extractHostname(url) == extractHostname(c.address) {
+					nodeID = member.GetId()
+					nodeAddress = url
+					break
+				}
+			}
+			if nodeID == "" {
+				for _, url := range member.GetPeerURLs() {
+					if extractHostname(url) == extractHostname(c.address) {
+						nodeID = member.GetId()
+						nodeAddress = url
+						break
+					}
+				}
+			}
 		}
 	}
 
