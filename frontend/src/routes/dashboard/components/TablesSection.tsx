@@ -34,7 +34,7 @@ const TablesSection: React.FC<TablesSectionProps> = ({ tables, loading }) => {
               <TableRow key={table.id}>
                 <TableCell>{table.name}</TableCell>
                 <TableCell>
-                  <Typography variant="body2" className="text-gray-600 dark:text-gray-400">
+                  <Typography variant="body2" className="text-slate-400">
                     {table.id}
                   </Typography>
                 </TableCell>
@@ -44,7 +44,7 @@ const TablesSection: React.FC<TablesSectionProps> = ({ tables, loading }) => {
         </Table>
       ) : (
         <div className="p-8 text-center">
-          <Typography variant="body1" className="text-gray-600 dark:text-gray-400">
+          <Typography variant="body1" className="text-slate-400">
             No tables found.
           </Typography>
         </div>

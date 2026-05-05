@@ -1,12 +1,9 @@
 import { Menu } from 'lucide-react';
 import React from 'react';
 
-import ThemeToggle from './ThemeToggle';
-
 import { useNavigation } from '@/context/NavigationContext';
 
 interface HeaderProps {
-  drawerWidth: number;
   onDrawerToggle: () => void;
 }
 
@@ -15,40 +12,32 @@ const Header: React.FC<HeaderProps> = ({ onDrawerToggle }) => {
   const { pageTitle, pageAction } = useNavigation();
 
   React.useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   return (
     <header
-      className={`fixed top-0 z-30 h-16 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm ${
-        isMobile ? 'left-0 right-0' : `left-60 right-0`
+      className={`fixed top-0 z-30 h-14 border-b border-slate-800 bg-slate-900/95 backdrop-blur-sm ${
+        isMobile ? 'left-0 right-0' : 'left-56 right-0'
       }`}
     >
-      <div className="flex items-center justify-between h-full px-6">
+      <div className="flex items-center justify-between h-full px-5">
         {isMobile && (
           <button
-            className="p-2 rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+            className="p-1.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
             onClick={onDrawerToggle}
             aria-label="open drawer"
           >
             <Menu className="h-5 w-5" />
           </button>
         )}
-
         <div className="flex items-center justify-between w-full">
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">
+          <h1 className="text-sm font-medium text-slate-200 truncate">
             {isMobile ? 'Armada Console' : pageTitle}
           </h1>
-
-          <div className="flex items-center gap-4">
-            {pageAction}
-            <ThemeToggle />
-          </div>
+          <div className="flex items-center gap-3">{pageAction}</div>
         </div>
       </div>
     </header>

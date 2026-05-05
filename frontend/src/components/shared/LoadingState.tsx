@@ -19,7 +19,7 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
       style={{ height: typeof height === 'number' ? `${height}px` : height }}
     >
       <Loader className="h-6 w-6 animate-spin mr-2 text-primary-600" />
-      {message && <span className="text-base text-gray-900 dark:text-gray-100">{message}</span>}
+      {message && <span className="text-base text-slate-100">{message}</span>}
     </div>
   );
 };

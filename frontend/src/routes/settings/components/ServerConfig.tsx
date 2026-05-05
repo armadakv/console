@@ -28,7 +28,7 @@ const ServerConfig: React.FC = () => {
   const renderConfigTable = (config: Record<string, any> | undefined) => {
     if (!config || Object.keys(config).length === 0) {
       return (
-        <Typography variant="body2" className="text-gray-600 dark:text-gray-400">
+        <Typography variant="body2" className="text-slate-400">
           No configuration data available
         </Typography>
       );
@@ -38,11 +38,11 @@ const ServerConfig: React.FC = () => {
       <div className="max-h-96 overflow-auto">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="bg-gray-50 dark:bg-gray-900">
-              <th className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <tr className="bg-slate-900">
+              <th className="border border-slate-700 px-4 py-2 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                 Key
               </th>
-              <th className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <th className="border border-slate-700 px-4 py-2 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                 Value
               </th>
             </tr>
@@ -51,11 +51,9 @@ const ServerConfig: React.FC = () => {
             {Object.entries(config)
               .sort(([a], [b]) => a.localeCompare(b))
               .map(([key, value]) => (
-                <tr key={key} className="border-t border-gray-200 dark:border-gray-700">
-                  <td className="border border-gray-200 dark:border-gray-700 px-4 py-2 font-mono text-sm">
-                    {key}
-                  </td>
-                  <td className="border border-gray-200 dark:border-gray-700 px-4 py-2 font-mono text-sm break-all">
+                <tr key={key} className="border-t border-slate-700">
+                  <td className="border border-slate-700 px-4 py-2 font-mono text-sm">{key}</td>
+                  <td className="border border-slate-700 px-4 py-2 font-mono text-sm break-all">
                     {formatValue(value)}
                   </td>
                 </tr>
@@ -91,7 +89,7 @@ const ServerConfig: React.FC = () => {
         <button
           onClick={() => refetch()}
           disabled={isLoading}
-          className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+          className="inline-flex items-center px-3 py-2 border border-slate-300 rounded-md text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed bg-slate-800 border-slate-600 text-slate-300 hover:bg-slate-700"
           title="Refresh server configuration"
         >
           <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
@@ -100,8 +98,8 @@ const ServerConfig: React.FC = () => {
       </div>
 
       {servers.length === 0 ? (
-        <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-6 text-center">
-          <Typography variant="body2" className="text-gray-600 dark:text-gray-400">
+        <div className="border border-slate-700 rounded-lg p-6 text-center">
+          <Typography variant="body2" className="text-slate-400">
             No server configuration data available
           </Typography>
         </div>
@@ -126,12 +124,12 @@ const ServerConfig: React.FC = () => {
                   </Typography>
                   <div className="flex items-center space-x-4">
                     <div>
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Status: </span>
+                      <span className="text-sm text-slate-400">Status: </span>
                       <StatusChip status={server.status} />
                     </div>
                     {server.message && (
                       <div>
-                        <span className="text-sm text-gray-600 dark:text-gray-400">Message: </span>
+                        <span className="text-sm text-slate-400">Message: </span>
                         <span className="text-sm">{server.message}</span>
                       </div>
                     )}
@@ -143,7 +141,7 @@ const ServerConfig: React.FC = () => {
                   <div>
                     <button
                       onClick={() => handleServerToggle(server.id)}
-                      className="flex items-center justify-between w-full p-3 text-left bg-gray-50 dark:bg-gray-900 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                      className="flex items-center justify-between w-full p-3 text-left bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors"
                     >
                       <div className="flex items-center">
                         <HardDrive className="w-4 h-4 mr-2 text-blue-500" />
@@ -172,33 +170,30 @@ const ServerConfig: React.FC = () => {
                     </Typography>
                     <div className="space-y-2">
                       {Object.entries(server.tables).map(([tableName, tableStatus]) => (
-                        <div
-                          key={tableName}
-                          className="border border-gray-200 dark:border-gray-700 rounded-lg p-3"
-                        >
+                        <div key={tableName} className="border border-slate-700 rounded-lg p-3">
                           <div className="flex items-center justify-between mb-2">
                             <Typography variant="body2" className="font-medium">
                               {tableName}
                             </Typography>
-                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                            <span className="text-xs text-slate-400">
                               Leader: {tableStatus.leader}
                             </span>
                           </div>
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
                             <div>
-                              <span className="text-gray-600 dark:text-gray-400">Log Size: </span>
+                              <span className="text-slate-400">Log Size: </span>
                               <span>{Math.round(tableStatus.logSize / 1024)} KB</span>
                             </div>
                             <div>
-                              <span className="text-gray-600 dark:text-gray-400">DB Size: </span>
+                              <span className="text-slate-400">DB Size: </span>
                               <span>{Math.round(tableStatus.dbSize / 1024)} KB</span>
                             </div>
                             <div>
-                              <span className="text-gray-600 dark:text-gray-400">Raft Index: </span>
+                              <span className="text-slate-400">Raft Index: </span>
                               <span>{tableStatus.raftIndex}</span>
                             </div>
                             <div>
-                              <span className="text-gray-600 dark:text-gray-400">Raft Term: </span>
+                              <span className="text-slate-400">Raft Term: </span>
                               <span>{tableStatus.raftTerm}</span>
                             </div>
                           </div>
@@ -211,16 +206,16 @@ const ServerConfig: React.FC = () => {
                 {/* Server Errors */}
                 {server.errors && server.errors.length > 0 && (
                   <div>
-                    <Typography variant="subtitle2" className="mb-2 text-red-600 dark:text-red-400">
+                    <Typography variant="subtitle2" className="mb-2 text-red-400">
                       Errors ({server.errors.length})
                     </Typography>
                     <div className="space-y-2">
                       {server.errors.map((err, index) => (
                         <div
                           key={index}
-                          className="border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 rounded-lg p-3"
+                          className="border border-red-800 bg-red-900/20 rounded-lg p-3"
                         >
-                          <Typography variant="body2" className="text-red-800 dark:text-red-200">
+                          <Typography variant="body2" className="text-red-200">
                             {err}
                           </Typography>
                         </div>

@@ -25,7 +25,7 @@ const ServerStatusSection: React.FC<ServerStatusSectionProps> = ({ servers }) =>
           ))}
         </div>
       ) : (
-        <Typography variant="body1" className="text-gray-600 dark:text-gray-400 text-center py-6">
+        <Typography variant="body1" className="text-slate-400 text-center py-6">
           No servers found. Please check your connection to the Armada cluster.
         </Typography>
       )}

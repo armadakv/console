@@ -33,24 +33,20 @@ const MetricCard: React.FC<MetricCardProps> = ({
 
   return (
     <div
-      className={`border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800 border-l-4 ${borderClass} h-full`}
+      className={`border border-slate-700 rounded-lg p-4 bg-slate-800 border-l-4 ${borderClass} h-full`}
     >
-      <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 text-center mb-2">
-        {title}
-      </h3>
+      <h3 className="text-sm font-medium text-slate-400 text-center mb-2">{title}</h3>
 
       {loading ? (
         <div className="flex justify-center my-4">
-          <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+          <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
         </div>
       ) : error ? (
-        <p className="text-red-600 dark:text-red-400 text-sm text-center my-4">
-          Error loading data
-        </p>
+        <p className="text-red-400 text-sm text-center my-4">Error loading data</p>
       ) : (
         <div className="text-center my-4">
-          <span className="text-3xl font-medium text-gray-900 dark:text-white">{value}</span>
-          {unit && <span className="text-sm text-gray-600 dark:text-gray-400 ml-1">{unit}</span>}
+          <span className="text-3xl font-medium text-white">{value}</span>
+          {unit && <span className="text-sm text-slate-400 ml-1">{unit}</span>}
         </div>
       )}
     </div>

@@ -3,12 +3,10 @@ import { PrismAsyncLight as SyntaxHighlighter } from 'react-syntax-highlighter';
 // Import languages asynchronously
 import json from 'react-syntax-highlighter/dist/esm/languages/prism/json';
 import markup from 'react-syntax-highlighter/dist/esm/languages/prism/markup';
-import { vs, vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 import { CopyButton } from '../../../../components/shared/CopyButton';
 import type { ContentType } from '../../../../utils/contentDetection';
-
-import { useTheme } from '@/theme/ThemeProvider';
 
 // Register languages
 SyntaxHighlighter.registerLanguage('json', json);
@@ -51,16 +49,14 @@ export const CodeHighlighter: React.FC<CodeHighlighterProps> = ({
   id,
   name,
 }) => {
-  const { isDark } = useTheme();
-
   const defaultStyle = {
     margin: 0,
     borderRadius: 8,
     fontFamily: '"Roboto Mono", "Courier New", monospace',
     fontSize: density === 'compact' ? '12px' : '14px',
     lineHeight: '1.4',
-    background: isDark ? '#1f2937' : '#fafafa',
-    color: isDark ? '#f3f4f6' : '#374151',
+    background: '#1f2937',
+    color: '#f3f4f6',
     ...(rows && { minHeight: `${rows * 1.4 * (density === 'compact' ? 12 : 14) + 24}px` }),
     ...customStyle,
   };
@@ -73,22 +69,18 @@ export const CodeHighlighter: React.FC<CodeHighlighterProps> = ({
     }
   };
 
-  // Common SyntaxHighlighter props
   const syntaxHighlighterProps = {
     language: syntaxLanguage,
-    style: isDark ? vscDarkPlus : vs,
+    style: vscDarkPlus,
     showLineNumbers: showLineNumbers ?? content.split('\n').length > 10,
     wrapLines: true,
     wrapLongLines: true,
     children: content,
   };
 
-  // Common container class - allow custom className to override default border/rounding
-  const defaultClasses =
-    'relative border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden';
+  const defaultClasses = 'relative border border-slate-700 rounded-lg overflow-hidden';
   const containerClassName = className ? `relative overflow-hidden ${className}` : defaultClasses;
 
-  // Render copy button when enabled
   const renderCopyButton = () => {
     if (!showCopyButton) return null;
     return (
@@ -97,14 +89,13 @@ export const CodeHighlighter: React.FC<CodeHighlighterProps> = ({
           text={content}
           variant="icon"
           size="sm"
-          className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-600"
+          className="bg-slate-800/80 backdrop-blur-sm border border-slate-600"
         />
       </div>
     );
   };
 
   if (readOnly) {
-    // Readonly mode
     return (
       <div className={containerClassName}>
         <SyntaxHighlighter {...syntaxHighlighterProps} customStyle={defaultStyle} />
@@ -113,7 +104,6 @@ export const CodeHighlighter: React.FC<CodeHighlighterProps> = ({
     );
   }
 
-  // Editable mode
   return (
     <div className={containerClassName}>
       {/* Background syntax highlighting */}
@@ -138,7 +128,7 @@ export const CodeHighlighter: React.FC<CodeHighlighterProps> = ({
         placeholder={placeholder}
         disabled={disabled}
         rows={rows || 8}
-        className={`relative z-10 w-full px-3 py-2 bg-transparent text-transparent caret-gray-900 dark:caret-gray-100 resize-none outline-none ${
+        className={`relative z-10 w-full px-3 py-2 bg-transparent text-transparent caret-gray-100 resize-none outline-none ${
           disabled ? 'cursor-not-allowed' : ''
         }`}
         style={{

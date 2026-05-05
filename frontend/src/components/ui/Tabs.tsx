@@ -48,13 +48,7 @@ export const TabList: React.FC<{ children: React.ReactNode; className?: string }
   className,
 }) => {
   return (
-    <div
-      className={clsx(
-        'flex border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800',
-        className,
-      )}
-      role="tablist"
-    >
+    <div className={clsx('flex border-b border-slate-800 bg-slate-900', className)} role="tablist">
       {children}
     </div>
   );
@@ -69,8 +63,8 @@ export const Tab: React.FC<TabProps> = ({ label, icon, value, className }) => {
       className={clsx(
         'flex items-center space-x-2 px-4 py-3 font-medium text-sm transition-colors border-b-2',
         isActive
-          ? 'border-blue-500 text-blue-600 dark:text-blue-400 bg-white dark:bg-gray-900'
-          : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700',
+          ? 'border-blue-500 text-blue-400 bg-slate-950/50'
+          : 'border-transparent text-slate-500 hover:text-slate-300 hover:bg-slate-800',
         className,
       )}
       onClick={() => onTabChange(value)}

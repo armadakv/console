@@ -76,7 +76,7 @@ const TableManagement: React.FC = () => {
 
   // Determine loading and error states
   const isLoading =
-    isTablesLoading || createTableMutation.isLoading || deleteTableMutation.isLoading;
+    isTablesLoading || createTableMutation.isPending || deleteTableMutation.isPending;
   const errorMessage = tablesError
     ? 'Failed to fetch tables'
     : createTableMutation.error
@@ -93,7 +93,7 @@ const TableManagement: React.FC = () => {
         <button
           onClick={() => refetch()}
           disabled={isLoading}
-          className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+          className="inline-flex items-center px-3 py-2 border border-slate-300 rounded-md text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed bg-slate-800 border-slate-600 text-slate-300 hover:bg-slate-700"
           title="Refresh tables list"
         >
           <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
@@ -125,10 +125,10 @@ const TableManagement: React.FC = () => {
                 type="submit"
                 variant="primary"
                 disabled={!newTableName.trim() || isLoading}
-                startIcon={createTableMutation.isLoading ? undefined : <Plus className="w-4 h-4" />}
+                startIcon={createTableMutation.isPending ? undefined : <Plus className="w-4 h-4" />}
                 className="sm:min-w-[120px]"
               >
-                {createTableMutation.isLoading ? (
+                {createTableMutation.isPending ? (
                   <div className="flex items-center">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                     Creating...
@@ -151,37 +151,37 @@ const TableManagement: React.FC = () => {
         {isTablesLoading && tables.length === 0 ? (
           <LoadingState message="Loading tables..." />
         ) : tables.length === 0 ? (
-          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-6 text-center">
-            <Typography variant="body2" className="text-gray-600 dark:text-gray-400">
+          <div className="border border-slate-700 rounded-lg p-6 text-center">
+            <Typography variant="body2" className="text-slate-400">
               No tables found. Create one to get started.
             </Typography>
           </div>
         ) : (
-          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+          <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden">
             <table className="w-full">
-              <thead className="bg-gray-50 dark:bg-gray-900">
+              <thead className="bg-slate-900">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                     Table Name
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                     Table ID
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              <tbody className="bg-slate-800 divide-y divide-slate-700">
                 {tables.map((table) => (
-                  <tr key={table.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <tr key={table.id} className="hover:bg-slate-700">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <Typography variant="body2" className="font-medium">
                         {table.name}
                       </Typography>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <Typography variant="body2" className="text-gray-600 dark:text-gray-400">
+                      <Typography variant="body2" className="text-slate-400">
                         {table.id}
                       </Typography>
                     </td>
@@ -189,7 +189,7 @@ const TableManagement: React.FC = () => {
                       <button
                         onClick={() => confirmDeleteTable(table)}
                         disabled={isLoading}
-                        className="inline-flex items-center p-2 border border-transparent rounded-md text-red-600 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed dark:text-red-400 dark:hover:bg-red-900/20"
+                        className="inline-flex items-center p-2 border border-transparent rounded-md text-red-600 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-red-400 hover:bg-red-900/20"
                         title="Delete table"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -208,19 +208,19 @@ const TableManagement: React.FC = () => {
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div
-              className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+              className="fixed inset-0 bg-slate-500 bg-opacity-75 transition-opacity"
               onClick={() => setOpenDialog(false)}
             ></div>
 
             <span className="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
 
-            <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+            <div className="inline-block align-bottom bg-slate-800 rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
               <div>
                 <div className="mt-3 text-center sm:mt-0 sm:text-left">
                   <Typography variant="h6" className="mb-2">
                     Confirm Table Deletion
                   </Typography>
-                  <Typography variant="body2" className="text-gray-600 dark:text-gray-400">
+                  <Typography variant="body2" className="text-slate-400">
                     Are you sure you want to delete the table{' '}
                     <strong>"{tableToDelete?.name}"</strong>? This action cannot be undone and all
                     data in this table will be permanently lost.
@@ -231,12 +231,12 @@ const TableManagement: React.FC = () => {
                 <Button
                   onClick={handleDeleteTable}
                   variant="error"
-                  disabled={deleteTableMutation.isLoading}
+                  disabled={deleteTableMutation.isPending}
                   startIcon={
-                    deleteTableMutation.isLoading ? undefined : <Trash2 className="w-4 h-4" />
+                    deleteTableMutation.isPending ? undefined : <Trash2 className="w-4 h-4" />
                   }
                 >
-                  {deleteTableMutation.isLoading ? (
+                  {deleteTableMutation.isPending ? (
                     <div className="flex items-center">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                       Deleting...

@@ -1,5 +1,5 @@
+import { useNavigate, useParams } from '@tanstack/react-router';
 import React from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
 
 import KeyValueForm from './components/KeyValueForm';
 
@@ -9,7 +9,7 @@ import { Breadcrumb } from '@/shared/Breadcrumb';
 import { Alert } from '@/ui/Alert';
 
 const EditKeyValuePage: React.FC = () => {
-  const { table, key } = useParams<{ table: string; key: string }>();
+  const { table, key } = useParams({ strict: false }) as { table?: string; key?: string };
   const navigate = useNavigate();
 
   // Use the usePageTitle hook instead of PageHeader component
@@ -18,7 +18,7 @@ const EditKeyValuePage: React.FC = () => {
   const handleSuccess = () => {
     // Navigate back to the data page after successful update
     setTimeout(() => {
-      navigate(`/data/${table}`);
+      navigate({ to: '/data/$table', params: { table: table! } });
     }, 1500);
   };
 

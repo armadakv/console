@@ -1,5 +1,6 @@
 export { Breadcrumb } from './Breadcrumb';
 export { CardWithHeader } from './CardWithHeader';
+export { ConfirmDialog } from './ConfirmDialog';
 export { CopyButton } from './CopyButton';
 export { ErrorState } from './ErrorState';
 export { LoadingState } from './LoadingState';

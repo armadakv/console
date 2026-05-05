@@ -25,24 +25,24 @@ const TableAccordion: React.FC<TableAccordionProps> = ({ tables }) => {
   const tableCount = Object.keys(tables).length;
 
   return (
-    <div className="border border-gray-200 dark:border-gray-700 rounded mt-2">
+    <div className="border border-slate-700 rounded mt-2">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between p-3 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+        className="w-full flex items-center justify-between p-3 rounded hover:bg-slate-800 transition-colors"
       >
         <div className="flex items-center">
           <Database className="w-4 h-4 text-blue-500 mr-2" />
-          <Typography variant="body2" className="font-medium text-blue-600 dark:text-blue-400">
+          <Typography variant="body2" className="font-medium text-blue-400">
             {tableCount} {tableCount === 1 ? 'Table' : 'Tables'}
           </Typography>
         </div>
         <ChevronDown
-          className={`w-4 h-4 text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+          className={`w-4 h-4 text-slate-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
         />
       </button>
 
       {isExpanded && (
-        <div className="border-t border-gray-200 dark:border-gray-700">
+        <div className="border-t border-slate-700">
           <Table>
             <TableHeader>
               <TableRow>

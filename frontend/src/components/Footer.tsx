@@ -5,14 +5,14 @@ const Footer: React.FC = () => {
 
   return (
     <footer className="py-4 mt-auto">
-      <div className="border-t border-gray-200 dark:border-gray-700 mb-4" />
-      <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+      <div className="border-t border-slate-800 mb-4" />
+      <p className="text-sm text-slate-500 text-center">
         &copy; {year} Armada Console |{' '}
         <a
           href="https://github.com/armadakv/armada"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 underline"
+          className="text-slate-500 hover:text-slate-200 underline"
         >
           Armada Project
         </a>

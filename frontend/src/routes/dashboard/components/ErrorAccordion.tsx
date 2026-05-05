@@ -18,14 +18,14 @@ const ErrorAccordion: React.FC<ErrorAccordionProps> = ({ errors }) => {
   }
 
   return (
-    <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded mt-2">
+    <div className="bg-red-950 border border-red-800 rounded mt-2">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between p-3 rounded hover:bg-red-100 dark:hover:bg-red-900 transition-colors"
+        className="w-full flex items-center justify-between p-3 rounded hover:bg-red-900 transition-colors"
       >
         <div className="flex items-center">
           <AlertTriangle className="w-4 h-4 text-red-500 mr-2" />
-          <Typography variant="body2" className="font-medium text-red-600 dark:text-red-400">
+          <Typography variant="body2" className="font-medium text-red-400">
             {errors.length} {errors.length === 1 ? 'Error' : 'Errors'} Detected
           </Typography>
         </div>
@@ -40,11 +40,9 @@ const ErrorAccordion: React.FC<ErrorAccordionProps> = ({ errors }) => {
             {errors.map((error, index) => (
               <div
                 key={index}
-                className={`py-2 ${
-                  index < errors.length - 1 ? 'border-b border-red-200 dark:border-red-800' : ''
-                }`}
+                className={`py-2 ${index < errors.length - 1 ? 'border-b border-red-800' : ''}`}
               >
-                <Typography variant="body2" className="text-red-600 dark:text-red-400">
+                <Typography variant="body2" className="text-red-400">
                   {error}
                 </Typography>
               </div>

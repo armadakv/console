@@ -3,32 +3,27 @@ import React, { ReactNode } from 'react';
 import { Card, CardHeader, CardContent, Typography } from '../ui';
 
 interface CardWithHeaderProps {
-  title: string;
+  title: string | React.ReactNode;
   children: ReactNode;
   action?: ReactNode;
   contentClassName?: string;
   className?: string;
 }
 
-/**
- * A card with a styled header following the design language
- */
 export const CardWithHeader: React.FC<CardWithHeaderProps> = ({
   title,
   children,
   action,
   contentClassName = '',
   className = '',
-}) => {
-  return (
-    <Card className={className}>
-      <CardHeader className="flex justify-between items-center">
-        <Typography variant="h6" className="text-primary-700 dark:text-primary-300 font-medium">
-          {title}
-        </Typography>
-        {action && <div>{action}</div>}
-      </CardHeader>
-      <CardContent className={contentClassName}>{children}</CardContent>
-    </Card>
-  );
-};
+}) => (
+  <Card className={className}>
+    <CardHeader className="flex justify-between items-center">
+      <Typography variant="h6" className="text-slate-200 font-medium text-sm">
+        {title}
+      </Typography>
+      {action && <div>{action}</div>}
+    </CardHeader>
+    <CardContent className={contentClassName}>{children}</CardContent>
+  </Card>
+);

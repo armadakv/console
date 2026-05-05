@@ -53,7 +53,7 @@ export const CopyButton: React.FC<CopyButtonProps> = ({
         type="button"
         onClick={handleCopy}
         title={copied ? 'Copied!' : `Copy ${label.toLowerCase()}`}
-        className={`p-1 rounded text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${className}`}
+        className={`p-1 rounded text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition-colors ${className}`}
       >
         {copied ? (
           <Check className={`${iconSize} text-green-500`} />
@@ -68,7 +68,7 @@ export const CopyButton: React.FC<CopyButtonProps> = ({
     <button
       type="button"
       onClick={handleCopy}
-      className={`inline-flex items-center px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${className}`}
+      className={`inline-flex items-center px-2 py-1 text-sm border border-slate-600 rounded text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition-colors ${className}`}
     >
       {copied ? (
         <>

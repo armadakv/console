@@ -37,12 +37,12 @@ const ClusterSummarySection: React.FC<ClusterSummaryProps> = ({
     <CardWithHeader title="Cluster Summary" className="h-full">
       <div className="p-6">
         <div
-          className={`p-4 border border-gray-200 dark:border-gray-700 rounded-lg border-l-4 ${getStatusColor()} mb-4`}
+          className={`p-4 border border-slate-700 rounded-lg border-l-4 ${getStatusColor()} mb-4`}
         >
           <Typography variant="subtitle1" className="font-medium">
             Status: {status}
           </Typography>
-          <Typography variant="body2" className="text-gray-600 dark:text-gray-400 mt-2">
+          <Typography variant="body2" className="text-slate-400 mt-2">
             {message}
           </Typography>
         </div>
@@ -51,23 +51,23 @@ const ClusterSummarySection: React.FC<ClusterSummaryProps> = ({
           Cluster Statistics
         </Typography>
         <div className="space-y-2">
-          <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex justify-between items-center py-2 border-b border-slate-700">
             <div>
               <Typography variant="body2" className="font-medium">
                 Total Servers
               </Typography>
             </div>
-            <Typography variant="body2" className="text-gray-600 dark:text-gray-400">
+            <Typography variant="body2" className="text-slate-400">
               {totalServers}
             </Typography>
           </div>
-          <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex justify-between items-center py-2 border-b border-slate-700">
             <div>
               <Typography variant="body2" className="font-medium">
                 Total Tables
               </Typography>
             </div>
-            <Typography variant="body2" className="text-gray-600 dark:text-gray-400">
+            <Typography variant="body2" className="text-slate-400">
               {totalTables}
             </Typography>
           </div>
@@ -77,7 +77,7 @@ const ClusterSummarySection: React.FC<ClusterSummaryProps> = ({
                 Health Status
               </Typography>
             </div>
-            <Typography variant="body2" className="text-gray-600 dark:text-gray-400">
+            <Typography variant="body2" className="text-slate-400">
               {status}
             </Typography>
           </div>

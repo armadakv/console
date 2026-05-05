@@ -1,3 +1,4 @@
+import { useLocation, useNavigate } from '@tanstack/react-router';
 import {
   LayoutDashboard,
   ChevronDown,
@@ -5,10 +6,9 @@ import {
   Cpu,
   Settings,
   Database,
-  Table,
+  Table2,
 } from 'lucide-react';
 import React, { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
 
 import { useTables } from '@/hooks/useApi';
 
@@ -20,150 +20,99 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [tablesOpen, setTablesOpen] = useState(true);
-
-  // Fetch tables for submenu
   const { data: tables, isLoading: tablesLoading } = useTables();
 
-  // Navigation items
-  const navItems = [
-    { text: 'Dashboard', path: '/', icon: <LayoutDashboard className="h-5 w-5" /> },
-    { text: 'Resources', path: '/resources', icon: <Cpu className="h-5 w-5" /> },
-    { text: 'Settings', path: '/settings', icon: <Settings className="h-5 w-5" /> },
-  ];
-
-  // Handle navigation
-  const handleNavClick = (path: string) => {
-    navigate(path);
-    if (onClose) {
-      onClose();
-    }
+  const nav = (path: string) => {
+    navigate({ to: path as any });
+    onClose?.();
   };
 
-  // Toggle tables submenu
-  const handleToggleTables = () => {
-    setTablesOpen(!tablesOpen);
-  };
-
-  // Handle table selection
-  const handleTableClick = (tableName: string) => {
-    navigate(`/data/${tableName}`);
-    if (onClose) {
-      onClose();
-    }
+  const tableNav = (table: string) => {
+    navigate({ to: '/data/$table', params: { table } });
+    onClose?.();
   };
 
   const isActive = (path: string) => location.pathname === path;
   const isDataActive = location.pathname.startsWith('/data');
 
+  const linkCls = (active: boolean) =>
+    `w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
+      active
+        ? 'bg-blue-500/10 text-blue-400 font-medium'
+        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+    }`;
+
+  const navItems = [
+    { label: 'Dashboard', path: '/', icon: <LayoutDashboard className="h-4 w-4" /> },
+    { label: 'Resources', path: '/resources', icon: <Cpu className="h-4 w-4" /> },
+    { label: 'Settings', path: '/settings', icon: <Settings className="h-4 w-4" /> },
+  ];
+
   return (
-    <div className="h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
+    <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="h-16 flex items-center justify-center border-b border-gray-200 dark:border-gray-700">
-        <h1 className="text-lg font-bold text-primary-600 dark:text-primary-400 tracking-wide">
-          Armada Console
-        </h1>
+      <div className="h-14 flex items-center px-4 gap-2.5 border-b border-slate-800 shrink-0">
+        <svg
+          viewBox="0 0 24 24"
+          className="w-6 h-6 text-blue-400 fill-current shrink-0"
+          aria-hidden="true"
+        >
+          <path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.18l7.5 3.75v7.14L12 18.82l-7.5-3.75V7.93L12 4.18zm-2 9.82v2l2 1 2-1v-2l-2-1-2 1zm5.5-5.5l-5.5-2.75L4.5 8.5l5.5 2.75 5.5-2.75z" />
+        </svg>
+        <span className="text-sm font-semibold text-slate-100">Armada Console</span>
       </div>
 
-      {/* Navigation */}
-      <nav className="p-4">
-        <ul className="space-y-1">
-          {/* Main navigation items */}
-          {navItems.map((item) => (
-            <li key={item.path}>
-              <button
-                onClick={() => handleNavClick(item.path)}
-                className={`w-full flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  isActive(item.path)
-                    ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 border-l-4 border-primary-600'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                }`}
-              >
-                <span className="mr-3">{item.icon}</span>
-                {item.text}
-              </button>
-            </li>
-          ))}
+      {/* Nav */}
+      <nav className="flex-1 overflow-y-auto p-3 space-y-0.5">
+        {navItems.map((item) => (
+          <button
+            key={item.path}
+            onClick={() => nav(item.path)}
+            className={linkCls(isActive(item.path))}
+          >
+            {item.icon}
+            {item.label}
+          </button>
+        ))}
 
-          {/* Data item with tables submenu */}
-          <li>
-            <button
-              onClick={handleToggleTables}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                isDataActive
-                  ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 border-l-4 border-primary-600'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
-            >
-              <div className="flex items-center">
-                <Database className="h-5 w-5 mr-3" />
-                Data
-              </div>
-              {tablesOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        {/* Data with submenu */}
+        <button onClick={() => setTablesOpen(!tablesOpen)} className={linkCls(isDataActive)}>
+          <Database className="h-4 w-4" />
+          <span className="flex-1 text-left">Data</span>
+          {tablesOpen ? (
+            <ChevronUp className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronDown className="h-3.5 w-3.5" />
+          )}
+        </button>
+
+        {tablesOpen && (
+          <div className="ml-3 pl-3 border-l border-slate-800 space-y-0.5">
+            <button onClick={() => nav('/data')} className={linkCls(isActive('/data'))}>
+              <Table2 className="h-3.5 w-3.5" />
+              All Tables
             </button>
-
-            {/* Tables submenu */}
-            {tablesOpen && (
-              <ul className="mt-1 ml-6 space-y-1">
-                {/* All Tables option */}
-                <li>
-                  <button
-                    onClick={() => handleNavClick('/data')}
-                    className={`w-full flex items-center px-3 py-2 rounded-lg text-sm transition-colors ${
-                      isActive('/data')
-                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
-                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
-                    }`}
-                  >
-                    <Table className="h-4 w-4 mr-3" />
-                    All Tables
-                  </button>
-                </li>
-
-                {/* Individual tables */}
-                {!tablesLoading &&
-                  tables &&
-                  tables.map((table) => (
-                    <li key={table.id}>
-                      <button
-                        onClick={() => handleTableClick(table.name)}
-                        className={`w-full flex items-center px-3 py-2 rounded-lg text-sm transition-colors ${
-                          isActive(`/data/${table.name}`)
-                            ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
-                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
-                        }`}
-                      >
-                        <Table className="h-4 w-4 mr-3" />
-                        {table.name}
-                      </button>
-                    </li>
-                  ))}
-
-                {/* Loading indicator */}
-                {tablesLoading && (
-                  <li className="px-3 py-2">
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      Loading tables...
-                    </span>
-                  </li>
-                )}
-
-                {/* No tables message */}
-                {!tablesLoading && (!tables || tables.length === 0) && (
-                  <li className="px-3 py-2">
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      No tables available
-                    </span>
-                  </li>
-                )}
-              </ul>
+            {!tablesLoading &&
+              tables?.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => tableNav(t.name)}
+                  className={linkCls(isActive(`/data/${t.name}`))}
+                >
+                  <Table2 className="h-3.5 w-3.5" />
+                  {t.name}
+                </button>
+              ))}
+            {tablesLoading && <p className="px-3 py-1.5 text-xs text-slate-500">Loading…</p>}
+            {!tablesLoading && !tables?.length && (
+              <p className="px-3 py-1.5 text-xs text-slate-500">No tables</p>
             )}
-          </li>
-        </ul>
+          </div>
+        )}
       </nav>
 
-      {/* Footer */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 dark:border-gray-700">
-        <p className="text-xs text-center text-gray-500 dark:text-gray-400">Armada KV Database</p>
+      <div className="p-3 border-t border-slate-800">
+        <p className="text-xs text-center text-slate-600">ArmadaKV</p>
       </div>
     </div>
   );

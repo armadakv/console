@@ -71,7 +71,7 @@ const KeyValueForm: React.FC<KeyValueFormProps> = ({
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+          <h2 className="text-lg font-semibold text-white">
             {isEdit ? 'Edit Value' : 'Enter Key-Value Details'}
           </h2>
         </CardHeader>
@@ -96,7 +96,7 @@ const KeyValueForm: React.FC<KeyValueFormProps> = ({
                 value={key}
                 onChange={setKey}
                 placeholder="Enter key (max 1KB)"
-                disabled={mutation.isLoading}
+                disabled={mutation.isPending}
                 readOnly={isEdit}
                 maxLength={1024} // 1KB limit for keys
                 rows={2}
@@ -109,7 +109,7 @@ const KeyValueForm: React.FC<KeyValueFormProps> = ({
                 value={val}
                 onChange={setValue}
                 placeholder="Enter value (supports text, JSON, XML, or binary data)"
-                disabled={mutation.isLoading}
+                disabled={mutation.isPending}
                 rows={8}
               />
             </div>
@@ -117,10 +117,10 @@ const KeyValueForm: React.FC<KeyValueFormProps> = ({
             <Button
               type="submit"
               variant="primary"
-              disabled={!key || !val || mutation.isLoading}
+              disabled={!key || !val || mutation.isPending}
               className="inline-flex items-center space-x-2"
             >
-              {mutation.isLoading ? (
+              {mutation.isPending ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : isEdit ? (
                 <Save className="w-5 h-5" />
@@ -128,7 +128,7 @@ const KeyValueForm: React.FC<KeyValueFormProps> = ({
                 <Plus className="w-5 h-5" />
               )}
               <span>
-                {mutation.isLoading ? 'Saving...' : isEdit ? 'Save Changes' : 'Add Key-Value Pair'}
+                {mutation.isPending ? 'Saving...' : isEdit ? 'Save Changes' : 'Add Key-Value Pair'}
               </span>
             </Button>
           </form>

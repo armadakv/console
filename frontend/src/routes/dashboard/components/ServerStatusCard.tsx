@@ -29,9 +29,7 @@ const ServerStatusCard: React.FC<ServerStatusCardProps> = ({ server }) => {
   };
 
   return (
-    <div
-      className={`p-4 border border-gray-200 dark:border-gray-700 rounded-lg border-l-4 ${getBorderColor()}`}
-    >
+    <div className={`p-4 border border-slate-700 rounded-lg border-l-4 ${getBorderColor()}`}>
       <div className="flex justify-between items-center mb-2">
         <Typography variant="subtitle1" className="font-medium">
           {server.name || server.id}
@@ -39,13 +37,13 @@ const ServerStatusCard: React.FC<ServerStatusCardProps> = ({ server }) => {
         <StatusChip status={server.status} />
       </div>
 
-      <div className="border-t border-gray-200 dark:border-gray-700 my-2" />
+      <div className="border-t border-slate-700 my-2" />
 
       <div className="space-y-2">
-        <Typography variant="body2" className="text-gray-600 dark:text-gray-400">
+        <Typography variant="body2" className="text-slate-400">
           <strong>Message:</strong> {server.message || 'No status message available'}
         </Typography>
-        <Typography variant="body2" className="text-gray-600 dark:text-gray-400">
+        <Typography variant="body2" className="text-slate-400">
           <strong>ID:</strong> {server.id}
         </Typography>
 

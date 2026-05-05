@@ -59,7 +59,7 @@ test:
 
 # Format the code
 .PHONY: fmt
-fmt: frontend-format
+fmt:
 	$(GOFMT) ./...
 	cd frontend && $(NPM) format
 

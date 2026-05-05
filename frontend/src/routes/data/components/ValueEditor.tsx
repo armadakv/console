@@ -210,22 +210,19 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   return (
     <div className={`${className}`}>
       {label && (
-        <label
-          htmlFor={editorId}
-          className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-        >
+        <label htmlFor={editorId} className="block text-sm font-medium text-slate-300">
           {label}
         </label>
       )}
 
       {/* Value Type Selection */}
       <div
-        className={`flex flex-wrap items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-t-lg border border-b-0 border-gray-200 dark:border-gray-600 ${
-          !isValidFormat ? 'border-red-300 dark:border-red-600' : ''
+        className={`flex flex-wrap items-center gap-2 p-2 bg-slate-800 rounded-t-lg border border-b-0 border-slate-600 ${
+          !isValidFormat ? 'border-red-600' : ''
         }`}
       >
         <div className="flex items-center gap-1">
-          <span className="text-xs text-gray-600 dark:text-gray-400 mr-2">Type:</span>
+          <span className="text-xs text-slate-400 mr-2">Type:</span>
           <ViewModeButtons
             viewMode={valueType}
             onViewModeChange={(type) => {
@@ -245,20 +242,20 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
 
       {/* Format Controls */}
       <div
-        className={`flex flex-wrap items-center justify-between gap-2 p-2 bg-gray-50 dark:bg-gray-800 border border-t-0 border-b-0 border-gray-200 dark:border-gray-600 rounded-none ${
-          !isValidFormat ? 'border-red-300 dark:border-red-600' : ''
+        className={`flex flex-wrap items-center justify-between gap-2 p-2 bg-slate-800 border border-t-0 border-b-0 border-slate-600 rounded-none ${
+          !isValidFormat ? 'border-red-600' : ''
         }`}
       >
         {canFormat && (
           <div className="flex items-center gap-2">
             {/* View Mode Toggle for JSON/XML */}
-            <div className="flex rounded border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="flex rounded border border-slate-700 overflow-hidden">
               <Button
                 variant={viewMode === 'raw' ? 'primary' : 'outline'}
                 size="sm"
                 type="button"
                 onClick={() => setViewMode('raw')}
-                className="rounded-none border-0 border-r border-gray-200 dark:border-gray-700 px-2 py-1 h-6 text-xs"
+                className="rounded-none border-0 border-r border-slate-700 px-2 py-1 h-6 text-xs"
                 disabled={disabled}
               >
                 Raw
@@ -318,13 +315,13 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
         )}
         {/* Binary Mode Selection */}
         {valueType === 'binary' && !readOnly && (
-          <div className="flex rounded border border-gray-200 dark:border-gray-700 overflow-hidden ml-2">
+          <div className="flex rounded border border-slate-700 overflow-hidden ml-2">
             <Button
               variant={binaryMode === 'base64' ? 'primary' : 'outline'}
               size="sm"
               type="button"
               onClick={() => setBinaryMode('base64')}
-              className="rounded-none border-0 border-r border-gray-200 dark:border-gray-700 px-2 py-1 h-6 text-xs"
+              className="rounded-none border-0 border-r border-slate-700 px-2 py-1 h-6 text-xs"
               disabled={disabled}
             >
               Base64
@@ -349,19 +346,15 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
           {value.trim() && (
             <div className="flex items-center gap-1">
               {isValidFormat ? (
-                <span className="text-xs text-green-600 dark:text-green-400">
-                  Valid {valueType.toUpperCase()}
-                </span>
+                <span className="text-xs text-green-400">Valid {valueType.toUpperCase()}</span>
               ) : (
-                <span className="text-xs text-red-600 dark:text-red-400">
-                  Invalid {valueType.toUpperCase()}
-                </span>
+                <span className="text-xs text-red-400">Invalid {valueType.toUpperCase()}</span>
               )}
             </div>
           )}
 
           {/* Character/Byte Count */}
-          <div className="text-xs text-gray-500 dark:text-gray-400">
+          <div className="text-xs text-slate-400">
             {(() => {
               const byteLength = new (window as any).TextEncoder().encode(value).length;
               const charLength = value.length;
@@ -383,13 +376,13 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
 
       {/* Binary File Upload/Download */}
       {valueType === 'binary' && binaryMode === 'file' && (
-        <div className="p-3 bg-gray-50 dark:bg-gray-800 border border-t-0 border-b-0 border-gray-200 dark:border-gray-600">
+        <div className="p-3 bg-slate-800 border border-t-0 border-b-0 border-slate-600">
           <div className="flex items-center gap-2">
             <input
               type="file"
               onChange={handleFileUpload}
               disabled={disabled || readOnly}
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              className="block w-full text-sm text-slate-500 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
             />
             {value && (
               <Button
@@ -417,8 +410,8 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
           content={currentValue}
           language={valueType}
           readOnly={readOnly}
-          className={`border border-gray-200 dark:border-gray-600 border-t-0 rounded-t-none rounded-b-lg ${
-            !isValidFormat ? 'border-red-300 dark:border-red-600' : ''
+          className={`border border-slate-600 border-t-0 rounded-t-none rounded-b-lg ${
+            !isValidFormat ? 'border-red-600' : ''
           }`}
           onChange={(value) => {
             if (!readOnly && !disabled) {
@@ -453,8 +446,8 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
 
       {/* Error Message */}
       {!isValidFormat && formatError && (
-        <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded text-sm">
-          <Typography className="text-red-700 dark:text-red-300">
+        <div className="mt-2 p-2 bg-red-900/30 border border-red-700 rounded text-sm">
+          <Typography className="text-red-300">
             <strong>{valueType.toUpperCase()} Error:</strong> {formatError}
           </Typography>
         </div>

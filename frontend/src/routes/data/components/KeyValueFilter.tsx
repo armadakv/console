@@ -37,8 +37,8 @@ const KeyValueFilter: React.FC<KeyValueFilterProps> = ({
   };
 
   return (
-    <div className="mb-6 p-4 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800">
-      <Typography variant="h6" className="mb-4 text-gray-900 dark:text-gray-100">
+    <div className="mb-6 p-4 border border-slate-600 rounded-lg bg-slate-800">
+      <Typography variant="h6" className="mb-4 text-slate-100">
         Filter Key-Value Pairs
       </Typography>
 
@@ -54,7 +54,7 @@ const KeyValueFilter: React.FC<KeyValueFilterProps> = ({
               disabled={isDisabled}
               className="mr-2 text-primary-600 focus:ring-primary-500"
             />
-            <span className="text-sm text-gray-700 dark:text-gray-300">Filter by Prefix</span>
+            <span className="text-sm text-slate-300">Filter by Prefix</span>
           </label>
           <label className="flex items-center">
             <input
@@ -66,7 +66,7 @@ const KeyValueFilter: React.FC<KeyValueFilterProps> = ({
               disabled={isDisabled}
               className="mr-2 text-primary-600 focus:ring-primary-500"
             />
-            <span className="text-sm text-gray-700 dark:text-gray-300">Filter by Range</span>
+            <span className="text-sm text-slate-300">Filter by Range</span>
           </label>
         </div>
       </div>

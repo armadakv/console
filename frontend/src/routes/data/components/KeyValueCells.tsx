@@ -41,12 +41,10 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({
 
     if (viewMode === 'binary' && contentValidation.isValidBase64) {
       return (
-        <div
-          className={`${maxHeight} overflow-auto border border-gray-200 dark:border-gray-700 rounded-lg`}
-        >
-          <div className="p-3 bg-gray-50 dark:bg-gray-800">
+        <div className={`${maxHeight} overflow-auto border border-slate-700 rounded-lg`}>
+          <div className="p-3 bg-slate-800">
             <pre
-              className={`whitespace-pre font-mono text-gray-900 dark:text-gray-100 ${
+              className={`whitespace-pre font-mono text-slate-100 ${
                 density === 'compact' ? 'text-xs' : 'text-sm'
               } leading-relaxed`}
             >
@@ -85,7 +83,7 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({
             contentValidation={contentValidation}
           />
           {density === 'comfortable' && (
-            <div className="text-xs text-gray-500 dark:text-gray-400 truncate leading-6">
+            <div className="text-xs text-slate-400 truncate leading-6">
               {label} • {contentTypeLabel} • {content.length} chars
             </div>
           )}
@@ -107,12 +105,10 @@ const KeyValueCells: React.FC<TableRowProps> = ({ keyName, value, density = 'com
 
   return (
     <>
-      <td
-        className={`align-top border-r border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 ${paddingClass}`}
-      >
+      <td className={`align-top border-r border-slate-600 bg-slate-900 ${paddingClass}`}>
         <ContentRenderer content={keyName} label="Key" density={density} isKey={true} />
       </td>
-      <td className={`bg-white dark:bg-gray-900 ${paddingClass}`}>
+      <td className={`bg-slate-900 ${paddingClass}`}>
         <ContentRenderer content={value} label="Value" density={density} />
       </td>
     </>

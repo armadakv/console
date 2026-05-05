@@ -18,30 +18,28 @@ export const Button: React.FC<ButtonProps> = ({
   className,
   ...props
 }) => {
-  const baseClasses =
-    'inline-flex items-center justify-center font-medium rounded-lg border transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none';
+  const base =
+    'inline-flex items-center justify-center font-medium rounded-lg border transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50 disabled:pointer-events-none';
 
-  const variantClasses = {
-    primary: 'btn-primary',
-    secondary: 'btn-secondary',
-    success: 'btn-success',
-    error: 'btn-error',
-    warning: 'btn-warning',
-    outline: 'btn-outline',
-    ghost: 'btn-ghost',
+  const variants = {
+    primary:
+      'bg-blue-600 hover:bg-blue-500 text-white border-transparent shadow-sm focus:ring-blue-500',
+    secondary:
+      'bg-slate-700 hover:bg-slate-600 text-slate-200 border-slate-700 focus:ring-slate-500',
+    success: 'bg-green-600 hover:bg-green-500 text-white border-transparent focus:ring-green-500',
+    error: 'bg-red-600 hover:bg-red-500 text-white border-transparent focus:ring-red-500',
+    warning:
+      'bg-orange-600 hover:bg-orange-500 text-white border-transparent focus:ring-orange-500',
+    outline:
+      'bg-transparent hover:bg-slate-800 text-slate-300 border-slate-700 focus:ring-slate-500',
+    ghost:
+      'bg-transparent hover:bg-slate-800 text-slate-400 hover:text-slate-200 border-transparent focus:ring-slate-500',
   };
 
-  const sizeClasses = {
-    sm: 'px-3 py-1.5 text-sm',
-    md: 'px-4 py-2 text-sm',
-    lg: 'px-6 py-3 text-base',
-  };
+  const sizes = { sm: 'px-3 py-1.5 text-xs', md: 'px-4 py-2 text-sm', lg: 'px-6 py-3 text-base' };
 
   return (
-    <button
-      className={clsx(baseClasses, variantClasses[variant], sizeClasses[size], className)}
-      {...props}
-    >
+    <button className={clsx(base, variants[variant], sizes[size], className)} {...props}>
       {startIcon && <span className="mr-2">{startIcon}</span>}
       {children}
       {endIcon && <span className="ml-2">{endIcon}</span>}

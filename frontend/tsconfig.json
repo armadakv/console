@@ -17,7 +17,9 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
+      "@/shared": ["src/components/shared"],
       "@/shared/*": ["src/components/shared/*"],
+      "@/ui": ["src/components/ui/index.ts"],
       "@/ui/*": ["src/components/ui/*"],
       "@/types/*": ["src/types/*"],
       "@/hooks/*": ["src/hooks/*"],

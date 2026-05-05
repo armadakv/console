@@ -1,5 +1,5 @@
+import { useNavigate, useParams } from '@tanstack/react-router';
 import React from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
 
 import KeyValueForm from './components/KeyValueForm';
 
@@ -8,7 +8,7 @@ import { Breadcrumb } from '@/shared/Breadcrumb';
 import { Alert } from '@/ui/Alert';
 
 const AddKeyValuePage: React.FC = () => {
-  const { table } = useParams<{ table: string }>();
+  const { table } = useParams({ strict: false }) as { table?: string };
   const navigate = useNavigate();
 
   // Use the usePageTitle hook instead of PageHeader component
@@ -18,7 +18,7 @@ const AddKeyValuePage: React.FC = () => {
     // Navigate back to the data page after successful addition
     // Include the table in the path to maintain context
     setTimeout(() => {
-      navigate(`/data/${table}`);
+      navigate({ to: '/data/$table', params: { table: table! } });
     }, 1500);
   };
 
