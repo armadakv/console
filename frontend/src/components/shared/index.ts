@@ -1,5 +1,6 @@
 export { Breadcrumb } from './Breadcrumb';
 export { CardWithHeader } from './CardWithHeader';
+export { CodeHighlighter } from './CodeHighlighter';
 export { ConfirmDialog } from './ConfirmDialog';
 export { CopyButton } from './CopyButton';
 export { ErrorState } from './ErrorState';
@@ -9,3 +10,6 @@ export { RefreshButton } from './RefreshButton';
 export { StatusChip } from './StatusChip';
 export { StyledTable } from './StyledTable';
 export { SuccessState } from './SuccessState';
+export { ViewModeButtons } from './ViewModeButtons';
+export { useContentViewer } from './useContentViewer';
+export type { UseContentViewerOptions, UseContentViewerReturn } from './useContentViewer';

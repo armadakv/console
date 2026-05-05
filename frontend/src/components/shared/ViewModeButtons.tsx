@@ -1,9 +1,8 @@
 import { Code, Type, FileText, Binary } from 'lucide-react';
 import React from 'react';
 
-import type { ContentType } from '../../../../utils/contentDetection';
-
 import { Button } from '@/ui/Button';
+import type { ContentType } from '@/utils/contentDetection';
 
 interface ViewModeButtonsProps {
   viewMode: ContentType;
@@ -77,5 +76,3 @@ export const ViewModeButtons: React.FC<ViewModeButtonsProps> = ({
     </div>
   );
 };
-
-export default ViewModeButtons;

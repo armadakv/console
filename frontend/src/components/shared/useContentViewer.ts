@@ -7,7 +7,7 @@ import {
   isValidBase64,
   formatContent,
   type ContentType,
-} from '../../../../utils/contentDetection';
+} from '@/utils/contentDetection';
 
 export interface UseContentViewerOptions {
   content: string;
@@ -35,14 +35,12 @@ export const useContentViewer = ({
 }: UseContentViewerOptions): UseContentViewerReturn => {
   const [viewMode, setViewMode] = useState<ContentType>(initialType);
 
-  // Content validation
   const contentValidation = {
     isValidJson: isValidJson(content),
     isValidXml: isValidXml(content),
     isValidBase64: isValidBase64(content),
   };
 
-  // Auto-detect content type on mount and set initial view mode
   useEffect(() => {
     if (autoDetect && content) {
       const detection = detectContentType(content);
@@ -50,17 +48,15 @@ export const useContentViewer = ({
     }
   }, [content, autoDetect]);
 
-  // Get content type label
   const getContentTypeLabel = (): string => {
-    const { isValidJson, isValidXml, isValidBase64 } = contentValidation;
-    if (isValidJson && isValidXml) return 'JSON/XML';
-    if (isValidJson) return 'JSON';
-    if (isValidXml) return 'XML';
-    if (isValidBase64) return 'Binary';
+    const { isValidJson: json, isValidXml: xml, isValidBase64: base64 } = contentValidation;
+    if (json && xml) return 'JSON/XML';
+    if (json) return 'JSON';
+    if (xml) return 'XML';
+    if (base64) return 'Binary';
     return 'Text';
   };
 
-  // Get formatted content based on view mode
   const getFormattedContent = (): string => {
     try {
       if (viewMode === 'json' && contentValidation.isValidJson) {
@@ -70,7 +66,6 @@ export const useContentViewer = ({
         return formatContent(content, 'xml');
       }
       if (viewMode === 'binary' && contentValidation.isValidBase64) {
-        // Display binary data as hex dump style
         const binaryData =
           typeof window !== 'undefined' && window.atob
             ? window.atob(content.trim())
@@ -90,7 +85,6 @@ export const useContentViewer = ({
     return content;
   };
 
-  // Determine if syntax highlighter should be used
   const shouldUseSyntaxHighlighter =
     (viewMode === 'json' || viewMode === 'xml') &&
     (viewMode === 'json' ? contentValidation.isValidJson : contentValidation.isValidXml);

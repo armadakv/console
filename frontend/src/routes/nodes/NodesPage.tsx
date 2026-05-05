@@ -2,11 +2,11 @@ import { useNavigate } from '@tanstack/react-router';
 import { CheckCircle2, XCircle, Server } from 'lucide-react';
 import React from 'react';
 
-import { formatBytes } from '../dashboard/utils';
+import { formatBytes } from '../cluster/utils';
 
 import { useNavigation } from '@/context/NavigationContext';
 import { useClusterInfo, useStatus } from '@/hooks/useApi';
-import { useBreadcrumbs } from '@/hooks/usePageTitle';
+import { useBreadcrumbs } from '@/hooks/useBreadcrumbs';
 import { ErrorState } from '@/shared/ErrorState';
 import { LoadingState } from '@/shared/LoadingState';
 import { RefreshButton } from '@/shared/RefreshButton';
@@ -19,6 +19,7 @@ const NodesPage: React.FC = () => {
   const {
     data: status,
     isLoading: statusLoading,
+    isFetching: statusFetching,
     error: statusError,
     refetch: refetchStatus,
   } = useStatus();
@@ -26,9 +27,12 @@ const NodesPage: React.FC = () => {
   const {
     data: clusterInfo,
     isLoading: clusterLoading,
+    isFetching: clusterFetching,
     error: clusterError,
     refetch: refetchCluster,
   } = useClusterInfo();
+
+  const isFetching = statusFetching || clusterFetching;
 
   const handleRefresh = React.useCallback(() => {
     refetchStatus();
@@ -36,9 +40,11 @@ const NodesPage: React.FC = () => {
   }, [refetchStatus, refetchCluster]);
 
   React.useEffect(() => {
-    setPageAction(<RefreshButton onClick={handleRefresh} variant="header" label="Refresh" />);
+    setPageAction(
+      <RefreshButton onClick={handleRefresh} isRefreshing={isFetching} variant="header" />,
+    );
     return () => resetPageAction();
-  }, [setPageAction, resetPageAction, handleRefresh]);
+  }, [setPageAction, resetPageAction, handleRefresh, isFetching]);
 
   if (statusLoading || clusterLoading) return <LoadingState />;
   if (statusError || clusterError) {

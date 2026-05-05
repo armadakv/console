@@ -4,13 +4,16 @@ import (
 	"cmp"
 	"context"
 	"encoding/json"
+	"fmt"
+	"net/http"
+	"slices"
+	"sync"
+	"time"
+
 	"github.com/armadakv/console/backend/armada"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-rat/chix"
 	"go.uber.org/zap"
-	"net/http"
-	"slices"
-	"sync"
 )
 
 // ArmadaClient is the interface for interacting with the Armada server.
@@ -352,7 +355,9 @@ func (h *Handler) handleGetKeyValue(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get key-value pairs with the specified filtering
+	queryStart := time.Now()
 	pairs, err := h.client.GetKeyValuePairs(r.Context(), table, prefix, start, end, limit)
+	queryDuration := time.Since(queryStart)
 	if err != nil {
 		h.logger.Error("Failed to get key-value pairs",
 			zap.Error(err),
@@ -364,6 +369,7 @@ func (h *Handler) handleGetKeyValue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("X-Query-Duration-Ms", fmt.Sprintf("%.3f", float64(queryDuration.Nanoseconds())/1e6))
 	render.JSON(pairs)
 }
 
@@ -384,6 +390,7 @@ func (h *Handler) handlePutKeyValue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	queryStart := time.Now()
 	if err := h.client.PutKeyValue(r.Context(), table, pair.Key, pair.Value); err != nil {
 		h.logger.Error("Failed to put key-value pair",
 			zap.Error(err),
@@ -392,7 +399,8 @@ func (h *Handler) handlePutKeyValue(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to put key-value pair", http.StatusInternalServerError)
 		return
 	}
-
+	queryDuration := time.Since(queryStart)
+	w.Header().Set("X-Query-Duration-Ms", fmt.Sprintf("%.3f", float64(queryDuration.Nanoseconds())/1e6))
 	render.JSON(make(map[string]any))
 }
 
@@ -412,6 +420,7 @@ func (h *Handler) handleDeleteKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	queryStart := time.Now()
 	if err := h.client.DeleteKey(r.Context(), table, key); err != nil {
 		h.logger.Error("Failed to delete key",
 			zap.Error(err),
@@ -420,7 +429,8 @@ func (h *Handler) handleDeleteKey(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to delete key", http.StatusInternalServerError)
 		return
 	}
-
+	queryDuration := time.Since(queryStart)
+	w.Header().Set("X-Query-Duration-Ms", fmt.Sprintf("%.3f", float64(queryDuration.Nanoseconds())/1e6))
 	render.JSON(make(map[string]any))
 }
 
@@ -442,7 +452,9 @@ func (h *Handler) handleGetSpecificKeyValue(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Get the specific key-value pair
+	queryStart := time.Now()
 	pair, err := h.client.GetKeyValue(r.Context(), table, key)
+	queryDuration := time.Since(queryStart)
 	if err != nil {
 		h.logger.Error("Failed to get key-value pair",
 			zap.Error(err),
@@ -452,6 +464,7 @@ func (h *Handler) handleGetSpecificKeyValue(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	w.Header().Set("X-Query-Duration-Ms", fmt.Sprintf("%.3f", float64(queryDuration.Nanoseconds())/1e6))
 	render.JSON(pair)
 }
 

@@ -5,7 +5,7 @@ import RaftClusterView from './components/RaftClusterView';
 
 import { useNavigation } from '@/context/NavigationContext';
 import { useClusterInfo, useStatus } from '@/hooks/useApi';
-import { useBreadcrumbs } from '@/hooks/usePageTitle';
+import { useBreadcrumbs } from '@/hooks/useBreadcrumbs';
 import { ErrorState } from '@/shared/ErrorState';
 import { LoadingState } from '@/shared/LoadingState';
 import { RefreshButton } from '@/shared/RefreshButton';
@@ -18,6 +18,7 @@ const ClusterPage: React.FC = () => {
   const {
     data: status,
     isLoading: statusLoading,
+    isFetching: statusFetching,
     error: statusError,
     refetch: refetchStatus,
   } = useStatus();
@@ -25,9 +26,12 @@ const ClusterPage: React.FC = () => {
   const {
     data: clusterInfo,
     isLoading: clusterLoading,
+    isFetching: clusterFetching,
     error: clusterError,
     refetch: refetchCluster,
   } = useClusterInfo();
+
+  const isFetching = statusFetching || clusterFetching;
 
   const handleRefresh = React.useCallback(() => {
     refetchStatus();
@@ -35,9 +39,11 @@ const ClusterPage: React.FC = () => {
   }, [refetchStatus, refetchCluster]);
 
   React.useEffect(() => {
-    setPageAction(<RefreshButton onClick={handleRefresh} variant="header" label="Refresh" />);
+    setPageAction(
+      <RefreshButton onClick={handleRefresh} isRefreshing={isFetching} variant="header" />,
+    );
     return () => resetPageAction();
-  }, [setPageAction, resetPageAction, handleRefresh]);
+  }, [setPageAction, resetPageAction, handleRefresh, isFetching]);
 
   const isLoading = statusLoading || clusterLoading;
   const hasError = statusError || clusterError;

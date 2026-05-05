@@ -1,17 +1,6 @@
 import { useLocation, useNavigate } from '@tanstack/react-router';
-import {
-  LayoutDashboard,
-  ChevronDown,
-  ChevronUp,
-  Cpu,
-  Settings,
-  Database,
-  Table2,
-  Server,
-} from 'lucide-react';
-import React, { useState } from 'react';
-
-import { useTables } from '@/hooks/useApi';
+import { LayoutDashboard, Settings, Server, Search } from 'lucide-react';
+import React from 'react';
 
 interface SidebarProps {
   onClose?: () => void;
@@ -20,22 +9,14 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [tablesOpen, setTablesOpen] = useState(true);
-  const { data: tables, isLoading: tablesLoading } = useTables();
 
   const nav = (path: string) => {
     navigate({ to: path as any });
     onClose?.();
   };
 
-  const tableNav = (table: string) => {
-    navigate({ to: '/data/$table', params: { table } });
-    onClose?.();
-  };
-
   const isActive = (path: string) =>
     path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
-  const isDataActive = location.pathname.startsWith('/data');
 
   const linkCls = (active: boolean) =>
     `w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
@@ -47,7 +28,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
   const navItems = [
     { label: 'Cluster', path: '/', icon: <LayoutDashboard className="h-4 w-4" /> },
     { label: 'Nodes', path: '/nodes', icon: <Server className="h-4 w-4" /> },
-    { label: 'Resources', path: '/resources', icon: <Cpu className="h-4 w-4" /> },
+    { label: 'Query', path: '/query', icon: <Search className="h-4 w-4" /> },
     { label: 'Settings', path: '/settings', icon: <Settings className="h-4 w-4" /> },
   ];
 
@@ -77,41 +58,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
             {item.label}
           </button>
         ))}
-
-        {/* Data with submenu */}
-        <button onClick={() => setTablesOpen(!tablesOpen)} className={linkCls(isDataActive)}>
-          <Database className="h-4 w-4" />
-          <span className="flex-1 text-left">Data</span>
-          {tablesOpen ? (
-            <ChevronUp className="h-3.5 w-3.5" />
-          ) : (
-            <ChevronDown className="h-3.5 w-3.5" />
-          )}
-        </button>
-
-        {tablesOpen && (
-          <div className="ml-3 pl-3 border-l border-slate-800 space-y-0.5">
-            <button onClick={() => nav('/data')} className={linkCls(isActive('/data'))}>
-              <Table2 className="h-3.5 w-3.5" />
-              All Tables
-            </button>
-            {!tablesLoading &&
-              tables?.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => tableNav(t.name)}
-                  className={linkCls(isActive(`/data/${t.name}`))}
-                >
-                  <Table2 className="h-3.5 w-3.5" />
-                  {t.name}
-                </button>
-              ))}
-            {tablesLoading && <p className="px-3 py-1.5 text-xs text-slate-500">Loading…</p>}
-            {!tablesLoading && !tables?.length && (
-              <p className="px-3 py-1.5 text-xs text-slate-500">No tables</p>
-            )}
-          </div>
-        )}
       </nav>
 
       <div className="p-3 border-t border-slate-800">

@@ -5,7 +5,7 @@ import ServerConfig from './components/ServerConfig';
 import TableManagement from './components/TableManagement';
 import UserPreferences from './components/UserPreferences';
 
-import { useBreadcrumbs } from '@/hooks/usePageTitle';
+import { useBreadcrumbs } from '@/hooks/useBreadcrumbs';
 import { Card, Tab, TabList, TabPanel, Tabs } from '@/ui';
 
 const SettingsPage: React.FC = () => {

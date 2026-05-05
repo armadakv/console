@@ -4,13 +4,10 @@ import React, { lazy, Suspense } from 'react';
 import App from './App';
 import { LoadingState } from './components/shared/LoadingState';
 
-const ClusterPage = lazy(() => import('./routes/dashboard/ClusterPage'));
-const DataPage = lazy(() => import('./routes/data/DataPage'));
-const AddKeyValuePage = lazy(() => import('./routes/data/AddKeyValuePage'));
-const EditKeyValuePage = lazy(() => import('./routes/data/EditKeyValuePage'));
+const ClusterPage = lazy(() => import('./routes/cluster/ClusterPage'));
 const NodesPage = lazy(() => import('./routes/nodes/NodesPage'));
 const NodePage = lazy(() => import('./routes/nodes/NodePage'));
-const ResourcesPage = lazy(() => import('./routes/resources/ResourcesPage'));
+const QueryPage = lazy(() => import('./routes/query/QueryPage'));
 const SettingsPage = lazy(() => import('./routes/settings/SettingsPage'));
 
 const Lazy: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -25,46 +22,6 @@ export const indexRoute = createRoute({
   component: () => (
     <Lazy>
       <ClusterPage />
-    </Lazy>
-  ),
-});
-
-export const dataRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/data',
-  component: () => (
-    <Lazy>
-      <DataPage />
-    </Lazy>
-  ),
-});
-
-export const dataTableRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/data/$table',
-  component: () => (
-    <Lazy>
-      <DataPage />
-    </Lazy>
-  ),
-});
-
-export const dataTableAddRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/data/$table/add',
-  component: () => (
-    <Lazy>
-      <AddKeyValuePage />
-    </Lazy>
-  ),
-});
-
-export const dataTableEditRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/data/$table/edit/$key',
-  component: () => (
-    <Lazy>
-      <EditKeyValuePage />
     </Lazy>
   ),
 });
@@ -89,16 +46,6 @@ export const nodeRoute = createRoute({
   ),
 });
 
-export const resourcesRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/resources',
-  component: () => (
-    <Lazy>
-      <ResourcesPage />
-    </Lazy>
-  ),
-});
-
 export const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/settings',
@@ -109,15 +56,21 @@ export const settingsRoute = createRoute({
   ),
 });
 
+export const queryRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/query',
+  component: () => (
+    <Lazy>
+      <QueryPage />
+    </Lazy>
+  ),
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
-  dataRoute,
-  dataTableRoute,
-  dataTableAddRoute,
-  dataTableEditRoute,
   nodesRoute,
   nodeRoute,
-  resourcesRoute,
+  queryRoute,
   settingsRoute,
 ]);
 

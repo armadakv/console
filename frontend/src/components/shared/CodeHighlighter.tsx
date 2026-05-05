@@ -1,19 +1,18 @@
 import React from 'react';
-import { PrismAsyncLight as SyntaxHighlighter } from 'react-syntax-highlighter';
-// Import languages asynchronously
+import { PrismAsyncLight as SyntaxHighlighterLib } from 'react-syntax-highlighter';
 import json from 'react-syntax-highlighter/dist/esm/languages/prism/json';
 import markup from 'react-syntax-highlighter/dist/esm/languages/prism/markup';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
-import { CopyButton } from '../../../../components/shared/CopyButton';
-import type { ContentType } from '../../../../utils/contentDetection';
+import { CopyButton } from './CopyButton';
 
-// Register languages
-SyntaxHighlighter.registerLanguage('json', json);
-SyntaxHighlighter.registerLanguage('xml', markup);
-SyntaxHighlighter.registerLanguage('markup', markup);
-SyntaxHighlighter.registerLanguage('text', markup);
-SyntaxHighlighter.registerLanguage('binary', markup);
+import type { ContentType } from '@/utils/contentDetection';
+
+SyntaxHighlighterLib.registerLanguage('json', json);
+SyntaxHighlighterLib.registerLanguage('xml', markup);
+SyntaxHighlighterLib.registerLanguage('markup', markup);
+SyntaxHighlighterLib.registerLanguage('text', markup);
+SyntaxHighlighterLib.registerLanguage('binary', markup);
 
 interface CodeHighlighterProps {
   content: string;
@@ -24,7 +23,6 @@ interface CodeHighlighterProps {
   customStyle?: React.CSSProperties;
   className?: string;
   rows?: number;
-  // Editing props
   readOnly?: boolean;
   onChange?: (value: string) => void;
   placeholder?: string;
@@ -49,7 +47,7 @@ export const CodeHighlighter: React.FC<CodeHighlighterProps> = ({
   id,
   name,
 }) => {
-  const defaultStyle = {
+  const defaultStyle: React.CSSProperties = {
     margin: 0,
     borderRadius: 8,
     fontFamily: '"Roboto Mono", "Courier New", monospace',
@@ -57,17 +55,11 @@ export const CodeHighlighter: React.FC<CodeHighlighterProps> = ({
     lineHeight: '1.4',
     background: '#1f2937',
     color: '#f3f4f6',
-    ...(rows && { minHeight: `${rows * 1.4 * (density === 'compact' ? 12 : 14) + 24}px` }),
+    ...(rows ? { minHeight: `${rows * 1.4 * (density === 'compact' ? 12 : 14) + 24}px` } : {}),
     ...customStyle,
   };
 
   const syntaxLanguage = language === 'xml' ? 'xml' : language;
-
-  const handleTextareaChange = (e: any) => {
-    if (onChange && !readOnly && !disabled) {
-      onChange(e.target.value);
-    }
-  };
 
   const syntaxHighlighterProps = {
     language: syntaxLanguage,
@@ -98,7 +90,7 @@ export const CodeHighlighter: React.FC<CodeHighlighterProps> = ({
   if (readOnly) {
     return (
       <div className={containerClassName}>
-        <SyntaxHighlighter {...syntaxHighlighterProps} customStyle={defaultStyle} />
+        <SyntaxHighlighterLib {...syntaxHighlighterProps} customStyle={defaultStyle} />
         {renderCopyButton()}
       </div>
     );
@@ -108,12 +100,9 @@ export const CodeHighlighter: React.FC<CodeHighlighterProps> = ({
     <div className={containerClassName}>
       {/* Background syntax highlighting */}
       <div className="absolute inset-0 pointer-events-none">
-        <SyntaxHighlighter
+        <SyntaxHighlighterLib
           {...syntaxHighlighterProps}
-          customStyle={{
-            ...defaultStyle,
-            background: 'transparent',
-          }}
+          customStyle={{ ...defaultStyle, background: 'transparent' }}
         />
       </div>
 
@@ -124,7 +113,7 @@ export const CodeHighlighter: React.FC<CodeHighlighterProps> = ({
         id={id}
         name={name}
         value={content}
-        onChange={handleTextareaChange}
+        onChange={(e) => onChange?.(e.target.value)}
         placeholder={placeholder}
         disabled={disabled}
         rows={rows || 8}
@@ -132,14 +121,12 @@ export const CodeHighlighter: React.FC<CodeHighlighterProps> = ({
           disabled ? 'cursor-not-allowed' : ''
         }`}
         style={{
-          fontFamily: defaultStyle.fontFamily,
-          fontSize: defaultStyle.fontSize,
-          lineHeight: defaultStyle.lineHeight,
-          minHeight: defaultStyle.minHeight,
+          fontFamily: defaultStyle.fontFamily as string,
+          fontSize: defaultStyle.fontSize as string,
+          lineHeight: defaultStyle.lineHeight as string,
+          minHeight: defaultStyle.minHeight as string | undefined,
         }}
       />
     </div>
   );
 };
-
-export default CodeHighlighter;
