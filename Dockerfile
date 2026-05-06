@@ -1,5 +1,5 @@
 # Multi-stage build for ArmadaKV Console
-FROM golang:1.24-alpine AS builder
+FROM golang:1.26-alpine AS builder
 WORKDIR /app
 
 # Install build dependencies
@@ -24,7 +24,7 @@ COPY . ./
 RUN make build
 
 # Final image
-FROM alpine:3.19
+FROM alpine:3.23
 WORKDIR /app
 
 # Add CA certificates for HTTPS
