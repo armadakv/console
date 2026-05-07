@@ -46,6 +46,9 @@ export default defineConfig([
         Response: 'readonly',
         HTMLElement: 'readonly',
         HTMLInputElement: 'readonly',
+        MouseEvent: 'readonly',
+        KeyboardEvent: 'readonly',
+        Event: 'readonly',
       },
     },
     settings: {
@@ -74,6 +77,23 @@ export default defineConfig([
         },
       ],
       'prettier/prettier': 'error',
+    },
+  },
+  // Test files: add Vitest globals
+  {
+    files: ['src/**/*.{test,spec}.{ts,tsx}'],
+    languageOptions: {
+      globals: {
+        describe: 'readonly',
+        it: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        beforeAll: 'readonly',
+        afterAll: 'readonly',
+        vi: 'readonly',
+        test: 'readonly',
+      },
     },
   },
   prettierConfig,

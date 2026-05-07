@@ -53,8 +53,12 @@ dev:
 	./hack/dev.sh
 
 # Test the project
+.PHONY: frontend-test
+frontend-test:
+	cd frontend && $(NPM) test
+
 .PHONY: test
-test:
+test: frontend-test
 	$(GOTEST) -v ./...
 
 # Format the code
@@ -96,7 +100,8 @@ help:
 	@echo "make clean - Clean the project (including frontend)"
 	@echo "make run - Run the project"
 	@echo "make dev - Run in development mode with hot reloading"
-	@echo "make test - Test the project"
+	@echo "make frontend-test - Run frontend unit tests"
+	@echo "make test - Test the project (backend and frontend)"
 	@echo "make fmt - Format the code (backend and frontend)"
 	@echo "make lint - Lint Go code with golangci-lint"
 	@echo "make deps - Update dependencies"
