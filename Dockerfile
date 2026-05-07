@@ -9,10 +9,10 @@ RUN apk add --no-cache protoc protobuf-dev make bash nodejs npm
 RUN npm install -g pnpm
 
 # Copy frontend package files
-COPY frontend/package.json frontend/pnpm-lock.yaml ./
+COPY frontend/package.json frontend/pnpm-lock.yaml ./frontend/
 
 # Install dependencies
-RUN pnpm install --frozen-lockfile
+RUN cd frontend && HUSKY=0 pnpm install --frozen-lockfile
 
 # Copy Go module files
 COPY go.mod go.sum ./
