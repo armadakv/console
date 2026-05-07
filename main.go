@@ -86,17 +86,19 @@ func main() {
 		MaxAge:           300,
 	}))
 
-	client, err := armada.NewClient(armadaURL, logger.Named("client"))
-	if err != nil {
-		logger.Fatal("Failed to create Armada client", zap.Error(err))
-	}
+	pool := armada.NewConnectionPool(logger.Named("connections"))
 
-	mm, err := metrics.NewMetricsManager(client.GetConnectionPool(), 30*time.Second, "/tmp/tsdb", logger)
+	mm, err := metrics.NewMetricsManager(pool, 30*time.Second, "/tmp/tsdb", logger)
 	if err != nil {
 		logger.Fatal("Failed to create metrics manager", zap.Error(err))
 	}
 	mm.Start(context.Background())
 	defer mm.Stop()
+
+	client, err := armada.NewClient(armadaURL, pool, logger.Named("client"))
+	if err != nil {
+		logger.Fatal("Failed to create Armada client", zap.Error(err))
+	}
 
 	// Register API routes
 	apiHandler := api.NewHandler(client, logger.Named("api-handler"))

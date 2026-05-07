@@ -18,19 +18,6 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-// ConnectionPoolInterface defines the interface for a connection pool
-// This makes it easier to mock in tests
-type ConnectionPoolInterface interface {
-	// GetConnection gets or creates a connection to a server
-	GetConnection(ctx context.Context, serverAddress string) (*ServerConnection, error)
-
-	// GetKnownAddresses returns a list of all known server addresses
-	GetKnownAddresses() []string
-
-	// Close closes all connections in the pool
-	Close() error
-}
-
 // reconnectConfig holds configuration for reconnection attempts
 type reconnectConfig struct {
 	// maxRetries is the maximum number of reconnection attempts before giving up

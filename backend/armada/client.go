@@ -12,6 +12,11 @@ import (
 	"go.uber.org/zap"
 )
 
+type Connections interface {
+	GetConnection(ctx context.Context, addr string) (*ServerConnection, error)
+	Close() error
+}
+
 // Client is the implementation of the ArmadaClient interface.
 // It uses gRPC to communicate with the Armada server.
 type Client struct {
@@ -22,7 +27,7 @@ type Client struct {
 	logger *zap.Logger
 
 	// connectionPool manages all server connections
-	connectionPool ConnectionPoolInterface
+	connectionPool Connections
 }
 
 // NewClient creates a new Armada client with a connection to the specified address.
@@ -37,32 +42,24 @@ type Client struct {
 // Returns:
 //   - An ArmadaClient instance if successful.
 //   - An error if the connection could not be established.
-func NewClient(address string, logger *zap.Logger) (*Client, error) {
+func NewClient(address string, pool Connections, logger *zap.Logger) (*Client, error) {
 	logger.Info("Creating new Armada client", zap.String("address", address))
-
-	// Create a new connection pool
-	connectionPool := NewConnectionPool(logger)
 
 	// Initialize the client
 	client := &Client{
 		address:        address,
 		logger:         logger,
-		connectionPool: connectionPool,
+		connectionPool: pool,
 	}
 
 	// Try to establish the main connection to ensure it works
-	_, err := connectionPool.GetConnection(context.Background(), address)
+	_, err := pool.GetConnection(context.Background(), address)
 	if err != nil {
-		_ = connectionPool.Close()
+		_ = pool.Close()
 		return nil, fmt.Errorf("failed to establish initial connection: %w", err)
 	}
 
 	return client, nil
-}
-
-// GetConnectionPool returns the connection pool used by this client
-func (c *Client) GetConnectionPool() ConnectionPoolInterface {
-	return c.connectionPool
 }
 
 // GetStatus retrieves the current status of the Armada server.

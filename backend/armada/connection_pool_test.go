@@ -362,18 +362,3 @@ func TestServerInfo(t *testing.T) {
 	assert.Equal(t, "addr1", serverInfo.PrimaryAddress)
 	assert.Equal(t, connectivity.Ready.String(), serverInfo.ConnectionState)
 }
-
-// Test the ConnectionPoolInterface implementation
-func TestConnectionPoolInterface(t *testing.T) {
-	logger := zap.NewNop()
-	pool := NewConnectionPool(logger)
-
-	// Verify it implements the interface
-	var _ ConnectionPoolInterface = pool
-
-	addresses := pool.GetKnownAddresses()
-	assert.NotNil(t, addresses)
-
-	err := pool.Close()
-	assert.NoError(t, err)
-}

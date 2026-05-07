@@ -209,7 +209,7 @@ func (c *MetricsCollector) storeMetricsInTSDB(ctx context.Context, metrics *arma
 	appender := c.manager.storage.Appender(ctx)
 
 	// Parse metrics using Prometheus text parser
-	parser := textparse.NewPromParser([]byte(metrics.Data), labels.NewSymbolTable())
+	parser := textparse.NewPromParser([]byte(metrics.Data), nil, false)
 
 	var (
 		err  error
