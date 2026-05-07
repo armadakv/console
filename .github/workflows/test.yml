@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
   workflow_dispatch:
 
@@ -91,7 +91,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=ref,event=branch
-            type=sha,event=branch,prefix=master-
+            type=sha,event=branch,prefix=main-
       - name: Docker build
         uses: docker/build-push-action@v7
         with:
