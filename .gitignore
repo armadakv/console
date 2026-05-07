@@ -40,4 +40,6 @@ frontend/coverage
 
 backend/coverage
 
+tmp/
+
 console

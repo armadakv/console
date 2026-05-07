@@ -14,6 +14,8 @@ DOCKER=docker
 DOCKER_IMAGE=armadakv/console
 DOCKER_TAG=latest
 GOLANGCI_LINT=golangci-lint
+GOREMAN=$(shell go env GOPATH)/bin/goreman
+AIR=$(shell go env GOPATH)/bin/air
 
 # Build frontend
 .PHONY: frontend-build
@@ -42,10 +44,12 @@ clean:
 run: build
 	./$(BINARY_NAME)
 
-# Run in development mode with hot reloading
+# Run in development mode with hot reloading (goreman manages air + vite)
 .PHONY: dev
 dev:
-	./hack/dev.sh
+	@test -f $(AIR) || (echo "Installing air..." && $(GO) install github.com/air-verse/air@latest)
+	@test -f $(GOREMAN) || (echo "Installing goreman..." && $(GO) install github.com/mattn/goreman@latest)
+	$(GOREMAN) start
 
 # Test the project
 .PHONY: frontend-test
@@ -94,7 +98,7 @@ help:
 	@echo "make build - Build the project (including frontend)"
 	@echo "make clean - Clean the project (including frontend)"
 	@echo "make run - Run the project"
-	@echo "make dev - Run in development mode with hot reloading"
+	@echo "make dev - Run in development mode (goreman: air + vite with hot reloading)"
 	@echo "make frontend-test - Run frontend unit tests"
 	@echo "make test - Test the project (backend and frontend)"
 	@echo "make fmt - Format the code (backend and frontend)"
