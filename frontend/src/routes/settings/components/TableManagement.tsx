@@ -1,258 +1,183 @@
-import { Plus, Trash2, RefreshCw } from 'lucide-react';
+import { Database, Plus, Trash2, X } from 'lucide-react';
 import React, { useState } from 'react';
 
-import { useTables, useCreateTable, useDeleteTable } from '@/hooks/useApi';
-import { CardWithHeader } from '@/shared/CardWithHeader';
+import { useNavigation } from '@/context/NavigationContext';
+import { useCreateTable, useDeleteTable, useTables } from '@/hooks/useApi';
+import { ConfirmDialog } from '@/shared/ConfirmDialog';
 import { ErrorState } from '@/shared/ErrorState';
 import { LoadingState } from '@/shared/LoadingState';
-import { SuccessState } from '@/shared/SuccessState';
+import { RefreshButton } from '@/shared/RefreshButton';
 import type { Table as TableType } from '@/types';
 import { Button } from '@/ui/Button';
 import { Input } from '@/ui/Input';
-import { Typography } from '@/ui/Typography';
 
 const TableManagement: React.FC = () => {
-  // State for form and dialogs
   const [newTableName, setNewTableName] = useState('');
-  const [openDialog, setOpenDialog] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
   const [tableToDelete, setTableToDelete] = useState<TableType | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // React Query hooks
-  const {
-    data: tables = [],
-    isLoading: isTablesLoading,
-    error: tablesError,
-    refetch,
-  } = useTables();
+  const { setPageAction, resetPageAction } = useNavigation();
+
+  const { data: tables = [], isLoading, isFetching, error, refetch } = useTables();
 
   const createTableMutation = useCreateTable();
   const deleteTableMutation = useDeleteTable();
 
-  // Form submission handler
+  const handleRefresh = React.useCallback(() => {
+    refetch();
+  }, [refetch]);
+
+  React.useEffect(() => {
+    setPageAction(
+      <RefreshButton onClick={handleRefresh} isRefreshing={isFetching} variant="header" />,
+    );
+    return () => resetPageAction();
+  }, [setPageAction, resetPageAction, handleRefresh, isFetching]);
+
   const handleCreateTable = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTableName.trim()) return;
 
     try {
-      const result = await createTableMutation.mutateAsync(newTableName);
-      setSuccessMessage(`Table '${newTableName}' created successfully with ID: ${result.id}`);
+      await createTableMutation.mutateAsync(newTableName);
       setNewTableName('');
-    } catch (err) {
-      console.error('Error creating table:', err);
+      setShowCreateForm(false);
+    } catch {
+      // error displayed below
     }
-
-    // Clear success message after 5 seconds
-    setTimeout(() => {
-      setSuccessMessage(null);
-    }, 5000);
-  };
-
-  // Delete table handlers
-  const confirmDeleteTable = (table: TableType) => {
-    setTableToDelete(table);
-    setOpenDialog(true);
   };
 
   const handleDeleteTable = async () => {
     if (!tableToDelete) return;
-
-    setOpenDialog(false);
-
     try {
       await deleteTableMutation.mutateAsync(tableToDelete.name);
-      setSuccessMessage(`Table '${tableToDelete.name}' deleted successfully`);
-    } catch (err) {
-      console.error('Error deleting table:', err);
     } finally {
       setTableToDelete(null);
     }
-
-    // Clear success message after 5 seconds
-    setTimeout(() => {
-      setSuccessMessage(null);
-    }, 5000);
   };
 
-  // Determine loading and error states
-  const isLoading =
-    isTablesLoading || createTableMutation.isPending || deleteTableMutation.isPending;
-  const errorMessage = tablesError
-    ? 'Failed to fetch tables'
-    : createTableMutation.error
-      ? 'Failed to create table'
-      : deleteTableMutation.error
-        ? 'Failed to delete table'
-        : null;
+  if (isLoading) return <LoadingState />;
+  if (error) return <ErrorState error={error} onRetry={refetch} />;
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Section Header */}
-      <div className="flex justify-between items-center">
-        <Typography variant="h6">Table Management</Typography>
-        <button
-          onClick={() => refetch()}
-          disabled={isLoading}
-          className="inline-flex items-center px-3 py-2 border border-slate-300 rounded-md text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed bg-slate-800 border-slate-600 text-slate-300 hover:bg-slate-700"
-          title="Refresh tables list"
+    <div className="space-y-4">
+      {/* Stats bar */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-6 text-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-slate-500">Tables</span>
+            <span className="font-semibold text-slate-100">{tables.length}</span>
+          </div>
+        </div>
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={() => {
+            setShowCreateForm((v) => !v);
+            setNewTableName('');
+          }}
+          startIcon={showCreateForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
         >
-          <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
+          {showCreateForm ? 'Cancel' : 'New Table'}
+        </Button>
       </div>
 
-      {/* Error State */}
-      {errorMessage && <ErrorState message={errorMessage} onRetry={refetch} />}
-
-      {/* Success Message */}
-      {successMessage && <SuccessState message={successMessage} />}
-
-      {/* New Table Form */}
-      <CardWithHeader title="Create New Table">
-        <div className="p-4">
-          <form onSubmit={handleCreateTable} className="space-y-4">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1">
-                <Input
-                  label="Table Name"
-                  placeholder="Enter table name"
-                  value={newTableName}
-                  onChange={(e) => setNewTableName(e.target.value)}
-                  disabled={isLoading}
-                />
-              </div>
-              <Button
-                type="submit"
-                variant="primary"
-                disabled={!newTableName.trim() || isLoading}
-                startIcon={createTableMutation.isPending ? undefined : <Plus className="w-4 h-4" />}
-                className="sm:min-w-[120px]"
-              >
-                {createTableMutation.isPending ? (
-                  <div className="flex items-center">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Creating...
-                  </div>
-                ) : (
-                  'Create'
-                )}
-              </Button>
-            </div>
-          </form>
-        </div>
-      </CardWithHeader>
-
-      {/* Tables List */}
-      <div>
-        <Typography variant="subtitle1" className="mb-4">
-          Existing Tables
-        </Typography>
-
-        {isTablesLoading && tables.length === 0 ? (
-          <LoadingState message="Loading tables..." />
-        ) : tables.length === 0 ? (
-          <div className="border border-slate-700 rounded-lg p-6 text-center">
-            <Typography variant="body2" className="text-slate-400">
-              No tables found. Create one to get started.
-            </Typography>
+      {/* Create form */}
+      {showCreateForm && (
+        <form
+          onSubmit={handleCreateTable}
+          className="flex items-end gap-3 rounded-xl border border-slate-800 bg-slate-900/60 px-4 py-3"
+        >
+          <div className="flex-1">
+            <Input
+              label="Table Name"
+              placeholder="Enter table name"
+              value={newTableName}
+              onChange={(e) => setNewTableName(e.target.value)}
+              disabled={createTableMutation.isPending}
+            />
           </div>
-        ) : (
-          <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-slate-900">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    Table Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    Table ID
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-slate-800 divide-y divide-slate-700">
-                {tables.map((table) => (
-                  <tr key={table.id} className="hover:bg-slate-700">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <Typography variant="body2" className="font-medium">
-                        {table.name}
-                      </Typography>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <Typography variant="body2" className="text-slate-400">
-                        {table.id}
-                      </Typography>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <button
-                        onClick={() => confirmDeleteTable(table)}
-                        disabled={isLoading}
-                        className="inline-flex items-center p-2 border border-transparent rounded-md text-red-600 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-red-400 hover:bg-red-900/20"
-                        title="Delete table"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* Confirmation Dialog */}
-      {openDialog && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div
-              className="fixed inset-0 bg-slate-500 bg-opacity-75 transition-opacity"
-              onClick={() => setOpenDialog(false)}
-            ></div>
-
-            <span className="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
-
-            <div className="inline-block align-bottom bg-slate-800 rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
-              <div>
-                <div className="mt-3 text-center sm:mt-0 sm:text-left">
-                  <Typography variant="h6" className="mb-2">
-                    Confirm Table Deletion
-                  </Typography>
-                  <Typography variant="body2" className="text-slate-400">
-                    Are you sure you want to delete the table{' '}
-                    <strong>"{tableToDelete?.name}"</strong>? This action cannot be undone and all
-                    data in this table will be permanently lost.
-                  </Typography>
-                </div>
-              </div>
-              <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse gap-3">
-                <Button
-                  onClick={handleDeleteTable}
-                  variant="error"
-                  disabled={deleteTableMutation.isPending}
-                  startIcon={
-                    deleteTableMutation.isPending ? undefined : <Trash2 className="w-4 h-4" />
-                  }
-                >
-                  {deleteTableMutation.isPending ? (
-                    <div className="flex items-center">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Deleting...
-                    </div>
-                  ) : (
-                    'Delete'
-                  )}
-                </Button>
-                <Button onClick={() => setOpenDialog(false)} variant="secondary">
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
+          <Button
+            type="submit"
+            variant="primary"
+            size="sm"
+            disabled={!newTableName.trim() || createTableMutation.isPending}
+            className="mb-0.5"
+          >
+            {createTableMutation.isPending ? 'Creating…' : 'Create'}
+          </Button>
+        </form>
       )}
+
+      {/* Mutation errors */}
+      {createTableMutation.error && (
+        <ErrorState error={createTableMutation.error} title="Failed to create table" />
+      )}
+      {deleteTableMutation.error && (
+        <ErrorState error={deleteTableMutation.error} title="Failed to delete table" />
+      )}
+
+      {/* Table list */}
+      <div className="rounded-xl border border-slate-800 overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-slate-800 bg-slate-900/60">
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                Name
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                ID
+              </th>
+              <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-800">
+            {tables.length === 0 ? (
+              <tr>
+                <td colSpan={3} className="px-4 py-12 text-center text-slate-500 text-xs">
+                  No tables found. Use the New Table button to create one.
+                </td>
+              </tr>
+            ) : (
+              tables.map((table) => (
+                <tr key={table.id} className="bg-slate-900 hover:bg-slate-800/70 transition-colors">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2.5">
+                      <Database className="w-4 h-4 text-slate-500 shrink-0" />
+                      <span className="text-slate-100 font-medium">{table.name}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="text-xs text-slate-400 font-mono">{table.id}</span>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      onClick={() => setTableToDelete(table)}
+                      disabled={deleteTableMutation.isPending}
+                      title="Delete table"
+                      className="p-1.5 rounded-md text-slate-500 hover:text-red-400 hover:bg-red-400/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <ConfirmDialog
+        open={tableToDelete !== null}
+        title="Delete Table"
+        message={`Are you sure you want to delete "${tableToDelete?.name}"? This action cannot be undone and all data in this table will be permanently lost.`}
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={handleDeleteTable}
+        onCancel={() => setTableToDelete(null)}
+      />
     </div>
   );
 };
