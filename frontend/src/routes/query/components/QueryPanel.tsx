@@ -81,11 +81,12 @@ const QueryPanel: React.FC<QueryPanelProps> = ({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
       e.preventDefault();
-      if (table && !isLoading) onExecute();
+      if (canExecute) onExecute();
     }
   };
 
-  const canExecute = !!table && !isLoading;
+  const requiresKey = operation === 'GET' || operation === 'DELETE' || operation === 'PUT';
+  const canExecute = !!table && !isLoading && (!requiresKey || !!queryKey.trim());
 
   return (
     <div
@@ -305,11 +306,13 @@ const QueryPanel: React.FC<QueryPanelProps> = ({
               </>
             )}
           </button>
-          {!table && (
+          {!table ? (
             <p className="mt-1.5 text-xs text-slate-500 text-center">
               Select a table to enable execution
             </p>
-          )}
+          ) : requiresKey && !queryKey.trim() ? (
+            <p className="mt-1.5 text-xs text-slate-500 text-center">Enter a key to execute</p>
+          ) : null}
         </div>
       </div>
 
