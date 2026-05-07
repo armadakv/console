@@ -29,6 +29,7 @@ type MetricsManager struct {
 	logger         *zap.Logger
 	done           chan struct{}
 	collectors     map[string]*MetricsCollector
+	mu             sync.RWMutex
 	stopOnce       sync.Once
 }
 
@@ -89,6 +90,13 @@ func (m *MetricsManager) GetStorage() *tsdb.DB {
 	return m.storage
 }
 
+// collectorCount returns the number of active collectors in a thread-safe manner.
+func (m *MetricsManager) collectorCount() int {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return len(m.collectors)
+}
+
 // runCollectionLoop periodically discovers clusters and collects metrics from them
 func (m *MetricsManager) runCollectionLoop(ctx context.Context) {
 	ticker := time.NewTicker(m.scrapeInterval)
@@ -117,6 +125,8 @@ func (m *MetricsManager) collectFromAllClusters(ctx context.Context) {
 		return
 	}
 
+	m.mu.Lock()
+
 	// Add new clusters
 	for _, addr := range clusters {
 		if _, exists := m.collectors[addr]; !exists {
@@ -138,8 +148,16 @@ func (m *MetricsManager) collectFromAllClusters(ctx context.Context) {
 		}
 	}
 
-	// Collect metrics from all clusters
+	// Snapshot collectors to iterate outside the lock
+	snapshot := make([]*MetricsCollector, 0, len(m.collectors))
 	for _, collector := range m.collectors {
+		snapshot = append(snapshot, collector)
+	}
+
+	m.mu.Unlock()
+
+	// Collect metrics from all clusters
+	for _, collector := range snapshot {
 		go collector.collect(ctx)
 	}
 }

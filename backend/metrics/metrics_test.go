@@ -301,7 +301,7 @@ func TestMetricsManagerWithMultipleClusters(t *testing.T) {
 	time.Sleep(200 * time.Millisecond)
 
 	// Verify that collectors were created for each cluster
-	assert.Len(t, manager.collectors, len(addresses))
+	assert.Equal(t, len(addresses), manager.collectorCount())
 
 	mockPool.AssertExpectations(t)
 }
