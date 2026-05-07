@@ -15,14 +15,9 @@ DOCKER_IMAGE=armadakv/console
 DOCKER_TAG=latest
 GOLANGCI_LINT=golangci-lint
 
-# Install frontend dependencies
-.PHONY: frontend-deps
-frontend-deps:
-	cd frontend && $(NPM) install
-
 # Build frontend
 .PHONY: frontend-build
-frontend-build: frontend-deps
+frontend-build:
 	cd frontend && $(NPM) run build
 
 # Generate gRPC client code
