@@ -8,6 +8,7 @@ import (
 
 	regattapb "github.com/armadakv/console/backend/armada/pb"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
@@ -17,12 +18,11 @@ import (
 
 const poolBufSize = 1024 * 1024
 
-// mockPoolServer implements the gRPC server interfaces for connection pool testing
+// mockPoolServer implements the gRPC server interfaces for connection pool testing.
 type mockPoolServer struct {
 	regattapb.UnimplementedClusterServer
 	memberResponse *regattapb.MemberListResponse
 	nodeID         string
-	nodeName       string
 }
 
 func (s *mockPoolServer) Status(ctx context.Context, req *regattapb.StatusRequest) (*regattapb.StatusResponse, error) {
@@ -50,47 +50,44 @@ func (s *mockPoolServer) MemberList(ctx context.Context, req *regattapb.MemberLi
 	}, nil
 }
 
-func setupPoolTest(t *testing.T) (*ConnectionPool, *grpc.Server, *bufconn.Listener, func()) {
-	// Create a buffer listener
+func setupPoolTest(t *testing.T) (*ConnectionPool, *bufconn.Listener, func()) {
+	// Create a buffer listener.
 	lis := bufconn.Listen(poolBufSize)
 
-	// Create a gRPC server
+	// Create a gRPC server.
 	s := grpc.NewServer()
 
-	// Register the mock server
+	// Register the mock server.
 	mockSrv := &mockPoolServer{}
 	regattapb.RegisterClusterServer(s, mockSrv)
 
-	// Start the server
+	// Start the server.
 	go func() {
 		if err := s.Serve(lis); err != nil {
 			t.Logf("Server serve failed: %v", err)
 		}
 	}()
 
-	// Create connection pool
+	// Create connection pool.
 	logger := zap.NewNop()
 	pool := NewConnectionPool(logger)
 
-	// Return pool, server, listener and cleanup function
-	return pool, s, lis, func() {
+	// Return pool, listener and cleanup function.
+	return pool, lis, func() {
 		s.Stop()
 		lis.Close()
 	}
 }
 
 func createTestConnection(t *testing.T, lis *bufconn.Listener) *grpc.ClientConn {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
 	bufDialer := func(context.Context, string) (net.Conn, error) {
 		return lis.Dial()
 	}
 
-	conn, err := grpc.DialContext(ctx, "bufnet",
+	conn, err := grpc.NewClient("passthrough:///bufnet", //nolint:staticcheck
 		grpc.WithContextDialer(bufDialer),
 		grpc.WithTransportCredentials(insecure.NewCredentials()))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	return conn
 }
 
@@ -137,8 +134,8 @@ func TestCreateGRPCConnection(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			conn, err := createGRPCConnection(ctx, tt.address, logger)
 			if tt.expectError {
-				// We expect an error since there's no actual server
-				// But we're testing the function logic, not actual connectivity
+				// We expect an error since there's no actual server.
+				// But we're testing the function logic, not actual connectivity.
 				if err == nil && conn != nil {
 					conn.Close()
 				}
@@ -189,15 +186,15 @@ func TestExtractHostname(t *testing.T) {
 }
 
 func TestIsConnectionHealthy(t *testing.T) {
-	// Test with nil connection
+	// Test with nil connection.
 	assert.False(t, isConnectionHealthy(nil))
 
-	// For a real connection test, we'd need to set up a proper connection
-	// This is more of an integration test that would require actual gRPC setup
+	// For a real connection test, we'd need to set up a proper connection.
+	// This is more of an integration test that would require actual gRPC setup.
 }
 
 func TestCreateServerConnection(t *testing.T) {
-	pool, server, lis, cleanup := setupPoolTest(t)
+	pool, lis, cleanup := setupPoolTest(t)
 	defer cleanup()
 
 	conn := createTestConnection(t, lis)
@@ -212,20 +209,19 @@ func TestCreateServerConnection(t *testing.T) {
 	assert.NotNil(t, serverConn.TablesClient)
 	assert.NotNil(t, serverConn.MetricsClient)
 
-	// Suppress unused variable warnings
+	// Suppress unused variable warnings.
 	_ = pool
-	_ = server
 }
 
 func TestConnectionPoolGetKnownAddresses(t *testing.T) {
-	pool, server, lis, cleanup := setupPoolTest(t)
+	pool, lis, cleanup := setupPoolTest(t)
 	defer cleanup()
 
-	// Initially empty
+	// Initially empty.
 	addresses := pool.GetKnownAddresses()
 	assert.Empty(t, addresses)
 
-	// Add a connection manually for testing
+	// Add a connection manually for testing.
 	conn := createTestConnection(t, lis)
 	defer conn.Close()
 
@@ -238,15 +234,14 @@ func TestConnectionPoolGetKnownAddresses(t *testing.T) {
 	assert.Len(t, addresses, 1)
 	assert.Contains(t, addresses, "test-address")
 
-	// Suppress unused variable warnings
-	_ = server
+	// Suppress unused variable warnings.
 }
 
 func TestConnectionPoolClose(t *testing.T) {
-	pool, server, lis, cleanup := setupPoolTest(t)
+	pool, lis, cleanup := setupPoolTest(t)
 	defer cleanup()
 
-	// Add some test connections
+	// Add some test connections.
 	conn1 := createTestConnection(t, lis)
 	conn2 := createTestConnection(t, lis)
 
@@ -260,23 +255,22 @@ func TestConnectionPoolClose(t *testing.T) {
 	pool.idToConnection["node2"] = serverConn2
 	pool.connectionLock.Unlock()
 
-	// Close the pool
+	// Close the pool.
 	err := pool.Close()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
-	// Verify maps are cleared
+	// Verify maps are cleared.
 	assert.Empty(t, pool.addressToConnection)
 	assert.Empty(t, pool.idToConnection)
 
-	// Suppress unused variable warnings
-	_ = server
+	// Suppress unused variable warnings.
 }
 
 func TestConnectionPoolGetKnownServers(t *testing.T) {
-	pool, server, lis, cleanup := setupPoolTest(t)
+	pool, lis, cleanup := setupPoolTest(t)
 	defer cleanup()
 
-	// Add test connections with node info
+	// Add test connections with node info.
 	conn := createTestConnection(t, lis)
 	defer conn.Close()
 
@@ -298,31 +292,29 @@ func TestConnectionPoolGetKnownServers(t *testing.T) {
 	assert.Contains(t, servers[0].Addresses, "addr1")
 	assert.Contains(t, servers[0].Addresses, "addr2")
 
-	// Suppress unused variable warnings
-	_ = server
+	// Suppress unused variable warnings.
 }
 
 func TestConnectionPoolInitializeConnections(t *testing.T) {
-	pool, server, lis, cleanup := setupPoolTest(t)
+	pool, lis, cleanup := setupPoolTest(t)
 	defer cleanup()
 
 	ctx := context.Background()
 
-	// Test with the actual server address (should succeed)
+	// Test with the actual server address (should succeed).
 	validAddress := lis.Addr().String()
 	addresses := []string{validAddress}
 	errors := pool.InitializeConnections(ctx, addresses)
 
-	// Should have no errors for valid address
-	assert.Len(t, errors, 0, "should have no errors for valid address")
+	// Should have no errors for valid address.
+	assert.Empty(t, errors, "should have no errors for valid address")
 
-	// Verify the connection was actually created
+	// Verify the connection was actually created.
 	conn, err := pool.GetConnection(ctx, validAddress)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, conn)
 
-	// Suppress unused variable warnings
-	_ = server
+	// Suppress unused variable warnings.
 }
 
 func TestReconnectConfig(t *testing.T) {

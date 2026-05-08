@@ -21,7 +21,7 @@ type ClusterPool interface {
 	GetKnownAddresses() []string
 }
 
-// MetricsManager manages metrics collection and storage for multiple Armada clusters
+// MetricsManager manages metrics collection and storage for multiple Armada clusters.
 type MetricsManager struct {
 	storage        *tsdb.DB
 	clusterPool    ClusterPool
@@ -33,7 +33,7 @@ type MetricsManager struct {
 	stopOnce       sync.Once
 }
 
-// MetricsCollector handles metrics collection for a single cluster
+// MetricsCollector handles metrics collection for a single cluster.
 type MetricsCollector struct {
 	clusterAddr string
 	manager     *MetricsManager
@@ -41,14 +41,14 @@ type MetricsCollector struct {
 	pool        ClusterPool
 }
 
-// NewMetricsManager creates a new metrics manager that periodically collects metrics
-// from all discovered Armada clusters and stores them in a local TSDB
+// NewMetricsManager creates a new metrics manager that periodically collects metrics.
+// from all discovered Armada clusters and stores them in a local TSDB.
 func NewMetricsManager(clusterPool ClusterPool, scrapeInterval time.Duration, storageDir string, logger *zap.Logger) (*MetricsManager, error) {
 	if logger == nil {
 		logger = zap.NewNop()
 	}
 
-	// Create TSDB storage
+	// Create TSDB storage.
 	opts := tsdb.DefaultOptions()
 	opts.RetentionDuration = 24 * 60 * 60 * 1000 // 1 day in milliseconds
 	opts.MinBlockDuration = 2 * 60 * 60 * 1000   // 2 hours in milliseconds
@@ -70,12 +70,12 @@ func NewMetricsManager(clusterPool ClusterPool, scrapeInterval time.Duration, st
 	return manager, nil
 }
 
-// Start begins metrics collection from all clusters at the configured interval
+// Start begins metrics collection from all clusters at the configured interval.
 func (m *MetricsManager) Start(ctx context.Context) {
 	go m.runCollectionLoop(ctx)
 }
 
-// Stop stops the metrics collection process
+// Stop stops the metrics collection process.
 func (m *MetricsManager) Stop() {
 	m.stopOnce.Do(func() {
 		close(m.done)
@@ -85,7 +85,7 @@ func (m *MetricsManager) Stop() {
 	})
 }
 
-// GetStorage returns the underlying TSDB storage
+// GetStorage returns the underlying TSDB storage.
 func (m *MetricsManager) GetStorage() *tsdb.DB {
 	return m.storage
 }
@@ -97,12 +97,12 @@ func (m *MetricsManager) collectorCount() int {
 	return len(m.collectors)
 }
 
-// runCollectionLoop periodically discovers clusters and collects metrics from them
+// runCollectionLoop periodically discovers clusters and collects metrics from them.
 func (m *MetricsManager) runCollectionLoop(ctx context.Context) {
 	ticker := time.NewTicker(m.scrapeInterval)
 	defer ticker.Stop()
 
-	// Do an initial collection immediately
+	// Do an initial collection immediately.
 	m.collectFromAllClusters(ctx)
 
 	for {
@@ -117,24 +117,20 @@ func (m *MetricsManager) runCollectionLoop(ctx context.Context) {
 	}
 }
 
-// collectFromAllClusters discovers all clusters and collects metrics from them
+// collectFromAllClusters discovers all clusters and collects metrics from them.
 func (m *MetricsManager) collectFromAllClusters(ctx context.Context) {
-	clusters, err := m.discoverClusters(ctx)
-	if err != nil {
-		m.logger.Error("Failed to discover clusters", zap.Error(err))
-		return
-	}
+	clusters := m.discoverClusters(ctx)
 
 	m.mu.Lock()
 
-	// Add new clusters
+	// Add new clusters.
 	for _, addr := range clusters {
 		if _, exists := m.collectors[addr]; !exists {
 			m.addCluster(ctx, addr)
 		}
 	}
 
-	// Remove clusters that no longer exist
+	// Remove clusters that no longer exist.
 	for addr := range m.collectors {
 		found := false
 		for _, discoveredAddr := range clusters {
@@ -148,7 +144,7 @@ func (m *MetricsManager) collectFromAllClusters(ctx context.Context) {
 		}
 	}
 
-	// Snapshot collectors to iterate outside the lock
+	// Snapshot collectors to iterate outside the lock.
 	snapshot := make([]*MetricsCollector, 0, len(m.collectors))
 	for _, collector := range m.collectors {
 		snapshot = append(snapshot, collector)
@@ -156,21 +152,21 @@ func (m *MetricsManager) collectFromAllClusters(ctx context.Context) {
 
 	m.mu.Unlock()
 
-	// Collect metrics from all clusters
+	// Collect metrics from all clusters.
 	for _, collector := range snapshot {
 		go collector.collect(ctx)
 	}
 }
 
-// discoverClusters returns a list of all Armada cluster addresses
-func (m *MetricsManager) discoverClusters(ctx context.Context) ([]string, error) {
-	// This needs to be implemented based on how clusters are discovered in the console
-	// For now, we'll just use the known clusters from the connection pool
-	return m.clusterPool.GetKnownAddresses(), nil
+// discoverClusters returns a list of all Armada cluster addresses.
+func (m *MetricsManager) discoverClusters(_ context.Context) []string {
+	// This needs to be implemented based on how clusters are discovered in the console.
+	// For now, we'll just use the known clusters from the connection pool.
+	return m.clusterPool.GetKnownAddresses()
 }
 
-// addCluster creates a new metrics collector for a cluster
-func (m *MetricsManager) addCluster(ctx context.Context, addr string) {
+// addCluster creates a new metrics collector for a cluster.
+func (m *MetricsManager) addCluster(_ context.Context, addr string) {
 	m.logger.Info("Adding metrics collector for cluster", zap.String("address", addr))
 
 	collector := &MetricsCollector{
@@ -183,17 +179,17 @@ func (m *MetricsManager) addCluster(ctx context.Context, addr string) {
 	m.collectors[addr] = collector
 }
 
-// removeCluster removes a metrics collector for a cluster
+// removeCluster removes a metrics collector for a cluster.
 func (m *MetricsManager) removeCluster(addr string) {
 	m.logger.Info("Removing metrics collector for cluster", zap.String("address", addr))
 	delete(m.collectors, addr)
 }
 
-// collect gathers metrics from a single Armada cluster and stores them in TSDB
+// collect gathers metrics from a single Armada cluster and stores them in TSDB.
 func (c *MetricsCollector) collect(ctx context.Context) {
 	c.logger.Debug("Collecting metrics")
 
-	// Set a timeout for metrics collection
+	// Set a timeout for metrics collection.
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
@@ -202,7 +198,7 @@ func (c *MetricsCollector) collect(ctx context.Context) {
 		c.logger.Error("Failed to get connection to cluster", zap.String("address", c.clusterAddr), zap.Error(err))
 		return
 	}
-	// Get metrics from the cluster
+	// Get metrics from the cluster.
 	resp, err := conn.MetricsClient.GetMetrics(ctx, &regattapb.MetricsRequest{})
 	if err != nil {
 		c.logger.Error("Failed to collect metrics", zap.String("address", c.clusterAddr), zap.Error(err))
@@ -215,18 +211,18 @@ func (c *MetricsCollector) collect(ctx context.Context) {
 		Timestamp: time.Unix(resp.Timestamp, 0),
 	}
 
-	// Parse and store metrics in TSDB
+	// Parse and store metrics in TSDB.
 	if err := c.storeMetricsInTSDB(ctx, md); err != nil {
 		c.logger.Error("Failed to store metrics in TSDB", zap.Error(err))
 	}
 }
 
-// storeMetricsInTSDB parses the Prometheus text format metrics and stores them in TSDB
+// storeMetricsInTSDB parses the Prometheus text format metrics and stores them in TSDB.
 func (c *MetricsCollector) storeMetricsInTSDB(ctx context.Context, metrics *armada.MetricsData) error {
-	// Create an appender to add samples to the TSDB
+	// Create an appender to add samples to the TSDB.
 	appender := c.manager.storage.Appender(ctx)
 
-	// Parse metrics using Prometheus text parser
+	// Parse metrics using Prometheus text parser.
 	parser := textparse.NewPromParser([]byte(metrics.Data), nil, false)
 
 	var (
@@ -234,7 +230,7 @@ func (c *MetricsCollector) storeMetricsInTSDB(ctx context.Context, metrics *arma
 		lbls labels.Labels
 	)
 
-	// Get connection to retrieve node information
+	// Get connection to retrieve node information.
 	conn, err := c.pool.GetConnection(ctx, c.clusterAddr)
 	if err != nil {
 		c.logger.Warn("Failed to get connection for node metadata, continuing with basic labels",
@@ -242,12 +238,12 @@ func (c *MetricsCollector) storeMetricsInTSDB(ctx context.Context, metrics *arma
 			zap.Error(err))
 	}
 
-	// Add cluster as a label to all metrics
+	// Add cluster as a label to all metrics.
 	extraLabels := []labels.Label{
 		{Name: "cluster", Value: c.clusterAddr},
 	}
 
-	// Add node ID and name as labels if available
+	// Add node ID and name as labels if available.
 	if conn != nil && conn.NodeID != "" {
 		extraLabels = append(extraLabels, labels.Label{Name: "node_id", Value: conn.NodeID})
 	}
@@ -255,11 +251,11 @@ func (c *MetricsCollector) storeMetricsInTSDB(ctx context.Context, metrics *arma
 		extraLabels = append(extraLabels, labels.Label{Name: "node_name", Value: conn.NodeName})
 	}
 
-	// Track metrics parsed
+	// Track metrics parsed.
 	metricCount := 0
 	timestamp := metrics.Timestamp.UnixMilli()
 
-	// Process all metrics
+	// Process all metrics.
 	for {
 		et, err := parser.Next()
 		if err != nil {
@@ -271,18 +267,18 @@ func (c *MetricsCollector) storeMetricsInTSDB(ctx context.Context, metrics *arma
 
 		switch et {
 		case textparse.EntrySeries:
-			// Get series information
+			// Get series information.
 			_, _, val := parser.Series()
 			parser.Labels(&lbls)
 
-			// Add our extra labels
+			// Add our extra labels.
 			lblsBuilder := labels.NewBuilder(lbls)
 			for _, lbl := range extraLabels {
 				lblsBuilder.Set(lbl.Name, lbl.Value)
 			}
 			lbls = lblsBuilder.Labels()
 
-			// Add sample to TSDB
+			// Add sample to TSDB.
 			_, err = appender.Append(0, lbls, timestamp, val)
 			if err != nil {
 				c.logger.Warn("Failed to append metric",
@@ -294,12 +290,12 @@ func (c *MetricsCollector) storeMetricsInTSDB(ctx context.Context, metrics *arma
 			metricCount++
 
 		case textparse.EntryHelp, textparse.EntryType, textparse.EntryComment, textparse.EntryUnit:
-			// Skip metadata entries
+			// Skip metadata entries.
 			continue
 		}
 	}
 
-	// Add a metric counting how many metrics we processed
+	// Add a metric counting how many metrics we processed.
 	countLblsBuilder := labels.NewBuilder(labels.FromStrings(
 		"__name__", "armada_metrics_sample_count",
 		"cluster", c.clusterAddr,
@@ -316,7 +312,7 @@ func (c *MetricsCollector) storeMetricsInTSDB(ctx context.Context, metrics *arma
 		c.logger.Warn("Failed to append sample count metric", zap.Error(err))
 	}
 
-	// Commit samples to TSDB
+	// Commit samples to TSDB.
 	if err := appender.Commit(); err != nil {
 		return fmt.Errorf("failed to commit metrics: %w", err)
 	}

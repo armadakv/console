@@ -66,6 +66,15 @@ type KeyValuePair struct {
 	Value string `json:"value"`
 }
 
+// ScanResult holds the result of a key-value range scan.
+type ScanResult struct {
+	// Pairs contains the returned key-value pairs.
+	Pairs []KeyValuePair `json:"pairs"`
+
+	// More indicates whether additional keys exist beyond the returned set.
+	More bool `json:"more"`
+}
+
 // Table represents a table in the Armada database.
 type Table struct {
 	// Name is the name of the table.
@@ -90,7 +99,7 @@ type Server struct {
 	ClientURLs []string `json:"clientURLs"`
 }
 
-// MetricsData represents metrics data received from Armada
+// MetricsData represents metrics data received from Armada.
 type MetricsData struct {
 	Data      string    // The metrics data in Prometheus text format (or other requested format)
 	Timestamp time.Time // The timestamp when the metrics were collected

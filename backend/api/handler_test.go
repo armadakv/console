@@ -15,7 +15,9 @@ import (
 	"go.uber.org/zap"
 )
 
-// mockArmadaClient is a mock implementation of the Armada client for testing
+type testCtxKey string
+
+// mockArmadaClient is a mock implementation of the Armada client for testing.
 type mockArmadaClient struct {
 	statusResponse  *armada.Status
 	clusterResponse *armada.ClusterInfo
@@ -61,37 +63,40 @@ func (m *mockArmadaClient) GetMetrics(ctx context.Context, format string) (*arma
 	}, nil
 }
 
-// Add the GetKeyValuePairs method with the new signature
-func (m *mockArmadaClient) GetKeyValuePairs(ctx context.Context, table, prefix, start, end string, limit int) ([]armada.KeyValuePair, error) {
+// Add the GetKeyValuePairs method with the new signature.
+func (m *mockArmadaClient) GetKeyValuePairs(ctx context.Context, table, prefix, start, end, cursor string, limit int) (armada.ScanResult, error) {
 	if m.kvPairs != nil {
-		return m.kvPairs, nil
+		return armada.ScanResult{Pairs: m.kvPairs}, nil
 	}
-	return []armada.KeyValuePair{
-		{Key: "key1", Value: "value1"},
-		{Key: "key2", Value: "value2"},
+	return armada.ScanResult{
+		Pairs: []armada.KeyValuePair{
+			{Key: "key1", Value: "value1"},
+			{Key: "key2", Value: "value2"},
+		},
 	}, nil
 }
 
-// GetKeyValue implements the GetKeyValue method of the ArmadaClient interface
+// GetKeyValue implements the GetKeyValue method of the ArmadaClient interface.
 func (m *mockArmadaClient) GetKeyValue(ctx context.Context, table, key string) (*armada.KeyValuePair, error) {
 	if m.singleKvPair != nil {
 		return m.singleKvPair, nil
 	}
 
-	// If not explicitly set, return based on key
-	if key == "key1" {
+	// If not explicitly set, return based on key.
+	switch key {
+	case "key1":
 		return &armada.KeyValuePair{
 			Key:   "key1",
 			Value: "value1",
 		}, nil
-	} else if key == "key2" {
+	case "key2":
 		return &armada.KeyValuePair{
 			Key:   "key2",
 			Value: "value2",
 		}, nil
 	}
 
-	// If key not found, return error
+	// If key not found, return error.
 	return nil, fmt.Errorf("key not found: %s", key)
 }
 
@@ -110,17 +115,17 @@ func (m *mockArmadaClient) GetTables(ctx context.Context) ([]armada.Table, error
 	}, nil
 }
 
-// Adding CreateTable method to satisfy the interface
+// Adding CreateTable method to satisfy the interface.
 func (m *mockArmadaClient) CreateTable(ctx context.Context, tableName string) (string, error) {
 	return "table_" + tableName, nil
 }
 
-// Adding DeleteTable method to satisfy the interface
+// Adding DeleteTable method to satisfy the interface.
 func (m *mockArmadaClient) DeleteTable(ctx context.Context, tableName string) error {
 	return nil
 }
 
-// Adding GetAllServers method to satisfy the interface
+// Adding GetAllServers method to satisfy the interface.
 func (m *mockArmadaClient) GetAllServers(ctx context.Context) ([]armada.Server, error) {
 	if m.servers != nil {
 		return m.servers, nil
@@ -138,57 +143,57 @@ func (m *mockArmadaClient) Close() error {
 	return nil
 }
 
-// createTestHandler creates a new API handler with a mock Armada client for testing
+// createTestHandler creates a new API handler with a mock Armada client for testing.
 func createTestHandler() *Handler {
-	// Create a no-op logger for testing
+	// Create a no-op logger for testing.
 	logger := zap.NewNop()
-	// Create a mock armada client (we'll pass nil and set it manually)
+	// Create a mock armada client (we'll pass nil and set it manually).
 	handler := NewHandler(nil, logger)
 	handler.client = &mockArmadaClient{}
 	return handler
 }
 
 func TestHandleStatus(t *testing.T) {
-	// Create a new API handler with a mock client
+	// Create a new API handler with a mock client.
 	handler := createTestHandler()
 
-	// Create a request to pass to our handler
-	req, err := http.NewRequest("GET", "/api/status", nil)
+	// Create a request to pass to our handler.
+	req, err := http.NewRequest(http.MethodGet, "/api/status", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Create a context with the Armada client
-	ctx := context.WithValue(req.Context(), "armadaClient", handler.client)
+	// Create a context with the Armada client.
+	ctx := context.WithValue(req.Context(), testCtxKey("armadaClient"), handler.client)
 	req = req.WithContext(ctx)
 
-	// Create a ResponseRecorder to record the response
+	// Create a ResponseRecorder to record the response.
 	rr := httptest.NewRecorder()
 	handlerFunc := http.HandlerFunc(handler.handleStatus)
 
-	// Call the handler function directly and pass our request and ResponseRecorder
+	// Call the handler function directly and pass our request and ResponseRecorder.
 	handlerFunc.ServeHTTP(rr, req)
 
-	// Check the status code
+	// Check the status code.
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v",
 			status, http.StatusOK)
 	}
 
-	// Check the content type
+	// Check the content type.
 	expectedContentType := "application/json; charset=utf-8"
 	if contentType := rr.Header().Get("Content-Type"); contentType != expectedContentType {
 		t.Errorf("handler returned wrong content type: got %v want %v",
 			contentType, expectedContentType)
 	}
 
-	// Parse the response body - should be a StatusResponse, not armada.Status
+	// Parse the response body - should be a StatusResponse, not armada.Status.
 	var response StatusResponse
 	if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
 		t.Errorf("Failed to parse response body: %v", err)
 	}
 
-	// Check the response fields
+	// Check the response fields.
 	if len(response.Servers) != 1 {
 		t.Errorf("handler returned unexpected number of servers: got %v want %v",
 			len(response.Servers), 1)
@@ -206,28 +211,28 @@ func TestHandleStatus(t *testing.T) {
 }
 
 func TestHandleStatusMethodNotAllowed(t *testing.T) {
-	// Create a new API handler with a mock client
+	// Create a new API handler with a mock client.
 	handler := createTestHandler()
 
-	// Create a POST request (which should not be allowed)
-	req, err := http.NewRequest("POST", "/api/status", nil)
+	// Create a POST request (which should not be allowed).
+	req, err := http.NewRequest(http.MethodPost, "/api/status", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Create a context with the Armada client
-	ctx := context.WithValue(req.Context(), "armadaClient", handler.client)
+	// Create a context with the Armada client.
+	ctx := context.WithValue(req.Context(), testCtxKey("armadaClient"), handler.client)
 	req = req.WithContext(ctx)
 
-	// Create a ResponseRecorder to record the response
+	// Create a ResponseRecorder to record the response.
 	rr := httptest.NewRecorder()
 	handlerFunc := http.HandlerFunc(handler.handleStatus)
 
-	// Call the handler function directly and pass our request and ResponseRecorder
+	// Call the handler function directly and pass our request and ResponseRecorder.
 	handlerFunc.ServeHTTP(rr, req)
 
-	// With Chi router, method not allowed is handled by the router, not the handler
-	// So we expect the handler to process the request normally
+	// With Chi router, method not allowed is handled by the router, not the handler.
+	// So we expect the handler to process the request normally.
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v",
 			status, http.StatusOK)
@@ -235,46 +240,46 @@ func TestHandleStatusMethodNotAllowed(t *testing.T) {
 }
 
 func TestHandleCluster(t *testing.T) {
-	// Create a new API handler with a mock client
+	// Create a new API handler with a mock client.
 	handler := createTestHandler()
 
-	// Create a request to pass to our handler
-	req, err := http.NewRequest("GET", "/api/cluster", nil)
+	// Create a request to pass to our handler.
+	req, err := http.NewRequest(http.MethodGet, "/api/cluster", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Create a context with the Armada client
-	ctx := context.WithValue(req.Context(), "armadaClient", handler.client)
+	// Create a context with the Armada client.
+	ctx := context.WithValue(req.Context(), testCtxKey("armadaClient"), handler.client)
 	req = req.WithContext(ctx)
 
-	// Create a ResponseRecorder to record the response
+	// Create a ResponseRecorder to record the response.
 	rr := httptest.NewRecorder()
 	handlerFunc := http.HandlerFunc(handler.handleCluster)
 
-	// Call the handler function directly and pass our request and ResponseRecorder
+	// Call the handler function directly and pass our request and ResponseRecorder.
 	handlerFunc.ServeHTTP(rr, req)
 
-	// Check the status code
+	// Check the status code.
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v",
 			status, http.StatusOK)
 	}
 
-	// Check the content type
+	// Check the content type.
 	expectedContentType := "application/json; charset=utf-8"
 	if contentType := rr.Header().Get("Content-Type"); contentType != expectedContentType {
 		t.Errorf("handler returned wrong content type: got %v want %v",
 			contentType, expectedContentType)
 	}
 
-	// Parse the response body
+	// Parse the response body.
 	var response armada.ClusterInfo
 	if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
 		t.Errorf("Failed to parse response body: %v", err)
 	}
 
-	// Check the response fields
+	// Check the response fields.
 	if response.NodeID != "node1" {
 		t.Errorf("handler returned unexpected nodeId: got %v want %v",
 			response.NodeID, "node1")
@@ -282,46 +287,46 @@ func TestHandleCluster(t *testing.T) {
 }
 
 func TestHandleTables(t *testing.T) {
-	// Create a new API handler with a mock client
+	// Create a new API handler with a mock client.
 	handler := createTestHandler()
 
-	// Create a request to pass to our handler
-	req, err := http.NewRequest("GET", "/api/tables", nil)
+	// Create a request to pass to our handler.
+	req, err := http.NewRequest(http.MethodGet, "/api/tables", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Create a context with the Armada client
-	ctx := context.WithValue(req.Context(), "armadaClient", handler.client)
+	// Create a context with the Armada client.
+	ctx := context.WithValue(req.Context(), testCtxKey("armadaClient"), handler.client)
 	req = req.WithContext(ctx)
 
-	// Create a ResponseRecorder to record the response
+	// Create a ResponseRecorder to record the response.
 	rr := httptest.NewRecorder()
 	handlerFunc := http.HandlerFunc(handler.handleTables)
 
-	// Call the handler function directly and pass our request and ResponseRecorder
+	// Call the handler function directly and pass our request and ResponseRecorder.
 	handlerFunc.ServeHTTP(rr, req)
 
-	// Check the status code
+	// Check the status code.
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v",
 			status, http.StatusOK)
 	}
 
-	// Check the content type
+	// Check the content type.
 	expectedContentType := "application/json; charset=utf-8"
 	if contentType := rr.Header().Get("Content-Type"); contentType != expectedContentType {
 		t.Errorf("handler returned wrong content type: got %v want %v",
 			contentType, expectedContentType)
 	}
 
-	// Parse the response body
+	// Parse the response body.
 	var response []armada.Table
 	if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
 		t.Errorf("Failed to parse response body: %v", err)
 	}
 
-	// Check the response fields
+	// Check the response fields.
 	if len(response) != 2 {
 		t.Errorf("handler returned unexpected number of tables: got %v want %v",
 			len(response), 2)
@@ -329,10 +334,10 @@ func TestHandleTables(t *testing.T) {
 }
 
 func TestHandleCreateTable(t *testing.T) {
-	// Create a new API handler with a mock client
+	// Create a new API handler with a mock client.
 	handler := createTestHandler()
 
-	// Create request body
+	// Create request body.
 	reqBody := CreateTableRequest{
 		Name: "new_table",
 	}
@@ -341,43 +346,43 @@ func TestHandleCreateTable(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Create a request to pass to our handler
-	req, err := http.NewRequest("POST", "/api/tables", bytes.NewReader(reqBodyBytes))
+	// Create a request to pass to our handler.
+	req, err := http.NewRequest(http.MethodPost, "/api/tables", bytes.NewReader(reqBodyBytes))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Create a context with the Armada client
-	ctx := context.WithValue(req.Context(), "armadaClient", handler.client)
+	// Create a context with the Armada client.
+	ctx := context.WithValue(req.Context(), testCtxKey("armadaClient"), handler.client)
 	req = req.WithContext(ctx)
 
-	// Create a ResponseRecorder to record the response
+	// Create a ResponseRecorder to record the response.
 	rr := httptest.NewRecorder()
 	handlerFunc := http.HandlerFunc(handler.handleCreateTable)
 
-	// Call the handler function directly and pass our request and ResponseRecorder
+	// Call the handler function directly and pass our request and ResponseRecorder.
 	handlerFunc.ServeHTTP(rr, req)
 
-	// Check the status code
+	// Check the status code.
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v",
 			status, http.StatusOK)
 	}
 
-	// Check the content type
+	// Check the content type.
 	expectedContentType := "application/json; charset=utf-8"
 	if contentType := rr.Header().Get("Content-Type"); contentType != expectedContentType {
 		t.Errorf("handler returned wrong content type: got %v want %v",
 			contentType, expectedContentType)
 	}
 
-	// Parse the response body
+	// Parse the response body.
 	var response CreateTableResponse
 	if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
 		t.Errorf("Failed to parse response body: %v", err)
 	}
 
-	// Check the response fields
+	// Check the response fields.
 	expectedID := "table_new_table"
 	if response.ID != expectedID {
 		t.Errorf("handler returned unexpected table ID: got %v want %v",
@@ -386,39 +391,39 @@ func TestHandleCreateTable(t *testing.T) {
 }
 
 func TestHandleDeleteTable(t *testing.T) {
-	// Create a new API handler with a mock client
+	// Create a new API handler with a mock client.
 	handler := createTestHandler()
 
-	// Create a request to pass to our handler
-	req, err := http.NewRequest("DELETE", "/api/tables/test_table", nil)
+	// Create a request to pass to our handler.
+	req, err := http.NewRequest(http.MethodDelete, "/api/tables/test_table", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Create a context with the Armada client
-	ctx := context.WithValue(req.Context(), "armadaClient", handler.client)
+	// Create a context with the Armada client.
+	ctx := context.WithValue(req.Context(), testCtxKey("armadaClient"), handler.client)
 
-	// Add URL parameters to the context
+	// Add URL parameters to the context.
 	rctx := chi.NewRouteContext()
 	rctx.URLParams.Add("name", "test_table")
 	ctx = context.WithValue(ctx, chi.RouteCtxKey, rctx)
 
 	req = req.WithContext(ctx)
 
-	// Create a ResponseRecorder to record the response
+	// Create a ResponseRecorder to record the response.
 	rr := httptest.NewRecorder()
 	handlerFunc := http.HandlerFunc(handler.handleDeleteTable)
 
-	// Call the handler function directly and pass our request and ResponseRecorder
+	// Call the handler function directly and pass our request and ResponseRecorder.
 	handlerFunc.ServeHTTP(rr, req)
 
-	// Check the status code
+	// Check the status code.
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v",
 			status, http.StatusOK)
 	}
 
-	// Check the content type
+	// Check the content type.
 	expectedContentType := "application/json; charset=utf-8"
 	if contentType := rr.Header().Get("Content-Type"); contentType != expectedContentType {
 		t.Errorf("handler returned wrong content type: got %v want %v",
@@ -427,46 +432,46 @@ func TestHandleDeleteTable(t *testing.T) {
 }
 
 func TestHandleServers(t *testing.T) {
-	// Create a new API handler with a mock client
+	// Create a new API handler with a mock client.
 	handler := createTestHandler()
 
-	// Create a request to pass to our handler
-	req, err := http.NewRequest("GET", "/api/servers", nil)
+	// Create a request to pass to our handler.
+	req, err := http.NewRequest(http.MethodGet, "/api/servers", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Create a context with the Armada client
-	ctx := context.WithValue(req.Context(), "armadaClient", handler.client)
+	// Create a context with the Armada client.
+	ctx := context.WithValue(req.Context(), testCtxKey("armadaClient"), handler.client)
 	req = req.WithContext(ctx)
 
-	// Create a ResponseRecorder to record the response
+	// Create a ResponseRecorder to record the response.
 	rr := httptest.NewRecorder()
 	handlerFunc := http.HandlerFunc(handler.handleServers)
 
-	// Call the handler function directly and pass our request and ResponseRecorder
+	// Call the handler function directly and pass our request and ResponseRecorder.
 	handlerFunc.ServeHTTP(rr, req)
 
-	// Check the status code
+	// Check the status code.
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v",
 			status, http.StatusOK)
 	}
 
-	// Check the content type
+	// Check the content type.
 	expectedContentType := "application/json; charset=utf-8"
 	if contentType := rr.Header().Get("Content-Type"); contentType != expectedContentType {
 		t.Errorf("handler returned wrong content type: got %v want %v",
 			contentType, expectedContentType)
 	}
 
-	// Parse the response body
+	// Parse the response body.
 	var response []armada.Server
 	if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
 		t.Errorf("Failed to parse response body: %v", err)
 	}
 
-	// Check the response fields
+	// Check the response fields.
 	if len(response) != 1 {
 		t.Errorf("handler returned unexpected number of servers: got %v want %v",
 			len(response), 1)
@@ -474,63 +479,63 @@ func TestHandleServers(t *testing.T) {
 }
 
 func TestHandleKeyValue(t *testing.T) {
-	// Create a new API handler with a mock client
+	// Create a new API handler with a mock client.
 	handler := createTestHandler()
 
-	// Test GET request
+	// Test GET request.
 	t.Run("GET", func(t *testing.T) {
-		// Create a request to pass to our handler
-		req, err := http.NewRequest("GET", "/api/kv/test?prefix=key", nil)
+		// Create a request to pass to our handler.
+		req, err := http.NewRequest(http.MethodGet, "/api/kv/test?prefix=key", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		// Create a context with the Armada client
-		ctx := context.WithValue(req.Context(), "armadaClient", handler.client)
+		// Create a context with the Armada client.
+		ctx := context.WithValue(req.Context(), testCtxKey("armadaClient"), handler.client)
 
-		// Add URL parameters to the context
+		// Add URL parameters to the context.
 		rctx := chi.NewRouteContext()
 		rctx.URLParams.Add("table", "test")
 		ctx = context.WithValue(ctx, chi.RouteCtxKey, rctx)
 
 		req = req.WithContext(ctx)
 
-		// Create a ResponseRecorder to record the response
+		// Create a ResponseRecorder to record the response.
 		rr := httptest.NewRecorder()
 		handlerFunc := http.HandlerFunc(handler.handleGetKeyValue)
 
-		// Call the handler function directly and pass our request and ResponseRecorder
+		// Call the handler function directly and pass our request and ResponseRecorder.
 		handlerFunc.ServeHTTP(rr, req)
 
-		// Check the status code
+		// Check the status code.
 		if status := rr.Code; status != http.StatusOK {
 			t.Errorf("handler returned wrong status code: got %v want %v",
 				status, http.StatusOK)
 		}
 
-		// Check the content type
+		// Check the content type.
 		expectedContentType := "application/json; charset=utf-8"
 		if contentType := rr.Header().Get("Content-Type"); contentType != expectedContentType {
 			t.Errorf("handler returned wrong content type: got %v want %v",
 				contentType, expectedContentType)
 		}
 
-		// Parse the response body
-		var response []armada.KeyValuePair
+		// Parse the response body.
+		var response armada.ScanResult
 		if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
 			t.Errorf("Failed to parse response body: %v", err)
 		}
 
-		// Check the response fields
-		if len(response) != 2 {
+		// Check the response fields.
+		if len(response.Pairs) != 2 {
 			t.Errorf("handler returned unexpected number of key-value pairs: got %v want %v",
-				len(response), 2)
+				len(response.Pairs), 2)
 		}
 	})
 
-	// Test PUT request
+	// Test PUT request.
 	t.Run("PUT", func(t *testing.T) {
-		// Create a request body
+		// Create a request body.
 		reqBody := armada.KeyValuePair{
 			Key:   "key3",
 			Value: "value3",
@@ -540,62 +545,62 @@ func TestHandleKeyValue(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		// Create a request to pass to our handler
-		req, err := http.NewRequest("PUT", "/api/kv/test", bytes.NewReader(reqBodyBytes))
+		// Create a request to pass to our handler.
+		req, err := http.NewRequest(http.MethodPut, "/api/kv/test", bytes.NewReader(reqBodyBytes))
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		// Create a context with the Armada client
-		ctx := context.WithValue(req.Context(), "armadaClient", handler.client)
+		// Create a context with the Armada client.
+		ctx := context.WithValue(req.Context(), testCtxKey("armadaClient"), handler.client)
 
-		// Add URL parameters to the context
+		// Add URL parameters to the context.
 		rctx := chi.NewRouteContext()
 		rctx.URLParams.Add("table", "test")
 		ctx = context.WithValue(ctx, chi.RouteCtxKey, rctx)
 
 		req = req.WithContext(ctx)
 
-		// Create a ResponseRecorder to record the response
+		// Create a ResponseRecorder to record the response.
 		rr := httptest.NewRecorder()
 		handlerFunc := http.HandlerFunc(handler.handlePutKeyValue)
 
-		// Call the handler function directly and pass our request and ResponseRecorder
+		// Call the handler function directly and pass our request and ResponseRecorder.
 		handlerFunc.ServeHTTP(rr, req)
 
-		// Check the status code
+		// Check the status code.
 		if status := rr.Code; status != http.StatusOK {
 			t.Errorf("handler returned wrong status code: got %v want %v",
 				status, http.StatusOK)
 		}
 	})
 
-	// Test DELETE request
+	// Test DELETE request.
 	t.Run("DELETE", func(t *testing.T) {
-		// Create a request to pass to our handler
-		req, err := http.NewRequest("DELETE", "/api/kv/test?key=key1", nil)
+		// Create a request to pass to our handler.
+		req, err := http.NewRequest(http.MethodDelete, "/api/kv/test?key=key1", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		// Create a context with the Armada client
-		ctx := context.WithValue(req.Context(), "armadaClient", handler.client)
+		// Create a context with the Armada client.
+		ctx := context.WithValue(req.Context(), testCtxKey("armadaClient"), handler.client)
 
-		// Add URL parameters to the context (only table needed)
+		// Add URL parameters to the context (only table needed).
 		rctx := chi.NewRouteContext()
 		rctx.URLParams.Add("table", "test")
 		ctx = context.WithValue(ctx, chi.RouteCtxKey, rctx)
 
 		req = req.WithContext(ctx)
 
-		// Create a ResponseRecorder to record the response
+		// Create a ResponseRecorder to record the response.
 		rr := httptest.NewRecorder()
 		handlerFunc := http.HandlerFunc(handler.handleDeleteKey)
 
-		// Call the handler function directly and pass our request and ResponseRecorder
+		// Call the handler function directly and pass our request and ResponseRecorder.
 		handlerFunc.ServeHTTP(rr, req)
 
-		// Check the status code
+		// Check the status code.
 		if status := rr.Code; status != http.StatusOK {
 			t.Errorf("handler returned wrong status code: got %v want %v",
 				status, http.StatusOK)
@@ -603,30 +608,30 @@ func TestHandleKeyValue(t *testing.T) {
 	})
 }
 
-// TestHandleGetSpecificKeyValue tests the handleGetSpecificKeyValue handler function
+// TestHandleGetSpecificKeyValue tests the handleGetSpecificKeyValue handler function.
 func TestHandleGetSpecificKeyValue(t *testing.T) {
-	// Create a new API handler with a mock client
+	// Create a new API handler with a mock client.
 	handler := createTestHandler()
 
-	// Test successful request
+	// Test successful request.
 	t.Run("Success", func(t *testing.T) {
-		// Configure the mock client to return a specific key-value pair
+		// Configure the mock client to return a specific key-value pair.
 		mockClient := handler.client.(*mockArmadaClient)
 		mockClient.singleKvPair = &armada.KeyValuePair{
 			Key:   "testkey",
 			Value: "testvalue",
 		}
 
-		// Create a request to pass to our handler
-		req, err := http.NewRequest("GET", "/api/kv/testtable/testkey", nil)
+		// Create a request to pass to our handler.
+		req, err := http.NewRequest(http.MethodGet, "/api/kv/testtable/testkey", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		// Create a context with the Armada client
-		ctx := context.WithValue(req.Context(), "armadaClient", handler.client)
+		// Create a context with the Armada client.
+		ctx := context.WithValue(req.Context(), testCtxKey("armadaClient"), handler.client)
 
-		// Add URL parameters to the context
+		// Add URL parameters to the context.
 		rctx := chi.NewRouteContext()
 		rctx.URLParams.Add("table", "testtable")
 		rctx.URLParams.Add("key", "testkey")
@@ -634,55 +639,55 @@ func TestHandleGetSpecificKeyValue(t *testing.T) {
 
 		req = req.WithContext(ctx)
 
-		// Create a ResponseRecorder to record the response
+		// Create a ResponseRecorder to record the response.
 		rr := httptest.NewRecorder()
 		handlerFunc := http.HandlerFunc(handler.handleGetSpecificKeyValue)
 
-		// Call the handler function directly and pass our request and ResponseRecorder
+		// Call the handler function directly and pass our request and ResponseRecorder.
 		handlerFunc.ServeHTTP(rr, req)
 
-		// Check the status code
+		// Check the status code.
 		if status := rr.Code; status != http.StatusOK {
 			t.Errorf("handler returned wrong status code: got %v want %v",
 				status, http.StatusOK)
 		}
 
-		// Check the content type
+		// Check the content type.
 		expectedContentType := "application/json; charset=utf-8"
 		if contentType := rr.Header().Get("Content-Type"); contentType != expectedContentType {
 			t.Errorf("handler returned wrong content type: got %v want %v",
 				contentType, expectedContentType)
 		}
 
-		// Parse the response body
+		// Parse the response body.
 		var response armada.KeyValuePair
 		if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
 			t.Errorf("Failed to parse response body: %v", err)
 		}
 
-		// Check the response fields
+		// Check the response fields.
 		if response.Key != "testkey" || response.Value != "testvalue" {
 			t.Errorf("handler returned unexpected key-value pair: got {%s, %s}, want {testkey, testvalue}",
 				response.Key, response.Value)
 		}
 	})
 
-	// Test key not found
+	// Test key not found.
 	t.Run("KeyNotFound", func(t *testing.T) {
-		// Reset the mock client to use default behavior
+		// Reset the mock client to use default behavior.
 		mockClient := handler.client.(*mockArmadaClient)
 		mockClient.singleKvPair = nil
 
-		// Create a request to pass to our handler
-		req, err := http.NewRequest("GET", "/api/kv/testtable/nonexistentkey", nil)
+		// Create a request to pass to our handler.
+		req, err := http.NewRequest(http.MethodGet, "/api/kv/testtable/nonexistentkey", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		// Create a context with the Armada client
-		ctx := context.WithValue(req.Context(), "armadaClient", handler.client)
+		// Create a context with the Armada client.
+		ctx := context.WithValue(req.Context(), testCtxKey("armadaClient"), handler.client)
 
-		// Add URL parameters to the context
+		// Add URL parameters to the context.
 		rctx := chi.NewRouteContext()
 		rctx.URLParams.Add("table", "testtable")
 		rctx.URLParams.Add("key", "nonexistentkey")
@@ -690,78 +695,78 @@ func TestHandleGetSpecificKeyValue(t *testing.T) {
 
 		req = req.WithContext(ctx)
 
-		// Create a ResponseRecorder to record the response
+		// Create a ResponseRecorder to record the response.
 		rr := httptest.NewRecorder()
 		handlerFunc := http.HandlerFunc(handler.handleGetSpecificKeyValue)
 
-		// Call the handler function directly and pass our request and ResponseRecorder
+		// Call the handler function directly and pass our request and ResponseRecorder.
 		handlerFunc.ServeHTTP(rr, req)
 
-		// Check the status code - should be 404 Not Found
+		// Check the status code - should be 404 Not Found.
 		if status := rr.Code; status != http.StatusNotFound {
 			t.Errorf("handler returned wrong status code: got %v want %v",
 				status, http.StatusNotFound)
 		}
 	})
 
-	// Test missing table parameter
+	// Test missing table parameter.
 	t.Run("MissingTable", func(t *testing.T) {
-		// Create a request to pass to our handler
-		req, err := http.NewRequest("GET", "/api/kv//testkey", nil)
+		// Create a request to pass to our handler.
+		req, err := http.NewRequest(http.MethodGet, "/api/kv//testkey", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		// Create a context with the Armada client
-		ctx := context.WithValue(req.Context(), "armadaClient", handler.client)
+		// Create a context with the Armada client.
+		ctx := context.WithValue(req.Context(), testCtxKey("armadaClient"), handler.client)
 
-		// Add URL parameters to the context - with missing table
+		// Add URL parameters to the context - with missing table.
 		rctx := chi.NewRouteContext()
 		rctx.URLParams.Add("key", "testkey")
 		ctx = context.WithValue(ctx, chi.RouteCtxKey, rctx)
 
 		req = req.WithContext(ctx)
 
-		// Create a ResponseRecorder to record the response
+		// Create a ResponseRecorder to record the response.
 		rr := httptest.NewRecorder()
 		handlerFunc := http.HandlerFunc(handler.handleGetSpecificKeyValue)
 
-		// Call the handler function directly and pass our request and ResponseRecorder
+		// Call the handler function directly and pass our request and ResponseRecorder.
 		handlerFunc.ServeHTTP(rr, req)
 
-		// Check the status code - should be 400 Bad Request
+		// Check the status code - should be 400 Bad Request.
 		if status := rr.Code; status != http.StatusBadRequest {
 			t.Errorf("handler returned wrong status code: got %v want %v",
 				status, http.StatusBadRequest)
 		}
 	})
 
-	// Test missing key parameter
+	// Test missing key parameter.
 	t.Run("MissingKey", func(t *testing.T) {
-		// Create a request to pass to our handler
-		req, err := http.NewRequest("GET", "/api/kv/testtable/", nil)
+		// Create a request to pass to our handler.
+		req, err := http.NewRequest(http.MethodGet, "/api/kv/testtable/", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		// Create a context with the Armada client
-		ctx := context.WithValue(req.Context(), "armadaClient", handler.client)
+		// Create a context with the Armada client.
+		ctx := context.WithValue(req.Context(), testCtxKey("armadaClient"), handler.client)
 
-		// Add URL parameters to the context - with missing key
+		// Add URL parameters to the context - with missing key.
 		rctx := chi.NewRouteContext()
 		rctx.URLParams.Add("table", "testtable")
 		ctx = context.WithValue(ctx, chi.RouteCtxKey, rctx)
 
 		req = req.WithContext(ctx)
 
-		// Create a ResponseRecorder to record the response
+		// Create a ResponseRecorder to record the response.
 		rr := httptest.NewRecorder()
 		handlerFunc := http.HandlerFunc(handler.handleGetSpecificKeyValue)
 
-		// Call the handler function directly and pass our request and ResponseRecorder
+		// Call the handler function directly and pass our request and ResponseRecorder.
 		handlerFunc.ServeHTTP(rr, req)
 
-		// Check the status code - should be 400 Bad Request
+		// Check the status code - should be 400 Bad Request.
 		if status := rr.Code; status != http.StatusBadRequest {
 			t.Errorf("handler returned wrong status code: got %v want %v",
 				status, http.StatusBadRequest)

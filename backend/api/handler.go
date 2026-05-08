@@ -52,7 +52,7 @@ type ArmadaClient interface {
 	// 2. By range: if start and end are non-empty, returns all key-value pairs with keys in [start, end)
 	// The limit parameter controls the maximum number of pairs to return.
 	// It returns a slice of KeyValuePair objects.
-	GetKeyValuePairs(ctx context.Context, table string, prefix string, start string, end string, limit int) ([]armada.KeyValuePair, error)
+	GetKeyValuePairs(ctx context.Context, table string, prefix string, start string, end string, cursor string, limit int) (armada.ScanResult, error)
 
 	// GetKeyValue retrieves a specific key-value pair from the specified table.
 	// It returns the key-value pair if found, or an error if not found or if the operation fails.
@@ -78,7 +78,7 @@ type ArmadaClient interface {
 	Close() error
 }
 
-// ServerStatus represents the status of a single server
+// ServerStatus represents the status of a single server.
 type ServerStatus struct {
 	ID      string                        `json:"id"`
 	Name    string                        `json:"name"`
@@ -89,30 +89,28 @@ type ServerStatus struct {
 	Errors  []string                      `json:"errors,omitempty"`
 }
 
-// StatusResponse represents the response for the status API endpoint
+// StatusResponse represents the response for the status API endpoint.
 type StatusResponse struct {
 	Servers []ServerStatus `json:"servers"`
 }
 
-// CreateTableRequest represents the request for the create table API endpoint
+// CreateTableRequest represents the request for the create table API endpoint.
 type CreateTableRequest struct {
 	Name string `json:"name"`
 }
 
-// CreateTableResponse represents the response for the create table API endpoint
+// CreateTableResponse represents the response for the create table API endpoint.
 type CreateTableResponse struct {
 	ID string `json:"id"`
 }
 
-// Handler is the main API handler that registers all API routes
+// Handler is the main API handler that registers all API routes.
 type Handler struct {
-	client     ArmadaClient
-	clientLock sync.RWMutex
-	armadaURL  string
-	logger     *zap.Logger
+	client ArmadaClient
+	logger *zap.Logger
 }
 
-// NewHandler creates a new API handler
+// NewHandler creates a new API handler.
 func NewHandler(client *armada.Client, logger *zap.Logger) *Handler {
 	return &Handler{
 		client: client,
@@ -166,7 +164,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	r.Mount("/api", apiRouter)
 }
 
-// handleStatus handles the status API endpoint
+// handleStatus handles the status API endpoint.
 func (h *Handler) handleStatus(w http.ResponseWriter, r *http.Request) {
 	// Get the Armada client from the request context
 	render := chix.NewRender(w)
@@ -250,7 +248,7 @@ func (h *Handler) handleStatus(w http.ResponseWriter, r *http.Request) {
 	render.JSON(response)
 }
 
-// handleTables handles the tables API endpoint
+// handleTables handles the tables API endpoint.
 func (h *Handler) handleTables(w http.ResponseWriter, r *http.Request) {
 	render := chix.NewRender(w)
 	// Get the tables from the Armada server
@@ -264,7 +262,7 @@ func (h *Handler) handleTables(w http.ResponseWriter, r *http.Request) {
 	render.JSON(tables)
 }
 
-// handleCreateTable handles the create table API endpoint
+// handleCreateTable handles the create table API endpoint.
 func (h *Handler) handleCreateTable(w http.ResponseWriter, r *http.Request) {
 	render := chix.NewRender(w)
 
@@ -295,7 +293,7 @@ func (h *Handler) handleCreateTable(w http.ResponseWriter, r *http.Request) {
 	render.JSON(CreateTableResponse{ID: tableID})
 }
 
-// handleDeleteTable handles the delete table API endpoint
+// handleDeleteTable handles the delete table API endpoint.
 func (h *Handler) handleDeleteTable(w http.ResponseWriter, r *http.Request) {
 	render := chix.NewRender(w)
 
@@ -320,7 +318,7 @@ func (h *Handler) handleDeleteTable(w http.ResponseWriter, r *http.Request) {
 	render.JSON(make(map[string]any))
 }
 
-// handleGetKeyValue handles the GET method for the key-value API endpoint
+// handleGetKeyValue handles the GET method for the key-value API endpoint.
 func (h *Handler) handleGetKeyValue(w http.ResponseWriter, r *http.Request) {
 	render := chix.NewRender(w, r)
 	// Get the table from the URL parameters
@@ -334,6 +332,7 @@ func (h *Handler) handleGetKeyValue(w http.ResponseWriter, r *http.Request) {
 	prefix := r.URL.Query().Get("prefix")
 	start := r.URL.Query().Get("start")
 	end := r.URL.Query().Get("end")
+	cursor := r.URL.Query().Get("cursor")
 	limit := 100 // Default limit
 
 	// Validate parameters - we either need a prefix OR a start-end range (or neither for all keys)
@@ -356,7 +355,7 @@ func (h *Handler) handleGetKeyValue(w http.ResponseWriter, r *http.Request) {
 
 	// Get key-value pairs with the specified filtering
 	queryStart := time.Now()
-	pairs, err := h.client.GetKeyValuePairs(r.Context(), table, prefix, start, end, limit)
+	result, err := h.client.GetKeyValuePairs(r.Context(), table, prefix, start, end, cursor, limit)
 	queryDuration := time.Since(queryStart)
 	if err != nil {
 		h.logger.Error("Failed to get key-value pairs",
@@ -370,10 +369,10 @@ func (h *Handler) handleGetKeyValue(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("X-Query-Duration-Ms", fmt.Sprintf("%.3f", float64(queryDuration.Nanoseconds())/1e6))
-	render.JSON(pairs)
+	render.JSON(result)
 }
 
-// handlePutKeyValue handles the PUT method for the key-value API endpoint
+// handlePutKeyValue handles the PUT method for the key-value API endpoint.
 func (h *Handler) handlePutKeyValue(w http.ResponseWriter, r *http.Request) {
 	render := chix.NewRender(w)
 	// Get the table from the URL parameters
@@ -404,7 +403,7 @@ func (h *Handler) handlePutKeyValue(w http.ResponseWriter, r *http.Request) {
 	render.JSON(make(map[string]any))
 }
 
-// handleDeleteKey handles the DELETE method for the key-value API endpoint
+// handleDeleteKey handles the DELETE method for the key-value API endpoint.
 func (h *Handler) handleDeleteKey(w http.ResponseWriter, r *http.Request) {
 	render := chix.NewRender(w)
 	// Get the table and key from the URL parameters
@@ -434,7 +433,7 @@ func (h *Handler) handleDeleteKey(w http.ResponseWriter, r *http.Request) {
 	render.JSON(make(map[string]any))
 }
 
-// handleGetSpecificKeyValue handles the GET method for retrieving a specific key-value pair
+// handleGetSpecificKeyValue handles the GET method for retrieving a specific key-value pair.
 func (h *Handler) handleGetSpecificKeyValue(w http.ResponseWriter, r *http.Request) {
 	render := chix.NewRender(w)
 
@@ -468,7 +467,7 @@ func (h *Handler) handleGetSpecificKeyValue(w http.ResponseWriter, r *http.Reque
 	render.JSON(pair)
 }
 
-// handleCluster handles the cluster API endpoint
+// handleCluster handles the cluster API endpoint.
 func (h *Handler) handleCluster(w http.ResponseWriter, r *http.Request) {
 	render := chix.NewRender(w)
 	// Get the cluster info from the Armada server
@@ -482,7 +481,7 @@ func (h *Handler) handleCluster(w http.ResponseWriter, r *http.Request) {
 	render.JSON(clusterInfo)
 }
 
-// handleServers handles the servers API endpoint
+// handleServers handles the servers API endpoint.
 func (h *Handler) handleServers(w http.ResponseWriter, r *http.Request) {
 	render := chix.NewRender(w)
 	// Get all servers from the Armada cluster

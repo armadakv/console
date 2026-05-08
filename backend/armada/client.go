@@ -409,9 +409,8 @@ func (c *Client) DeleteTable(ctx context.Context, tableName string) error {
 // Returns:
 //   - A slice of KeyValuePair objects.
 //   - An error if the request fails.
-func (c *Client) GetKeyValuePairs(ctx context.Context, table, prefix, start, end string, limit int) ([]KeyValuePair, error) {
-	var rangeStart, rangeEnd string
-	filterType := "none"
+func (c *Client) GetKeyValuePairs(ctx context.Context, table, prefix, start, end, cursor string, limit int) (ScanResult, error) {
+	var rangeStart, rangeEnd, filterType string
 
 	// Determine filtering type and set appropriate parameters
 	if prefix != "" {
@@ -431,6 +430,12 @@ func (c *Client) GetKeyValuePairs(ctx context.Context, table, prefix, start, end
 		filterType = "all"
 	}
 
+	// Cursor overrides the range start for pagination (exclusive: start after cursor key).
+	// Increment the last byte of the cursor key; if it overflows (0xFF), pop and carry.
+	if cursor != "" {
+		rangeStart = incrementKey(cursor)
+	}
+
 	c.logger.Info("Getting key-value pairs",
 		zap.String("filter", filterType),
 		zap.String("table", table),
@@ -440,7 +445,7 @@ func (c *Client) GetKeyValuePairs(ctx context.Context, table, prefix, start, end
 	// Get connection from pool
 	serverConn, err := c.connectionPool.GetConnection(ctx, c.address)
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to Armada server: %w", err)
+		return ScanResult{}, fmt.Errorf("failed to connect to Armada server: %w", err)
 	}
 
 	// Create a range request with the appropriate parameters
@@ -458,7 +463,7 @@ func (c *Client) GetKeyValuePairs(ctx context.Context, table, prefix, start, end
 			zap.Error(err),
 			zap.String("table", table),
 			zap.String("filter", filterType))
-		return nil, err
+		return ScanResult{}, err
 	}
 
 	// Convert the response to our KeyValuePair type
@@ -470,7 +475,7 @@ func (c *Client) GetKeyValuePairs(ctx context.Context, table, prefix, start, end
 		})
 	}
 
-	return pairs, nil
+	return ScanResult{Pairs: pairs, More: resp.GetMore()}, nil
 }
 
 // GetKeyValue retrieves a specific key-value pair from the specified table.
@@ -620,6 +625,23 @@ func (c *Client) DeleteKey(ctx context.Context, table, key string) error {
 //
 // Returns:
 //   - The string with the last byte incremented.
+//
+// incrementKey returns the lexicographically next key after k by incrementing
+// the last byte, carrying over 0xFF bytes (like adding 1 to a big-endian integer).
+// Returns an empty string when k is all 0xFF bytes (no successor exists).
+func incrementKey(k string) string {
+	b := []byte(k)
+	for i := len(b) - 1; i >= 0; i-- {
+		if b[i] < 0xFF {
+			b[i]++
+			return string(b[:i+1])
+		}
+		b[i] = 0x00
+	}
+	// All bytes were 0xFF — no successor key exists in this keyspace.
+	return ""
+}
+
 func incrementLastByte(s string) string {
 	if s == "" {
 		return ""

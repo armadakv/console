@@ -13,7 +13,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// QueryEngine wraps the Prometheus query engine for TSDB queries
+// QueryEngine wraps the Prometheus query engine for TSDB queries.
 type QueryEngine struct {
 	engine    *promql.Engine
 	logger    *zap.Logger
@@ -21,13 +21,13 @@ type QueryEngine struct {
 	queryable storage.Queryable
 }
 
-// NewQueryEngine creates a new query engine for metrics TSDB
+// NewQueryEngine creates a new query engine for metrics TSDB.
 func NewQueryEngine(db *tsdb.DB, logger *zap.Logger) *QueryEngine {
 	if logger == nil {
 		logger = zap.NewNop()
 	}
 
-	// Create a Prometheus query engine with settings calibrated for our use case
+	// Create a Prometheus query engine with settings calibrated for our use case.
 	engineOpts := promql.EngineOpts{
 		Logger:        nil,
 		Reg:           nil,
@@ -45,22 +45,22 @@ func NewQueryEngine(db *tsdb.DB, logger *zap.Logger) *QueryEngine {
 	}
 }
 
-// QueryResult contains the result of a metrics query
+// QueryResult contains the result of a metrics query.
 type QueryResult struct {
 	Type  parser.ValueType `json:"resultType"`
 	Value parser.Value     `json:"result"` // The query result value (Vector, Matrix, Scalar, or String)
 	Stats QueryStats       `json:"stats"`  // Query execution stats
 }
 
-// QueryStats contains statistics about query execution
+// QueryStats contains statistics about query execution.
 type QueryStats struct {
 	ExecutionTime time.Duration // Total execution time
 	SamplesLoaded int           // Number of samples loaded
 }
 
-// Query executes a PromQL query at the specified time
+// Query executes a PromQL query at the specified time.
 func (q *QueryEngine) Query(ctx context.Context, queryStr string, ts time.Time) (QueryResult, error) {
-	// Create a context with timeout to prevent runaway queries
+	// Create a context with timeout to prevent runaway queries.
 	ctx, cancel := context.WithTimeout(ctx, q.timeout)
 	defer cancel()
 
@@ -68,7 +68,7 @@ func (q *QueryEngine) Query(ctx context.Context, queryStr string, ts time.Time) 
 		zap.String("query", queryStr),
 		zap.Time("time", ts))
 
-	// Parse the query
+	// Parse the query.
 	query, err := q.engine.NewInstantQuery(ctx, q.queryable, nil, queryStr, ts)
 	if err != nil {
 		q.logger.Error("Error parsing query",
@@ -78,12 +78,12 @@ func (q *QueryEngine) Query(ctx context.Context, queryStr string, ts time.Time) 
 	}
 	defer query.Close()
 
-	// Execute the query
+	// Execute the query.
 	startTime := time.Now()
 	res := query.Exec(ctx)
 	executionTime := time.Since(startTime)
 
-	// Check for errors
+	// Check for errors.
 	if res.Err != nil {
 		q.logger.Error("Query execution error",
 			zap.String("query", queryStr),
@@ -91,14 +91,14 @@ func (q *QueryEngine) Query(ctx context.Context, queryStr string, ts time.Time) 
 		return QueryResult{}, fmt.Errorf("query execution error: %w", res.Err)
 	}
 
-	// Create query result with stats
+	// Create query result with stats.
 	result := QueryResult{
 		Type:  res.Value.Type(),
 		Value: res.Value,
 		Stats: QueryStats{
 			ExecutionTime: executionTime,
-			// Approximation based on result size for now, proper tracking would require modification
-			// of Prometheus engine internals
+			// Approximation based on result size for now, proper tracking would require modification.
+			// of Prometheus engine internals.
 			SamplesLoaded: approximateSamplesFromResult(res.Value),
 		},
 	}
@@ -110,13 +110,13 @@ func (q *QueryEngine) Query(ctx context.Context, queryStr string, ts time.Time) 
 	return result, nil
 }
 
-// QueryRange executes a PromQL query over a time range
+// QueryRange executes a PromQL query over a time range.
 func (q *QueryEngine) QueryRange(ctx context.Context, queryStr string, start, end time.Time, step time.Duration) (QueryResult, error) {
-	// Create a context with timeout to prevent runaway queries
+	// Create a context with timeout to prevent runaway queries.
 	ctx, cancel := context.WithTimeout(ctx, q.timeout)
 	defer cancel()
 
-	// Ensure step is valid
+	// Ensure step is valid.
 	if step <= 0 {
 		step = time.Minute // Default step
 		q.logger.Warn("Invalid step value, using default",
@@ -124,12 +124,12 @@ func (q *QueryEngine) QueryRange(ctx context.Context, queryStr string, start, en
 			zap.Duration("default_step", step))
 	}
 
-	// Validate time range
+	// Validate time range.
 	if end.Before(start) {
 		return QueryResult{}, fmt.Errorf("invalid time range: end time %s is before start time %s", end, start)
 	}
 
-	// Limit time range to prevent excessive queries
+	// Limit time range to prevent excessive queries.
 	maxDuration := 7 * 24 * time.Hour // 7 days
 	if end.Sub(start) > maxDuration {
 		q.logger.Warn("Time range too large, limiting to maximum duration",
@@ -144,7 +144,7 @@ func (q *QueryEngine) QueryRange(ctx context.Context, queryStr string, start, en
 		zap.Time("end", end),
 		zap.Duration("step", step))
 
-	// Parse the query
+	// Parse the query.
 	query, err := q.engine.NewRangeQuery(ctx, q.queryable, nil, queryStr, start, end, step)
 	if err != nil {
 		q.logger.Error("Error parsing range query",
@@ -154,12 +154,12 @@ func (q *QueryEngine) QueryRange(ctx context.Context, queryStr string, start, en
 	}
 	defer query.Close()
 
-	// Execute the query
+	// Execute the query.
 	startTime := time.Now()
 	res := query.Exec(ctx)
 	executionTime := time.Since(startTime)
 
-	// Check for errors
+	// Check for errors.
 	if res.Err != nil {
 		q.logger.Error("Range query execution error",
 			zap.String("query", queryStr),
@@ -167,7 +167,7 @@ func (q *QueryEngine) QueryRange(ctx context.Context, queryStr string, start, en
 		return QueryResult{}, fmt.Errorf("query execution error: %w", res.Err)
 	}
 
-	// Create query result with stats
+	// Create query result with stats.
 	result := QueryResult{
 		Type:  res.Value.Type(),
 		Value: res.Value,
@@ -185,7 +185,7 @@ func (q *QueryEngine) QueryRange(ctx context.Context, queryStr string, start, en
 	return result, nil
 }
 
-// approximateSamplesFromResult estimates the number of samples based on the result type
+// approximateSamplesFromResult estimates the number of samples based on the result type.
 func approximateSamplesFromResult(value parser.Value) int {
 	if value == nil {
 		return 0

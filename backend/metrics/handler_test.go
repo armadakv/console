@@ -1,7 +1,6 @@
 package metrics
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -12,39 +11,14 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/prometheus/prometheus/promql/parser"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )
-
-// mockMetricsManager implements a mock metrics manager for testing
-type mockMetricsManager struct {
-	mock.Mock
-}
-
-func (m *mockMetricsManager) GetStorage() interface{} {
-	args := m.Called()
-	return args.Get(0)
-}
-
-// mockQueryEngine implements a mock query engine for testing
-type mockQueryEngine struct {
-	mock.Mock
-}
-
-func (m *mockQueryEngine) Query(ctx context.Context, query string, ts time.Time) (*QueryResult, error) {
-	args := m.Called(ctx, query, ts)
-	return args.Get(0).(*QueryResult), args.Error(1)
-}
-
-func (m *mockQueryEngine) QueryRange(ctx context.Context, query string, start, end time.Time, step time.Duration) (*QueryResult, error) {
-	args := m.Called(ctx, query, start, end, step)
-	return args.Get(0).(*QueryResult), args.Error(1)
-}
 
 func TestNewMetricsHandler(t *testing.T) {
 	// Create a temporary directory for TSDB
 	tempDir, err := os.MkdirTemp("", "handler_test_*")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer os.RemoveAll(tempDir)
 
 	mockPool := &mockClusterPool{}
@@ -52,7 +26,7 @@ func TestNewMetricsHandler(t *testing.T) {
 
 	// Create a real metrics manager for this test
 	manager, err := NewMetricsManager(mockPool, time.Minute, tempDir, logger)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer manager.Stop()
 
 	handler := NewMetricsHandler(manager, logger)
@@ -66,14 +40,14 @@ func TestNewMetricsHandler(t *testing.T) {
 func TestNewMetricsHandlerWithNilLogger(t *testing.T) {
 	// Create a temporary directory for TSDB
 	tempDir, err := os.MkdirTemp("", "handler_test_*")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer os.RemoveAll(tempDir)
 
 	mockPool := &mockClusterPool{}
 
 	// Create a real metrics manager for this test
 	manager, err := NewMetricsManager(mockPool, time.Minute, tempDir, zap.NewNop())
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer manager.Stop()
 
 	handler := NewMetricsHandler(manager, nil)
@@ -85,14 +59,14 @@ func TestNewMetricsHandlerWithNilLogger(t *testing.T) {
 func TestMetricsHandlerRegisterRoutes(t *testing.T) {
 	// Create a temporary directory for TSDB
 	tempDir, err := os.MkdirTemp("", "handler_test_*")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer os.RemoveAll(tempDir)
 
 	mockPool := &mockClusterPool{}
 	logger := zap.NewNop()
 
 	manager, err := NewMetricsManager(mockPool, time.Minute, tempDir, logger)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer manager.Stop()
 
 	handler := NewMetricsHandler(manager, logger)
@@ -123,19 +97,19 @@ func TestMetricsHandlerRegisterRoutes(t *testing.T) {
 func TestHandleQueryMissingParameter(t *testing.T) {
 	// Create a temporary directory for TSDB
 	tempDir, err := os.MkdirTemp("", "handler_test_*")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer os.RemoveAll(tempDir)
 
 	mockPool := &mockClusterPool{}
 	logger := zap.NewNop()
 
 	manager, err := NewMetricsManager(mockPool, time.Minute, tempDir, logger)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer manager.Stop()
 
 	handler := NewMetricsHandler(manager, logger)
 
-	req := httptest.NewRequest("GET", "/api/metrics/query", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/metrics/query", nil)
 	rr := httptest.NewRecorder()
 
 	handler.handleQuery(rr, req)
@@ -144,26 +118,26 @@ func TestHandleQueryMissingParameter(t *testing.T) {
 
 	var response map[string]interface{}
 	err = json.Unmarshal(rr.Body.Bytes(), &response)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "Missing required parameter 'query'", response["error"])
 }
 
 func TestHandleQueryWithValidQuery(t *testing.T) {
 	// Create a temporary directory for TSDB
 	tempDir, err := os.MkdirTemp("", "handler_test_*")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer os.RemoveAll(tempDir)
 
 	mockPool := &mockClusterPool{}
 	logger := zap.NewNop()
 
 	manager, err := NewMetricsManager(mockPool, time.Minute, tempDir, logger)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer manager.Stop()
 
 	handler := NewMetricsHandler(manager, logger)
 
-	req := httptest.NewRequest("GET", "/api/metrics/query?query=up", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/metrics/query?query=up", nil)
 	rr := httptest.NewRecorder()
 
 	handler.handleQuery(rr, req)
@@ -173,27 +147,27 @@ func TestHandleQueryWithValidQuery(t *testing.T) {
 
 	var response map[string]interface{}
 	err = json.Unmarshal(rr.Body.Bytes(), &response)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Contains(t, []string{"success", "error"}, response["status"])
 }
 
 func TestHandleQueryWithTime(t *testing.T) {
 	// Create a temporary directory for TSDB
 	tempDir, err := os.MkdirTemp("", "handler_test_*")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer os.RemoveAll(tempDir)
 
 	mockPool := &mockClusterPool{}
 	logger := zap.NewNop()
 
 	manager, err := NewMetricsManager(mockPool, time.Minute, tempDir, logger)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer manager.Stop()
 
 	handler := NewMetricsHandler(manager, logger)
 
 	// Test with RFC3339 time
-	req := httptest.NewRequest("GET", "/api/metrics/query?query=up&time=2023-01-01T12:00:00Z", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/metrics/query?query=up&time=2023-01-01T12:00:00Z", nil)
 	rr := httptest.NewRecorder()
 
 	handler.handleQuery(rr, req)
@@ -201,7 +175,7 @@ func TestHandleQueryWithTime(t *testing.T) {
 	assert.True(t, rr.Code == http.StatusOK || rr.Code == http.StatusInternalServerError)
 
 	// Test with unix timestamp
-	req = httptest.NewRequest("GET", "/api/metrics/query?query=up&time=1672574400", nil)
+	req = httptest.NewRequest(http.MethodGet, "/api/metrics/query?query=up&time=1672574400", nil)
 	rr = httptest.NewRecorder()
 
 	handler.handleQuery(rr, req)
@@ -212,19 +186,19 @@ func TestHandleQueryWithTime(t *testing.T) {
 func TestHandleQueryWithInvalidTime(t *testing.T) {
 	// Create a temporary directory for TSDB
 	tempDir, err := os.MkdirTemp("", "handler_test_*")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer os.RemoveAll(tempDir)
 
 	mockPool := &mockClusterPool{}
 	logger := zap.NewNop()
 
 	manager, err := NewMetricsManager(mockPool, time.Minute, tempDir, logger)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer manager.Stop()
 
 	handler := NewMetricsHandler(manager, logger)
 
-	req := httptest.NewRequest("GET", "/api/metrics/query?query=up&time=invalid", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/metrics/query?query=up&time=invalid", nil)
 	rr := httptest.NewRecorder()
 
 	handler.handleQuery(rr, req)
@@ -233,7 +207,7 @@ func TestHandleQueryWithInvalidTime(t *testing.T) {
 
 	var response map[string]interface{}
 	err = json.Unmarshal(rr.Body.Bytes(), &response)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "error", response["status"])
 	assert.Contains(t, response["error"].(string), "Invalid time format")
 }
@@ -241,32 +215,32 @@ func TestHandleQueryWithInvalidTime(t *testing.T) {
 func TestHandleQueryRangeMissingParameters(t *testing.T) {
 	// Create a temporary directory for TSDB
 	tempDir, err := os.MkdirTemp("", "handler_test_*")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer os.RemoveAll(tempDir)
 
 	mockPool := &mockClusterPool{}
 	logger := zap.NewNop()
 
 	manager, err := NewMetricsManager(mockPool, time.Minute, tempDir, logger)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer manager.Stop()
 
 	handler := NewMetricsHandler(manager, logger)
 
 	// Missing query
-	req := httptest.NewRequest("GET", "/api/metrics/query_range", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/metrics/query_range", nil)
 	rr := httptest.NewRecorder()
 	handler.handleQueryRange(rr, req)
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
 
 	// Missing start
-	req = httptest.NewRequest("GET", "/api/metrics/query_range?query=up", nil)
+	req = httptest.NewRequest(http.MethodGet, "/api/metrics/query_range?query=up", nil)
 	rr = httptest.NewRecorder()
 	handler.handleQueryRange(rr, req)
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
 
 	// Missing end
-	req = httptest.NewRequest("GET", "/api/metrics/query_range?query=up&start=2023-01-01T12:00:00Z", nil)
+	req = httptest.NewRequest(http.MethodGet, "/api/metrics/query_range?query=up&start=2023-01-01T12:00:00Z", nil)
 	rr = httptest.NewRecorder()
 	handler.handleQueryRange(rr, req)
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
@@ -275,19 +249,19 @@ func TestHandleQueryRangeMissingParameters(t *testing.T) {
 func TestHandleQueryRangeWithValidParameters(t *testing.T) {
 	// Create a temporary directory for TSDB
 	tempDir, err := os.MkdirTemp("", "handler_test_*")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer os.RemoveAll(tempDir)
 
 	mockPool := &mockClusterPool{}
 	logger := zap.NewNop()
 
 	manager, err := NewMetricsManager(mockPool, time.Minute, tempDir, logger)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer manager.Stop()
 
 	handler := NewMetricsHandler(manager, logger)
 
-	req := httptest.NewRequest("GET", "/api/metrics/query_range?query=up&start=2023-01-01T12:00:00Z&end=2023-01-01T13:00:00Z", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/metrics/query_range?query=up&start=2023-01-01T12:00:00Z&end=2023-01-01T13:00:00Z", nil)
 	rr := httptest.NewRecorder()
 
 	handler.handleQueryRange(rr, req)
@@ -297,7 +271,7 @@ func TestHandleQueryRangeWithValidParameters(t *testing.T) {
 
 	var response map[string]interface{}
 	err = json.Unmarshal(rr.Body.Bytes(), &response)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Contains(t, []string{"success", "error"}, response["status"])
 }
 
@@ -315,7 +289,7 @@ func TestLiveMetricsResponse(t *testing.T) {
 
 	// Test JSON serialization
 	data, err := json.Marshal(response)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Contains(t, string(data), `"data":"# Test metrics\ntest_metric 1.0\n"`)
 	assert.Contains(t, string(data), `"source":"test-cluster"`)
 }
@@ -336,7 +310,7 @@ func TestQueryResponse(t *testing.T) {
 
 	// Test JSON serialization
 	data, err := json.Marshal(response)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Contains(t, string(data), `"status":"success"`)
 }
 
@@ -351,7 +325,7 @@ func TestErrorResponse(t *testing.T) {
 
 	// Test JSON serialization
 	data, err := json.Marshal(response)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Contains(t, string(data), `"status":"error"`)
 	assert.Contains(t, string(data), `"error":"Test error message"`)
 }
@@ -368,7 +342,7 @@ func TestRenderJSONAndRenderError(t *testing.T) {
 
 	var response map[string]string
 	err := json.Unmarshal(rr.Body.Bytes(), &response)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "value", response["test"])
 
 	// Test renderError
@@ -380,7 +354,7 @@ func TestRenderJSONAndRenderError(t *testing.T) {
 
 	var errorResponse ErrorResponse
 	err = json.Unmarshal(rr.Body.Bytes(), &errorResponse)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "error", errorResponse.Status)
 	assert.Equal(t, "Test error", errorResponse.Error)
 }
@@ -410,14 +384,14 @@ func TestQueryResponseTypes(t *testing.T) {
 func TestHandlerIntegrationWithRouter(t *testing.T) {
 	// Create a temporary directory for TSDB
 	tempDir, err := os.MkdirTemp("", "handler_test_*")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer os.RemoveAll(tempDir)
 
 	mockPool := &mockClusterPool{}
 	logger := zap.NewNop()
 
 	manager, err := NewMetricsManager(mockPool, time.Minute, tempDir, logger)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer manager.Stop()
 
 	handler := NewMetricsHandler(manager, logger)
@@ -432,7 +406,7 @@ func TestHandlerIntegrationWithRouter(t *testing.T) {
 
 	// Make actual HTTP requests
 	resp, err := http.Get(server.URL + "/api/metrics/query?query=up")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	resp.Body.Close()
 
 	// Should not be 404

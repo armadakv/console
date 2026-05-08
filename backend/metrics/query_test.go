@@ -8,13 +8,14 @@ import (
 
 	"github.com/prometheus/prometheus/promql/parser"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )
 
 func TestNewQueryEngine(t *testing.T) {
 	// Create a temporary directory for TSDB
 	tempDir, err := os.MkdirTemp("", "query_test_*")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer os.RemoveAll(tempDir)
 
 	// Create a real metrics manager to get a TSDB
@@ -22,7 +23,7 @@ func TestNewQueryEngine(t *testing.T) {
 	logger := zap.NewNop()
 
 	manager, err := NewMetricsManager(mockPool, time.Minute, tempDir, logger)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer manager.Stop()
 
 	queryEngine := NewQueryEngine(manager.GetStorage(), logger)
@@ -37,7 +38,7 @@ func TestNewQueryEngine(t *testing.T) {
 func TestNewQueryEngineWithNilLogger(t *testing.T) {
 	// Create a temporary directory for TSDB
 	tempDir, err := os.MkdirTemp("", "query_test_*")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer os.RemoveAll(tempDir)
 
 	// Create a real metrics manager to get a TSDB
@@ -45,7 +46,7 @@ func TestNewQueryEngineWithNilLogger(t *testing.T) {
 	logger := zap.NewNop()
 
 	manager, err := NewMetricsManager(mockPool, time.Minute, tempDir, logger)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer manager.Stop()
 
 	queryEngine := NewQueryEngine(manager.GetStorage(), nil)
@@ -88,7 +89,7 @@ func TestQueryResult(t *testing.T) {
 func TestQueryEngineQuery(t *testing.T) {
 	// Create a temporary directory for TSDB
 	tempDir, err := os.MkdirTemp("", "query_test_*")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer os.RemoveAll(tempDir)
 
 	// Create a real metrics manager to get a TSDB
@@ -96,7 +97,7 @@ func TestQueryEngineQuery(t *testing.T) {
 	logger := zap.NewNop()
 
 	manager, err := NewMetricsManager(mockPool, time.Minute, tempDir, logger)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer manager.Stop()
 
 	queryEngine := NewQueryEngine(manager.GetStorage(), logger)
@@ -112,7 +113,7 @@ func TestQueryEngineQuery(t *testing.T) {
 	// The query might fail due to no data, but the method should handle it gracefully
 	if err != nil {
 		// Error is expected when there's no data
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 	} else {
 		// If no error, result should be valid
@@ -123,7 +124,7 @@ func TestQueryEngineQuery(t *testing.T) {
 func TestQueryEngineQueryRange(t *testing.T) {
 	// Create a temporary directory for TSDB
 	tempDir, err := os.MkdirTemp("", "query_test_*")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer os.RemoveAll(tempDir)
 
 	// Create a real metrics manager to get a TSDB
@@ -131,7 +132,7 @@ func TestQueryEngineQueryRange(t *testing.T) {
 	logger := zap.NewNop()
 
 	manager, err := NewMetricsManager(mockPool, time.Minute, tempDir, logger)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer manager.Stop()
 
 	queryEngine := NewQueryEngine(manager.GetStorage(), logger)
@@ -148,7 +149,7 @@ func TestQueryEngineQueryRange(t *testing.T) {
 	// The query might fail due to no data, but the method should handle it gracefully
 	if err != nil {
 		// Error is expected when there's no data
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 	} else {
 		// If no error, result should be valid
@@ -159,7 +160,7 @@ func TestQueryEngineQueryRange(t *testing.T) {
 func TestQueryEngineInvalidQuery(t *testing.T) {
 	// Create a temporary directory for TSDB
 	tempDir, err := os.MkdirTemp("", "query_test_*")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer os.RemoveAll(tempDir)
 
 	// Create a real metrics manager to get a TSDB
@@ -167,7 +168,7 @@ func TestQueryEngineInvalidQuery(t *testing.T) {
 	logger := zap.NewNop()
 
 	manager, err := NewMetricsManager(mockPool, time.Minute, tempDir, logger)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer manager.Stop()
 
 	queryEngine := NewQueryEngine(manager.GetStorage(), logger)
@@ -180,14 +181,14 @@ func TestQueryEngineInvalidQuery(t *testing.T) {
 	result, err := queryEngine.Query(ctx, invalidQuery, ts)
 
 	// Should return an error for invalid syntax
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.NotNil(t, result) // Query engine returns empty result instead of nil
 }
 
 func TestQueryEngineTimeout(t *testing.T) {
 	// Create a temporary directory for TSDB
 	tempDir, err := os.MkdirTemp("", "query_test_*")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer os.RemoveAll(tempDir)
 
 	// Create a real metrics manager to get a TSDB
@@ -195,7 +196,7 @@ func TestQueryEngineTimeout(t *testing.T) {
 	logger := zap.NewNop()
 
 	manager, err := NewMetricsManager(mockPool, time.Minute, tempDir, logger)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer manager.Stop()
 
 	queryEngine := NewQueryEngine(manager.GetStorage(), logger)
@@ -217,7 +218,7 @@ func TestQueryEngineTimeout(t *testing.T) {
 	result, err := queryEngine.Query(ctx, queryStr, ts)
 
 	// Should return a context timeout error
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.NotNil(t, result)                     // Query engine returns empty result instead of nil
 	assert.Contains(t, err.Error(), "timed out") // Different error message format
 }
@@ -225,7 +226,7 @@ func TestQueryEngineTimeout(t *testing.T) {
 func TestQueryEngineRangeInvalidTimes(t *testing.T) {
 	// Create a temporary directory for TSDB
 	tempDir, err := os.MkdirTemp("", "query_test_*")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer os.RemoveAll(tempDir)
 
 	// Create a real metrics manager to get a TSDB
@@ -233,7 +234,7 @@ func TestQueryEngineRangeInvalidTimes(t *testing.T) {
 	logger := zap.NewNop()
 
 	manager, err := NewMetricsManager(mockPool, time.Minute, tempDir, logger)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer manager.Stop()
 
 	queryEngine := NewQueryEngine(manager.GetStorage(), logger)
@@ -247,10 +248,9 @@ func TestQueryEngineRangeInvalidTimes(t *testing.T) {
 	step := time.Minute
 
 	result, err := queryEngine.QueryRange(ctx, queryStr, start, end, step)
-
 	// Should handle invalid time range gracefully
 	if err != nil {
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.NotNil(t, result) // Query engine returns empty result instead of nil
 	}
 }
@@ -258,7 +258,7 @@ func TestQueryEngineRangeInvalidTimes(t *testing.T) {
 func TestQueryEngineZeroStep(t *testing.T) {
 	// Create a temporary directory for TSDB
 	tempDir, err := os.MkdirTemp("", "query_test_*")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer os.RemoveAll(tempDir)
 
 	// Create a real metrics manager to get a TSDB
@@ -266,7 +266,7 @@ func TestQueryEngineZeroStep(t *testing.T) {
 	logger := zap.NewNop()
 
 	manager, err := NewMetricsManager(mockPool, time.Minute, tempDir, logger)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer manager.Stop()
 
 	queryEngine := NewQueryEngine(manager.GetStorage(), logger)
@@ -278,10 +278,9 @@ func TestQueryEngineZeroStep(t *testing.T) {
 	step := time.Duration(0) // Zero step
 
 	result, err := queryEngine.QueryRange(ctx, queryStr, start, end, step)
-
 	// Should handle zero step gracefully (might use default step)
 	if err != nil {
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, result)
 	}
 }
@@ -307,7 +306,7 @@ func TestPromQLValueTypes(t *testing.T) {
 func TestQueryEngineConfiguration(t *testing.T) {
 	// Create a temporary directory for TSDB
 	tempDir, err := os.MkdirTemp("", "query_test_*")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer os.RemoveAll(tempDir)
 
 	// Create a real metrics manager to get a TSDB
@@ -315,7 +314,7 @@ func TestQueryEngineConfiguration(t *testing.T) {
 	logger := zap.NewNop()
 
 	manager, err := NewMetricsManager(mockPool, time.Minute, tempDir, logger)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer manager.Stop()
 
 	queryEngine := NewQueryEngine(manager.GetStorage(), logger)
@@ -333,7 +332,7 @@ func TestQueryEngineConfiguration(t *testing.T) {
 func TestQueryEngineEmptyQuery(t *testing.T) {
 	// Create a temporary directory for TSDB
 	tempDir, err := os.MkdirTemp("", "query_test_*")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer os.RemoveAll(tempDir)
 
 	// Create a real metrics manager to get a TSDB
@@ -341,7 +340,7 @@ func TestQueryEngineEmptyQuery(t *testing.T) {
 	logger := zap.NewNop()
 
 	manager, err := NewMetricsManager(mockPool, time.Minute, tempDir, logger)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer manager.Stop()
 
 	queryEngine := NewQueryEngine(manager.GetStorage(), logger)
@@ -354,14 +353,14 @@ func TestQueryEngineEmptyQuery(t *testing.T) {
 	result, err := queryEngine.Query(ctx, emptyQuery, ts)
 
 	// Should return an error for empty query
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.NotNil(t, result) // Query engine returns empty result instead of nil
 }
 
 func TestQueryEngineMultipleQueries(t *testing.T) {
 	// Create a temporary directory for TSDB
 	tempDir, err := os.MkdirTemp("", "query_test_*")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer os.RemoveAll(tempDir)
 
 	// Create a real metrics manager to get a TSDB
@@ -369,7 +368,7 @@ func TestQueryEngineMultipleQueries(t *testing.T) {
 	logger := zap.NewNop()
 
 	manager, err := NewMetricsManager(mockPool, time.Minute, tempDir, logger)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer manager.Stop()
 
 	queryEngine := NewQueryEngine(manager.GetStorage(), logger)
@@ -389,7 +388,7 @@ func TestQueryEngineMultipleQueries(t *testing.T) {
 		result, err := queryEngine.Query(ctx, query, ts)
 
 		if err != nil {
-			assert.Error(t, err)
+			require.Error(t, err)
 			assert.Nil(t, result)
 		} else {
 			assert.NotNil(t, result)

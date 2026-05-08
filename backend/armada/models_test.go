@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStatus(t *testing.T) {
@@ -63,14 +64,14 @@ func TestStatusJSONSerialization(t *testing.T) {
 
 	// Test marshaling
 	data, err := json.Marshal(status)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Contains(t, string(data), `"status":"ok"`)
 	assert.Contains(t, string(data), `"message":"Test message"`)
 
 	// Test unmarshaling
 	var unmarshaled Status
 	err = json.Unmarshal(data, &unmarshaled)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, status.Status, unmarshaled.Status)
 	assert.Equal(t, status.Message, unmarshaled.Message)
 	assert.Equal(t, status.Config["test"], unmarshaled.Config["test"])
@@ -108,7 +109,7 @@ func TestTableStatusJSONSerialization(t *testing.T) {
 
 	// Test marshaling
 	data, err := json.Marshal(tableStatus)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Contains(t, string(data), `"logSize":512`)
 	assert.Contains(t, string(data), `"dbSize":1024`)
 	assert.Contains(t, string(data), `"leader":"leader1"`)
@@ -116,7 +117,7 @@ func TestTableStatusJSONSerialization(t *testing.T) {
 	// Test unmarshaling
 	var unmarshaled TableStatus
 	err = json.Unmarshal(data, &unmarshaled)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, tableStatus.LogSize, unmarshaled.LogSize)
 	assert.Equal(t, tableStatus.DBSize, unmarshaled.DBSize)
 	assert.Equal(t, tableStatus.Leader, unmarshaled.Leader)
@@ -161,14 +162,14 @@ func TestClusterInfoJSONSerialization(t *testing.T) {
 
 	// Test marshaling
 	data, err := json.Marshal(clusterInfo)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Contains(t, string(data), `"nodeId":"test-node"`)
 	assert.Contains(t, string(data), `"nodeAddress":"test-address"`)
 
 	// Test unmarshaling
 	var unmarshaled ClusterInfo
 	err = json.Unmarshal(data, &unmarshaled)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, clusterInfo.NodeID, unmarshaled.NodeID)
 	assert.Equal(t, clusterInfo.NodeAddress, unmarshaled.NodeAddress)
 	assert.Len(t, unmarshaled.Members, 1)
@@ -193,14 +194,14 @@ func TestKeyValuePairJSONSerialization(t *testing.T) {
 
 	// Test marshaling
 	data, err := json.Marshal(kvp)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Contains(t, string(data), `"key":"json-key"`)
 	assert.Contains(t, string(data), `"value":"json-value"`)
 
 	// Test unmarshaling
 	var unmarshaled KeyValuePair
 	err = json.Unmarshal(data, &unmarshaled)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, kvp.Key, unmarshaled.Key)
 	assert.Equal(t, kvp.Value, unmarshaled.Value)
 }
@@ -223,14 +224,14 @@ func TestTableJSONSerialization(t *testing.T) {
 
 	// Test marshaling
 	data, err := json.Marshal(table)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Contains(t, string(data), `"name":"json-table"`)
 	assert.Contains(t, string(data), `"id":"json-123"`)
 
 	// Test unmarshaling
 	var unmarshaled Table
 	err = json.Unmarshal(data, &unmarshaled)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, table.Name, unmarshaled.Name)
 	assert.Equal(t, table.ID, unmarshaled.ID)
 }
@@ -263,7 +264,7 @@ func TestServerJSONSerialization(t *testing.T) {
 
 	// Test marshaling
 	data, err := json.Marshal(server)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Contains(t, string(data), `"id":"json-server"`)
 	assert.Contains(t, string(data), `"name":"JSON Server"`)
 	assert.Contains(t, string(data), `"peerURLs":["json-peer"]`)
@@ -272,7 +273,7 @@ func TestServerJSONSerialization(t *testing.T) {
 	// Test unmarshaling
 	var unmarshaled Server
 	err = json.Unmarshal(data, &unmarshaled)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, server.ID, unmarshaled.ID)
 	assert.Equal(t, server.Name, unmarshaled.Name)
 	assert.Equal(t, server.PeerURLs, unmarshaled.PeerURLs)
@@ -302,14 +303,14 @@ func TestMetricsDataJSONSerialization(t *testing.T) {
 
 	// Test marshaling
 	data, err := json.Marshal(metricsData)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Contains(t, string(data), `"Data":"metrics_test_counter 42"`)
 	assert.Contains(t, string(data), `"Source":"json-cluster"`)
 
 	// Test unmarshaling
 	var unmarshaled MetricsData
 	err = json.Unmarshal(data, &unmarshaled)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, metricsData.Data, unmarshaled.Data)
 	assert.Equal(t, metricsData.Source, unmarshaled.Source)
 	// Note: Time comparison might need special handling due to precision
@@ -319,23 +320,23 @@ func TestMetricsDataJSONSerialization(t *testing.T) {
 func TestEmptyStructs(t *testing.T) {
 	// Test that empty structs can be created
 	emptyStatus := Status{}
-	assert.Equal(t, "", emptyStatus.Status)
-	assert.Equal(t, "", emptyStatus.Message)
+	assert.Empty(t, emptyStatus.Status)
+	assert.Empty(t, emptyStatus.Message)
 	assert.Nil(t, emptyStatus.Config)
 	assert.Nil(t, emptyStatus.Tables)
 	assert.Nil(t, emptyStatus.Errors)
 
 	emptyTable := Table{}
-	assert.Equal(t, "", emptyTable.Name)
-	assert.Equal(t, "", emptyTable.ID)
+	assert.Empty(t, emptyTable.Name)
+	assert.Empty(t, emptyTable.ID)
 
 	emptyKVP := KeyValuePair{}
-	assert.Equal(t, "", emptyKVP.Key)
-	assert.Equal(t, "", emptyKVP.Value)
+	assert.Empty(t, emptyKVP.Key)
+	assert.Empty(t, emptyKVP.Value)
 
 	emptyServer := Server{}
-	assert.Equal(t, "", emptyServer.ID)
-	assert.Equal(t, "", emptyServer.Name)
+	assert.Empty(t, emptyServer.ID)
+	assert.Empty(t, emptyServer.Name)
 	assert.Nil(t, emptyServer.PeerURLs)
 	assert.Nil(t, emptyServer.ClientURLs)
 }

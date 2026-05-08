@@ -10,20 +10,20 @@ import (
 	"go.uber.org/zap"
 )
 
-// MetricsHandler handles HTTP requests for metrics data
+// MetricsHandler handles HTTP requests for metrics data.
 type MetricsHandler struct {
 	logger         *zap.Logger
 	metricsManager *MetricsManager
 	queryEngine    *QueryEngine
 }
 
-// NewMetricsHandler creates a new metrics handler
+// NewMetricsHandler creates a new metrics handler.
 func NewMetricsHandler(metricsManager *MetricsManager, logger *zap.Logger) *MetricsHandler {
 	if logger == nil {
 		logger = zap.NewNop()
 	}
 
-	// Create a query engine for the TSDB
+	// Create a query engine for the TSDB.
 	queryEngine := NewQueryEngine(metricsManager.GetStorage(), logger)
 
 	return &MetricsHandler{
@@ -33,7 +33,7 @@ func NewMetricsHandler(metricsManager *MetricsManager, logger *zap.Logger) *Metr
 	}
 }
 
-// RegisterRoutes registers the metrics handler routes to the given router
+// RegisterRoutes registers the metrics handler routes to the given router.
 func (h *MetricsHandler) RegisterRoutes(r chi.Router) {
 	metricsRouter := chi.NewRouter()
 	metricsRouter.Get("/query", h.handleQuery)
@@ -41,39 +41,39 @@ func (h *MetricsHandler) RegisterRoutes(r chi.Router) {
 	r.Mount("/api/metrics", metricsRouter)
 }
 
-// LiveMetricsResponse is the response format for live metrics
+// LiveMetricsResponse is the response format for live metrics.
 type LiveMetricsResponse struct {
 	Data      string    `json:"data"`      // Metrics data in the requested format
 	Timestamp time.Time `json:"timestamp"` // Time when metrics were collected
 	Source    string    `json:"source"`    // Source cluster/server of the metrics
 }
 
-// QueryResponse is the response format for metrics queries
+// QueryResponse is the response format for metrics queries.
 type QueryResponse struct {
 	Status string      `json:"status"` // Query status (success, error)
 	Data   QueryResult `json:"data"`   // The query result data
 }
 
-// QueryStatsResponse contains statistics about a query execution
+// QueryStatsResponse contains statistics about a query execution.
 type QueryStatsResponse struct {
 	ExecutionTime string `json:"executionTime"` // Total execution time
 	SamplesLoaded int    `json:"samplesLoaded"` // Number of samples loaded
 }
 
-// QueryRangeParamsResponse provides info about the parameters used for a range query
+// QueryRangeParamsResponse provides info about the parameters used for a range query.
 type QueryRangeParamsResponse struct {
 	Start time.Time     `json:"start"` // Start time
 	End   time.Time     `json:"end"`   // End time
 	Step  time.Duration `json:"step"`  // Step duration between samples
 }
 
-// ErrorResponse is the response format for errors
+// ErrorResponse is the response format for errors.
 type ErrorResponse struct {
 	Status string `json:"status"` // Always "error"
 	Error  string `json:"error"`  // Error message
 }
 
-// handleQuery handles instant queries against stored metrics
+// handleQuery handles instant queries against stored metrics.
 // @Summary Query stored metrics
 // @Description Execute a PromQL query against stored metrics at a specific time
 // @Tags metrics
@@ -83,7 +83,7 @@ type ErrorResponse struct {
 // @Success 200 {object} QueryResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-// @Router /api/metrics/query [get]
+// @Router /api/metrics/query [get].
 func (h *MetricsHandler) handleQuery(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -93,17 +93,17 @@ func (h *MetricsHandler) handleQuery(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse time parameter or use current time
+	// Parse time parameter or use current time.
 	timeParam := r.URL.Query().Get("time")
 	var ts time.Time
 	if timeParam == "" {
 		ts = time.Now()
 	} else {
 		var err error
-		// Try parsing as RFC3339
+		// Try parsing as RFC3339.
 		ts, err = time.Parse(time.RFC3339, timeParam)
 		if err != nil {
-			// Try parsing as Unix timestamp
+			// Try parsing as Unix timestamp.
 			unix, err := strconv.ParseInt(timeParam, 10, 64)
 			if err != nil {
 				renderError(w, http.StatusBadRequest, "Invalid time format")
@@ -117,7 +117,7 @@ func (h *MetricsHandler) handleQuery(w http.ResponseWriter, r *http.Request) {
 		zap.String("query", queryStr),
 		zap.Time("time", ts))
 
-	// Execute the query
+	// Execute the query.
 	result, err := h.queryEngine.Query(ctx, queryStr, ts)
 	if err != nil {
 		h.logger.Error("Query execution failed",
@@ -127,7 +127,7 @@ func (h *MetricsHandler) handleQuery(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Format the response
+	// Format the response.
 	resp := QueryResponse{
 		Status: "success",
 		Data:   result,
@@ -136,7 +136,7 @@ func (h *MetricsHandler) handleQuery(w http.ResponseWriter, r *http.Request) {
 	renderJSON(w, resp)
 }
 
-// handleQueryRange handles range queries against stored metrics
+// handleQueryRange handles range queries against stored metrics.
 // @Summary Query stored metrics over a time range
 // @Description Execute a PromQL query against stored metrics over a specified time range
 // @Tags metrics
@@ -148,7 +148,7 @@ func (h *MetricsHandler) handleQuery(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} QueryResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-// @Router /api/metrics/query_range [get]
+// @Router /api/metrics/query_range [get].
 func (h *MetricsHandler) handleQueryRange(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -158,7 +158,7 @@ func (h *MetricsHandler) handleQueryRange(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Parse start time
+	// Parse start time.
 	startParam := r.URL.Query().Get("start")
 	if startParam == "" {
 		renderError(w, http.StatusBadRequest, "Missing required parameter 'start'")
@@ -170,7 +170,7 @@ func (h *MetricsHandler) handleQueryRange(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Parse end time
+	// Parse end time.
 	endParam := r.URL.Query().Get("end")
 	if endParam == "" {
 		renderError(w, http.StatusBadRequest, "Missing required parameter 'end'")
@@ -182,7 +182,7 @@ func (h *MetricsHandler) handleQueryRange(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Parse step
+	// Parse step.
 	stepParam := r.URL.Query().Get("step")
 	var step time.Duration
 	if stepParam == "" {
@@ -201,7 +201,7 @@ func (h *MetricsHandler) handleQueryRange(w http.ResponseWriter, r *http.Request
 		zap.Time("end", endTime),
 		zap.Duration("step", step))
 
-	// Execute the query
+	// Execute the query.
 	result, err := h.queryEngine.QueryRange(ctx, queryStr, startTime, endTime, step)
 	if err != nil {
 		h.logger.Error("Range query execution failed",
@@ -211,7 +211,7 @@ func (h *MetricsHandler) handleQueryRange(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Format the response
+	// Format the response.
 	resp := QueryResponse{
 		Status: "success",
 		Data:   result,
@@ -220,17 +220,17 @@ func (h *MetricsHandler) handleQueryRange(w http.ResponseWriter, r *http.Request
 	renderJSON(w, resp)
 }
 
-// Helper functions
+// Helper functions.
 
-// parseTime parses a time string in RFC3339 or Unix timestamp format
+// parseTime parses a time string in RFC3339 or Unix timestamp format.
 func parseTime(timeStr string) (time.Time, error) {
-	// Try parsing as RFC3339
+	// Try parsing as RFC3339.
 	t, err := time.Parse(time.RFC3339, timeStr)
 	if err == nil {
 		return t, nil
 	}
 
-	// Try parsing as Unix timestamp
+	// Try parsing as Unix timestamp.
 	unix, err := strconv.ParseInt(timeStr, 10, 64)
 	if err != nil {
 		return time.Time{}, err
@@ -238,15 +238,15 @@ func parseTime(timeStr string) (time.Time, error) {
 	return time.Unix(unix, 0), nil
 }
 
-// parseDuration parses a duration string in Go duration format or seconds
+// parseDuration parses a duration string in Go duration format or seconds.
 func parseDuration(durationStr string) (time.Duration, error) {
-	// Try parsing as Go duration
+	// Try parsing as Go duration.
 	d, err := time.ParseDuration(durationStr)
 	if err == nil {
 		return d, nil
 	}
 
-	// Try parsing as seconds
+	// Try parsing as seconds.
 	seconds, err := strconv.ParseFloat(durationStr, 64)
 	if err != nil {
 		return 0, err
@@ -254,7 +254,7 @@ func parseDuration(durationStr string) (time.Duration, error) {
 	return time.Duration(seconds * float64(time.Second)), nil
 }
 
-// renderJSON renders an object as JSON response
+// renderJSON renders an object as JSON response.
 func renderJSON(w http.ResponseWriter, v interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(v); err != nil {
@@ -262,7 +262,7 @@ func renderJSON(w http.ResponseWriter, v interface{}) {
 	}
 }
 
-// renderError renders an error response
+// renderError renders an error response.
 func renderError(w http.ResponseWriter, status int, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
