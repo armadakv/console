@@ -21,22 +21,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           version: 10
-      - name: Install Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-          cache-dependency-path: frontend/pnpm-lock.yaml
+          cache: true
+          cache_dependency_path: frontend/pnpm-lock.yaml
+          package_json_file: frontend/package.json
       - name: Install Go
         uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
       - name: Build frontend
         working-directory: frontend
-        run: pnpm install --frozen-lockfile && pnpm build
+        run: pnpm install --frozen-lockfile --ignore-scripts && pnpm build
       - name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
         env:
           GOOS: ${{ matrix.goos }}
