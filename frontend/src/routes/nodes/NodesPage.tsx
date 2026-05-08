@@ -2,10 +2,10 @@ import { useNavigate } from '@tanstack/react-router';
 import { CheckCircle2, XCircle, Server } from 'lucide-react';
 import React from 'react';
 
-import { formatBytes } from '../cluster/utils';
+import { extractVectorMap, formatBytes } from '../cluster/utils';
 
 import { useNavigation } from '@/context/NavigationContext';
-import { useClusterInfo, useStatus } from '@/hooks/useApi';
+import { useClusterInfo, useMetricsQuery, useStatus } from '@/hooks/useApi';
 import { useBreadcrumbs } from '@/hooks/useBreadcrumbs';
 import { ErrorState } from '@/shared/ErrorState';
 import { LoadingState } from '@/shared/LoadingState';
@@ -34,6 +34,14 @@ const NodesPage: React.FC = () => {
 
   const isFetching = statusFetching || clusterFetching;
 
+  const { data: tableDiskData } = useMetricsQuery('armada_storage_table_disk_bytes');
+  const { data: raftDiskData } = useMetricsQuery('armada_storage_raft_disk_bytes');
+  const { data: walDiskData } = useMetricsQuery('armada_storage_wal_disk_bytes');
+
+  const tableDiskMap = extractVectorMap(tableDiskData, 'node_id');
+  const raftDiskMap = extractVectorMap(raftDiskData, 'node_id');
+  const walDiskMap = extractVectorMap(walDiskData, 'node_id');
+
   const handleRefresh = React.useCallback(() => {
     refetchStatus();
     refetchCluster();
@@ -58,8 +66,8 @@ const NodesPage: React.FC = () => {
     const server = servers.find((s) => s.id === m.id);
     const tableEntries = Object.entries(server?.tables ?? {});
     const leaderCount = tableEntries.filter(([, ts]) => ts.leader === m.id).length;
-    const totalLogSize = tableEntries.reduce((acc, [, ts]) => acc + ts.logSize, 0);
-    const totalDbSize = tableEntries.reduce((acc, [, ts]) => acc + ts.dbSize, 0);
+    const totalDiskBytes =
+      (tableDiskMap.get(m.id) ?? 0) + (raftDiskMap.get(m.id) ?? 0) + (walDiskMap.get(m.id) ?? 0);
     return {
       id: m.id,
       name: m.name || m.id,
@@ -69,8 +77,7 @@ const NodesPage: React.FC = () => {
       peerURL: m.peerURLs?.[0] ?? '',
       tableCount: tableEntries.length,
       leaderCount,
-      totalLogSize,
-      totalDbSize,
+      totalDiskBytes,
       isConnected: clusterInfo?.nodeId === m.id,
     };
   });
@@ -196,7 +203,7 @@ const NodesPage: React.FC = () => {
                 {/* DB Size */}
                 <td className="px-4 py-3 text-right hidden lg:table-cell">
                   <span className="text-slate-400 font-mono text-xs">
-                    {node.totalDbSize > 0 ? formatBytes(node.totalDbSize) : '—'}
+                    {node.totalDiskBytes > 0 ? formatBytes(node.totalDiskBytes) : '—'}
                   </span>
                 </td>
               </tr>

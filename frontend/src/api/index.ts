@@ -1,4 +1,11 @@
-import { ClusterInfo, KeyValuePair, MetricsQueryResponse, StatusResponse, Table } from '../types';
+import {
+  ClusterInfo,
+  KeyValuePair,
+  MetricsQueryResponse,
+  ScanResult,
+  StatusResponse,
+  Table,
+} from '../types';
 
 // Base API URL
 const API_URL = '/api';
@@ -36,7 +43,8 @@ export const getKeyValuePairs = async (
   prefix: string = '',
   start: string = '',
   end: string = '',
-): Promise<KeyValuePair[]> => {
+  cursor: string = '',
+): Promise<ScanResult> => {
   const url = new URL(`${API_URL}/kv/${table}`, window.location.origin);
   if (prefix) {
     url.searchParams.append('prefix', prefix);
@@ -44,6 +52,9 @@ export const getKeyValuePairs = async (
   if (start && end) {
     url.searchParams.append('start', start);
     url.searchParams.append('end', end);
+  }
+  if (cursor) {
+    url.searchParams.append('cursor', cursor);
   }
 
   const response = await fetch(url.toString());
@@ -139,13 +150,15 @@ export const timedGetKeyValuePairs = async (
   prefix: string = '',
   start: string = '',
   end: string = '',
-): Promise<TimedResult<KeyValuePair[]>> => {
+  cursor: string = '',
+): Promise<TimedResult<ScanResult>> => {
   const url = new URL(`${API_URL}/kv/${table}`, window.location.origin);
   if (prefix) url.searchParams.append('prefix', prefix);
   if (start && end) {
     url.searchParams.append('start', start);
     url.searchParams.append('end', end);
   }
+  if (cursor) url.searchParams.append('cursor', cursor);
   const response = await fetch(url.toString());
   const queryDurationMs = parseQueryDuration(response);
   const data = await handleApiError(response);

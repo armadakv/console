@@ -31,11 +31,12 @@ beforeEach(() => {
 describe('NodeMetricsGrid', () => {
   it('renders without crashing for a nodeId', () => {
     render(<NodeMetricsGrid nodeId="node-42" />);
-    // Should render 4 metric labels
+    // Should render 5 metric labels (updated when disk metrics were added)
     expect(screen.getByText('CPU Usage')).toBeInTheDocument();
     expect(screen.getByText('Memory Alloc')).toBeInTheDocument();
-    expect(screen.getByText('Disk Usage')).toBeInTheDocument();
-    expect(screen.getByText('Network')).toBeInTheDocument();
+    expect(screen.getByText('Table Disk')).toBeInTheDocument();
+    expect(screen.getByText('Raft Disk')).toBeInTheDocument();
+    expect(screen.getByText('gRPC Rate')).toBeInTheDocument();
   });
 
   it('shows loader when isLoading=true', () => {
@@ -52,7 +53,7 @@ describe('NodeMetricsGrid', () => {
 
   it('shows "No data" placeholder when data is undefined', () => {
     render(<NodeMetricsGrid nodeId="node-42" />);
-    expect(screen.getAllByText('No data').length).toBe(4);
+    expect(screen.getAllByText('No data').length).toBe(5);
   });
 
   it('renders charts when data is available with matrix format', () => {
@@ -79,6 +80,6 @@ describe('NodeMetricsGrid', () => {
       isError: false,
     });
     render(<NodeMetricsGrid nodeId="node-42" />);
-    expect(screen.getAllByTestId('area-chart').length).toBe(4);
+    expect(screen.getAllByTestId('area-chart').length).toBe(5);
   });
 });

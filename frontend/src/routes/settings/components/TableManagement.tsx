@@ -1,8 +1,8 @@
-import { Database, Plus, Trash2, X } from 'lucide-react';
+import { Database, HardDrive, Plus, Trash2, X } from 'lucide-react';
 import React, { useState } from 'react';
 
 import { useNavigation } from '@/context/NavigationContext';
-import { useCreateTable, useDeleteTable, useTables } from '@/hooks/useApi';
+import { useCreateTable, useDeleteTable, useMetricsQuery, useTables } from '@/hooks/useApi';
 import { ConfirmDialog } from '@/shared/ConfirmDialog';
 import { ErrorState } from '@/shared/ErrorState';
 import { LoadingState } from '@/shared/LoadingState';
@@ -10,6 +10,13 @@ import { RefreshButton } from '@/shared/RefreshButton';
 import type { Table as TableType } from '@/types';
 import { Button } from '@/ui/Button';
 import { Input } from '@/ui/Input';
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
+}
 
 const TableManagement: React.FC = () => {
   const [newTableName, setNewTableName] = useState('');
@@ -19,6 +26,16 @@ const TableManagement: React.FC = () => {
   const { setPageAction, resetPageAction } = useNavigation();
 
   const { data: tables = [], isLoading, isFetching, error, refetch } = useTables();
+
+  const { data: tableDiskData } = useMetricsQuery('armada_storage_table_disk_bytes');
+  const tableDiskBytes = (() => {
+    if (!tableDiskData?.data) return null;
+    const { resultType, result } = tableDiskData.data;
+    if (resultType !== 'vector' || !Array.isArray(result) || result.length === 0) return null;
+    const first = result[0] as { value?: [number, string] };
+    const v = parseFloat(first?.value?.[1] ?? '');
+    return isNaN(v) ? null : v;
+  })();
 
   const createTableMutation = useCreateTable();
   const deleteTableMutation = useDeleteTable();
@@ -68,6 +85,13 @@ const TableManagement: React.FC = () => {
             <span className="text-slate-500">Tables</span>
             <span className="font-semibold text-slate-100">{tables.length}</span>
           </div>
+          {tableDiskBytes !== null && (
+            <div className="flex items-center gap-2">
+              <HardDrive className="w-3.5 h-3.5 text-slate-500" />
+              <span className="text-slate-500">Storage</span>
+              <span className="font-semibold text-slate-100">{formatBytes(tableDiskBytes)}</span>
+            </div>
+          )}
         </div>
         <Button
           variant="primary"

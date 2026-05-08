@@ -10,12 +10,12 @@ import {
 } from 'lucide-react';
 import React, { useState } from 'react';
 
-import { formatBytes } from '../cluster/utils';
+import { formatBytes, extractVectorMap } from '../cluster/utils';
 
 import NodeMetricsGrid from './components/NodeMetricsGrid';
 
 import { useNavigation } from '@/context/NavigationContext';
-import { useClusterInfo, useStatus } from '@/hooks/useApi';
+import { useClusterInfo, useMetricsQuery, useStatus } from '@/hooks/useApi';
 import { useBreadcrumbs } from '@/hooks/useBreadcrumbs';
 import { ErrorState } from '@/shared/ErrorState';
 import { LoadingState } from '@/shared/LoadingState';
@@ -88,6 +88,27 @@ const NodePage: React.FC = () => {
     refetch: refetchCluster,
   } = useClusterInfo();
 
+  // Node-level disk metrics from Prometheus
+  const { data: tableDiskData } = useMetricsQuery(
+    `armada_storage_table_disk_bytes{node_id="${nodeId}"}`,
+  );
+  const { data: raftDiskData } = useMetricsQuery(
+    `armada_storage_raft_disk_bytes{node_id="${nodeId}"}`,
+  );
+  const { data: walDiskData } = useMetricsQuery(
+    `armada_storage_wal_disk_bytes{node_id="${nodeId}"}`,
+  );
+  // Per-table disk sizes
+  const { data: perTableDiskData } = useMetricsQuery(
+    `sum by (table) (regatta_table_storage_disk_usage_bytes{node_id="${nodeId}"})`,
+  );
+
+  const tableDiskBytes = extractVectorMap(tableDiskData, 'node_id').get(nodeId) ?? 0;
+  const raftDiskBytes = extractVectorMap(raftDiskData, 'node_id').get(nodeId) ?? 0;
+  const walDiskBytes = extractVectorMap(walDiskData, 'node_id').get(nodeId) ?? 0;
+  const totalDiskBytes = tableDiskBytes + raftDiskBytes + walDiskBytes;
+  const perTableDiskMap = extractVectorMap(perTableDiskData, 'table');
+
   const isFetching = statusFetching || clusterFetching;
 
   const handleRefresh = React.useCallback(() => {
@@ -138,8 +159,6 @@ const NodePage: React.FC = () => {
 
   const tableEntries = Object.entries(tables).sort(([a], [b]) => a.localeCompare(b));
   const leaderCount = tableEntries.filter(([, ts]) => ts.leader === nodeId).length;
-  const totalDbSize = tableEntries.reduce((acc, [, ts]) => acc + ts.dbSize, 0);
-  const totalLogSize = tableEntries.reduce((acc, [, ts]) => acc + ts.logSize, 0);
 
   return (
     <div className="space-y-4">
@@ -184,9 +203,9 @@ const NodePage: React.FC = () => {
             <span className="font-semibold text-amber-400">{leaderCount}</span>
           </div>
           <div className="flex flex-col items-end">
-            <span className="text-slate-500 text-xs">DB Size</span>
+            <span className="text-slate-500 text-xs">Disk Size</span>
             <span className="font-semibold text-slate-100 font-mono text-xs">
-              {totalDbSize > 0 ? formatBytes(totalDbSize) : '—'}
+              {totalDiskBytes > 0 ? formatBytes(totalDiskBytes) : '—'}
             </span>
           </div>
         </div>
@@ -253,8 +272,9 @@ const NodePage: React.FC = () => {
         {/* Storage summary */}
         <Card>
           <SectionTitle>Storage</SectionTitle>
-          <Row label="DB Size" value={totalDbSize > 0 ? formatBytes(totalDbSize) : '—'} />
-          <Row label="Log Size" value={totalLogSize > 0 ? formatBytes(totalLogSize) : '—'} />
+          <Row label="Table Data" value={tableDiskBytes > 0 ? formatBytes(tableDiskBytes) : '—'} />
+          <Row label="Raft Log" value={raftDiskBytes > 0 ? formatBytes(raftDiskBytes) : '—'} />
+          {walDiskBytes > 0 && <Row label="WAL" value={formatBytes(walDiskBytes)} />}
           <Row label="Raft Groups" value={tableEntries.length} />
           <Row label="Leading" value={leaderCount} />
         </Card>
@@ -311,10 +331,7 @@ const NodePage: React.FC = () => {
                   Applied
                 </th>
                 <th className="px-4 py-2.5 text-right text-xs font-semibold text-slate-500 hidden lg:table-cell">
-                  Log Size
-                </th>
-                <th className="px-4 py-2.5 text-right text-xs font-semibold text-slate-500 hidden lg:table-cell">
-                  DB Size
+                  Storage
                 </th>
               </tr>
             </thead>
@@ -355,10 +372,10 @@ const NodePage: React.FC = () => {
                       {ts.raftAppliedIndex.toLocaleString()}
                     </td>
                     <td className="px-4 py-3 text-right text-xs text-slate-400 font-mono hidden lg:table-cell">
-                      {formatBytes(ts.logSize)}
-                    </td>
-                    <td className="px-4 py-3 text-right text-xs text-slate-400 font-mono hidden lg:table-cell">
-                      {formatBytes(ts.dbSize)}
+                      {(() => {
+                        const bytes = perTableDiskMap.get(tableName);
+                        return bytes !== undefined ? formatBytes(bytes) : '—';
+                      })()}
                     </td>
                   </tr>
                 );

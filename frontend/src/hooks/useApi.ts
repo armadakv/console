@@ -90,6 +90,7 @@ export const useKeyValuePairs = (
   return useQuery({
     queryKey,
     queryFn: () => api.getKeyValuePairs(table, debouncedPrefix, debouncedStart, debouncedEnd),
+    select: (data) => data.pairs,
     enabled: !!table,
     staleTime: 10 * 1000,
     gcTime: 5 * 60 * 1000,

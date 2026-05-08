@@ -63,7 +63,7 @@ test: frontend-test
 # Format the code
 .PHONY: fmt
 fmt:
-	$(GOFMT) ./...
+	$(GOLANGCI_LINT) fmt ./...
 	cd frontend && $(NPM) format
 
 # Lint Go code with golangci-lint

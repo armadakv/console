@@ -8,6 +8,10 @@ import type { ClusterInfo, StatusResponse } from '@/types';
 
 vi.mock('@tanstack/react-router', () => ({ useNavigate: () => vi.fn() }));
 
+vi.mock('@/hooks/useApi', () => ({
+  useMetricsQuery: vi.fn(() => ({ data: undefined, isLoading: false, isError: false })),
+}));
+
 vi.mock('lucide-react', () => ({
   X: () => <span />,
   ExternalLink: () => <span />,

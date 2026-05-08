@@ -12,6 +12,7 @@ vi.mock('@/hooks/useApi', () => ({
   useTables: vi.fn(),
   useCreateTable: vi.fn(),
   useDeleteTable: vi.fn(),
+  useMetricsQuery: vi.fn(() => ({ data: undefined, isLoading: false, isError: false })),
 }));
 
 vi.mock('lucide-react', () => ({

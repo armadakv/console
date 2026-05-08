@@ -49,6 +49,11 @@ export interface KeyValuePair {
   value: string;
 }
 
+export interface ScanResult {
+  pairs: KeyValuePair[];
+  more: boolean;
+}
+
 // Table management types
 export interface CreateTableRequest {
   name: string;

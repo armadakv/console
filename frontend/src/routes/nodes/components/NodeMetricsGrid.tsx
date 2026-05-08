@@ -40,8 +40,9 @@ interface MetricConfig {
 const METRICS: MetricConfig[] = [
   { label: 'CPU Usage', unit: '%', decimals: 1, color: '#3b82f6', gradientId: 'cpuGrad' },
   { label: 'Memory Alloc', unit: 'MB', decimals: 0, color: '#f97316', gradientId: 'memGrad' },
-  { label: 'Disk Usage', unit: 'MB', decimals: 1, color: '#06b6d4', gradientId: 'diskGrad' },
-  { label: 'Network', unit: 'MB/s', decimals: 2, color: '#22c55e', gradientId: 'netGrad' },
+  { label: 'Table Disk', unit: 'MB', decimals: 1, color: '#06b6d4', gradientId: 'diskGrad' },
+  { label: 'Raft Disk', unit: 'MB', decimals: 1, color: '#a855f7', gradientId: 'raftGrad' },
+  { label: 'gRPC Rate', unit: 'req/s', decimals: 2, color: '#22c55e', gradientId: 'netGrad' },
 ];
 
 // ─── single chart card ────────────────────────────────────────────────────────
@@ -152,8 +153,9 @@ const NodeMetricsGrid: React.FC<NodeMetricsGridProps> = ({ nodeId }) => {
 
   const cpuQ = `rate(process_cpu_seconds_total{node_id="${nodeId}"}[1m]) * 100`;
   const memQ = `sum(increase(go_memstats_alloc_bytes_total{node_id="${nodeId}"}[1m])) / 1024 / 1024`;
-  const diskQ = `sum(regatta_table_storage_disk_usage_bytes{node_id="${nodeId}"}) / 1024 / 1024`;
-  const netQ = `network_throughput_mbps{node_id="${nodeId}"}`;
+  const tableQ = `armada_storage_table_disk_bytes{node_id="${nodeId}"} / 1024 / 1024`;
+  const raftQ = `(armada_storage_raft_disk_bytes{node_id="${nodeId}"} + armada_storage_wal_disk_bytes{node_id="${nodeId}"}) / 1024 / 1024`;
+  const netQ = `sum(rate(grpc_server_started_total{node_id="${nodeId}"}[1m]))`;
 
   const {
     data: cpuData,
@@ -166,10 +168,15 @@ const NodeMetricsGrid: React.FC<NodeMetricsGridProps> = ({ nodeId }) => {
     isError: memE,
   } = useMetricsRangeQuery(memQ, start, end, step);
   const {
-    data: diskData,
-    isLoading: diskL,
-    isError: diskE,
-  } = useMetricsRangeQuery(diskQ, start, end, step);
+    data: tableData,
+    isLoading: tableL,
+    isError: tableE,
+  } = useMetricsRangeQuery(tableQ, start, end, step);
+  const {
+    data: raftData,
+    isLoading: raftL,
+    isError: raftE,
+  } = useMetricsRangeQuery(raftQ, start, end, step);
   const {
     data: netData,
     isLoading: netL,
@@ -179,14 +186,15 @@ const NodeMetricsGrid: React.FC<NodeMetricsGridProps> = ({ nodeId }) => {
   const series = [
     extractMatrixSeries(cpuData),
     extractMatrixSeries(memData),
-    extractMatrixSeries(diskData),
+    extractMatrixSeries(tableData),
+    extractMatrixSeries(raftData),
     extractMatrixSeries(netData),
   ];
-  const loadings = [cpuL, memL, diskL, netL];
-  const errors = [cpuE, memE, diskE, netE];
+  const loadings = [cpuL, memL, tableL, raftL, netL];
+  const errors = [cpuE, memE, tableE, raftE, netE];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
       {METRICS.map((cfg, i) => (
         <MetricChartCard
           key={cfg.gradientId}

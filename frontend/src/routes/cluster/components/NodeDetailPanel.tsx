@@ -2,8 +2,9 @@ import { useNavigate } from '@tanstack/react-router';
 import { X, ExternalLink, ArrowRight } from 'lucide-react';
 import React from 'react';
 
-import { formatBytes } from '../utils';
+import { extractVectorMap, formatBytes } from '../utils';
 
+import { useMetricsQuery } from '@/hooks/useApi';
 import { ClusterInfo, StatusResponse } from '@/types';
 
 interface NodeDetailPanelProps {
@@ -27,6 +28,12 @@ const NodeDetailPanel: React.FC<NodeDetailPanelProps> = ({
   onClose,
 }) => {
   const navigate = useNavigate();
+
+  const { data: perTableDiskData } = useMetricsQuery(
+    nodeId ? `sum by (table) (regatta_table_storage_disk_usage_bytes{node_id="${nodeId}"})` : '',
+  );
+  const perTableDiskMap = extractVectorMap(perTableDiskData, 'table');
+
   if (!nodeId) return null;
 
   const server = status?.servers?.find((s) => s.id === nodeId);
@@ -152,8 +159,13 @@ const NodeDetailPanel: React.FC<NodeDetailPanelProps> = ({
                       <Row label="Term" value={ts.raftTerm} />
                       <Row label="Index" value={ts.raftIndex.toLocaleString()} />
                       <Row label="Applied" value={ts.raftAppliedIndex.toLocaleString()} />
-                      <Row label="Log size" value={formatBytes(ts.logSize)} />
-                      <Row label="DB size" value={formatBytes(ts.dbSize)} />
+                      <Row
+                        label="Storage"
+                        value={(() => {
+                          const bytes = perTableDiskMap.get(tableName);
+                          return bytes !== undefined ? formatBytes(bytes) : '—';
+                        })()}
+                      />
                     </div>
                   </div>
                 );

@@ -6,7 +6,6 @@ linters:
   enable:
     - bodyclose
     - godot
-    - goheader
     - gomoddirectives
     - gomodguard
     - gosec
@@ -21,8 +20,6 @@ linters:
     - wastedassign
     - whitespace
   settings:
-    goheader:
-      template: Copyright JAMF Software, LLC
     gosec:
       excludes:
         - G104

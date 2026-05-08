@@ -172,21 +172,28 @@ const ErrorDisplay: React.FC<{ error: string }> = ({ error }) => (
 interface QueryResultsProps {
   result: QueryResultState | null;
   isLoading: boolean;
+  isLoadingMore?: boolean;
+  onLoadMore?: () => void;
 }
 
-const QueryResults: React.FC<QueryResultsProps> = ({ result, isLoading }) => {
+const QueryResults: React.FC<QueryResultsProps> = ({
+  result,
+  isLoading,
+  isLoadingMore,
+  onLoadMore,
+}) => {
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden min-h-[300px] flex flex-col">
+    <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden min-h-[300px] flex flex-col lg:h-full">
       {/* Header */}
       <div className="px-4 py-3 border-b border-slate-800 bg-slate-800/50 flex-shrink-0">
         <h2 className="text-sm font-semibold text-slate-200">Results</h2>
       </div>
 
       {/* Body */}
-      <div className="flex-1">
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
         {/* Loading */}
         {isLoading && (
-          <div className="flex items-center justify-center p-12 gap-3">
+          <div className="flex-1 flex items-center justify-center p-12 gap-3">
             <svg className="animate-spin h-5 w-5 text-blue-400" viewBox="0 0 24 24" fill="none">
               <circle
                 className="opacity-25"
@@ -208,7 +215,7 @@ const QueryResults: React.FC<QueryResultsProps> = ({ result, isLoading }) => {
 
         {/* Empty state */}
         {!isLoading && !result && (
-          <div className="flex flex-col items-center justify-center p-12 text-center gap-4">
+          <div className="flex-1 flex flex-col items-center justify-center p-12 text-center gap-4">
             <div className="w-14 h-14 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center">
               <Search className="w-7 h-7 text-slate-500" />
             </div>
@@ -224,18 +231,29 @@ const QueryResults: React.FC<QueryResultsProps> = ({ result, isLoading }) => {
 
         {/* Result */}
         {!isLoading && result && (
-          <>
+          <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
             <StatusBar result={result} />
             {result.entry.status === 'error' && result.entry.error && (
-              <ErrorDisplay error={result.entry.error} />
+              <div className="flex-1 overflow-auto">
+                <ErrorDisplay error={result.entry.error} />
+              </div>
             )}
             {result.entry.status === 'success' && (
               <>
                 {result.entry.operation === 'GET' && result.data && (
-                  <GetResult data={result.data as KeyValuePair} />
+                  <div className="flex-1 overflow-auto">
+                    <GetResult data={result.data as KeyValuePair} />
+                  </div>
                 )}
                 {result.entry.operation === 'SCAN' && (
-                  <ScanResultsTable pairs={result.data as KeyValuePair[] | undefined} />
+                  <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+                    <ScanResultsTable
+                      pairs={result.data as KeyValuePair[] | undefined}
+                      more={result.more}
+                      isLoadingMore={isLoadingMore}
+                      onLoadMore={onLoadMore}
+                    />
+                  </div>
                 )}
                 {(result.entry.operation === 'PUT' || result.entry.operation === 'DELETE') && (
                   <MutationSuccess
@@ -245,7 +263,7 @@ const QueryResults: React.FC<QueryResultsProps> = ({ result, isLoading }) => {
                 )}
               </>
             )}
-          </>
+          </div>
         )}
       </div>
     </div>

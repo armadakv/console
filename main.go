@@ -71,7 +71,8 @@ func main() {
 	// Use Chi middleware
 	// Logger middleware logs the start and end of each request with the elapsed processing time
 	middleware.DefaultLogger = middleware.RequestLogger(&middleware.DefaultLogFormatter{
-		Logger: &zapAdapter{logger: logger}, NoColor: true},
+		Logger: &zapAdapter{logger: logger}, NoColor: true,
+	},
 	)
 	r.Use(middleware.Logger)
 	// Recoverer middleware recovers from panics, logs the panic, and returns a 500 Internal Server Error response
@@ -128,8 +129,9 @@ func main() {
 	// Setup server with graceful shutdown
 	addr := ":" + port
 	server := &http.Server{
-		Addr:    addr,
-		Handler: r,
+		Addr:              addr,
+		Handler:           r,
+		ReadHeaderTimeout: 10 * time.Second,
 	}
 
 	// Create a channel to listen for interrupt signals

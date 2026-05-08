@@ -35,6 +35,7 @@ export interface QueryHistoryEntry {
 export interface QueryResultState {
   entry: QueryHistoryEntry;
   data?: KeyValuePair | KeyValuePair[];
+  more?: boolean;
 }
 
 const QueryPage: React.FC = () => {
@@ -50,6 +51,7 @@ const QueryPage: React.FC = () => {
 
   // Execution state
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [result, setResult] = useState<QueryResultState | null>(null);
   const [history, setHistory] = useState<QueryHistoryEntry[]>([]);
 
@@ -82,6 +84,7 @@ const QueryPage: React.FC = () => {
 
     try {
       let data: KeyValuePair | KeyValuePair[] | undefined;
+      let more: boolean | undefined;
       let queryDurationMs: number;
 
       switch (operation) {
@@ -98,7 +101,8 @@ const QueryPage: React.FC = () => {
             scanMode === 'range' ? rangeStart : '',
             scanMode === 'range' ? rangeEnd : '',
           );
-          data = r.data;
+          data = r.data.pairs;
+          more = r.data.more;
           queryDurationMs = r.queryDurationMs;
           break;
         }
@@ -127,7 +131,7 @@ const QueryPage: React.FC = () => {
         resultCount: Array.isArray(data) ? data.length : data ? 1 : undefined,
       };
 
-      setResult({ entry, data });
+      setResult({ entry, data, more });
       setHistory((prev) => [entry, ...prev].slice(0, 20));
     } catch (err) {
       const duration = parseFloat((Date.now() - startTime).toFixed(3));
@@ -152,6 +156,39 @@ const QueryPage: React.FC = () => {
     }
   }, [table, operation, key, scanMode, prefix, rangeStart, rangeEnd, putValue, queryClient]);
 
+  const loadMore = useCallback(async () => {
+    if (!result || !Array.isArray(result.data) || result.data.length === 0) return;
+
+    setIsLoadingMore(true);
+    const cursor = result.data[result.data.length - 1].key;
+    const { params } = result.entry;
+
+    try {
+      const r = await api.timedGetKeyValuePairs(
+        result.entry.table,
+        params.scanMode === 'prefix' ? (params.prefix ?? '') : '',
+        params.scanMode === 'range' ? (params.rangeStart ?? '') : '',
+        params.scanMode === 'range' ? (params.rangeEnd ?? '') : '',
+        cursor,
+      );
+      const newPairs = r.data.pairs;
+      const more = r.data.more;
+      const allPairs = [...(result.data as KeyValuePair[]), ...newPairs];
+      setResult((prev) =>
+        prev
+          ? {
+              ...prev,
+              data: allPairs,
+              more,
+              entry: { ...prev.entry, resultCount: allPairs.length },
+            }
+          : prev,
+      );
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [result]);
+
   const loadFromHistory = (entry: QueryHistoryEntry) => {
     setTable(entry.table);
     setOperation(entry.operation);
@@ -164,8 +201,8 @@ const QueryPage: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row gap-4 items-start">
-      <div className="w-full lg:w-[420px] shrink-0">
+    <div className="flex flex-col gap-4 lg:flex-row lg:h-[calc(100vh-12rem)]">
+      <div className="w-full lg:w-[420px] shrink-0 lg:overflow-y-auto lg:rounded-xl">
         <QueryPanel
           table={table}
           onTableChange={setTable}
@@ -189,8 +226,13 @@ const QueryPage: React.FC = () => {
           onLoadFromHistory={loadFromHistory}
         />
       </div>
-      <div className="w-full lg:flex-1 min-w-0">
-        <QueryResults result={result} isLoading={isLoading} />
+      <div className="w-full lg:flex-1 min-w-0 lg:h-full flex flex-col">
+        <QueryResults
+          result={result}
+          isLoading={isLoading}
+          isLoadingMore={isLoadingMore}
+          onLoadMore={loadMore}
+        />
       </div>
     </div>
   );
