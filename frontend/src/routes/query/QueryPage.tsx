@@ -34,7 +34,7 @@ export interface QueryHistoryEntry {
 
 export interface QueryResultState {
   entry: QueryHistoryEntry;
-  data?: KeyValuePair | KeyValuePair[];
+  data?: KeyValuePair | KeyValuePair[] | null;
   more?: boolean;
 }
 
@@ -83,7 +83,7 @@ const QueryPage: React.FC = () => {
     }
 
     try {
-      let data: KeyValuePair | KeyValuePair[] | undefined;
+      let data: KeyValuePair | KeyValuePair[] | null = null;
       let more: boolean | undefined;
       let queryDurationMs: number;
 

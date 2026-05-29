@@ -521,7 +521,7 @@ func (c *Client) GetKeyValue(ctx context.Context, table, key string) (*KeyValueP
 
 	// Check if we got any results
 	if len(resp.Kvs) == 0 {
-		return nil, fmt.Errorf("key not found: %s", key)
+		return nil, nil
 	}
 
 	// Convert the response to our KeyValuePair type

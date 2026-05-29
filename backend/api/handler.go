@@ -459,11 +459,15 @@ func (h *Handler) handleGetSpecificKeyValue(w http.ResponseWriter, r *http.Reque
 			zap.Error(err),
 			zap.String("table", table),
 			zap.String("key", key))
-		http.Error(w, "Failed to get key-value pair: "+err.Error(), http.StatusNotFound)
+		http.Error(w, "Failed to get key-value pair: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("X-Query-Duration-Ms", fmt.Sprintf("%.3f", float64(queryDuration.Nanoseconds())/1e6))
+	if pair == nil {
+		http.Error(w, "Key not found", http.StatusNotFound)
+		return
+	}
 	render.JSON(pair)
 }
 

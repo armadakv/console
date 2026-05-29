@@ -240,10 +240,19 @@ const QueryResults: React.FC<QueryResultsProps> = ({
             )}
             {result.entry.status === 'success' && (
               <>
-                {result.entry.operation === 'GET' && result.data && (
-                  <div className="flex-1 overflow-auto">
-                    <GetResult data={result.data as KeyValuePair} />
-                  </div>
+                {result.entry.operation === 'GET' && (
+                  <>
+                    {result.data === null ? (
+                      <div className="flex-1 flex items-center justify-center p-12 gap-3">
+                        <AlertTriangle className="w-5 h-5 text-yellow-400" />
+                        <span className="text-sm text-slate-400">Key not found</span>
+                      </div>
+                    ) : (
+                      <div className="flex-1 overflow-auto">
+                        <GetResult data={result.data as KeyValuePair} />
+                      </div>
+                    )}
+                  </>
                 )}
                 {result.entry.operation === 'SCAN' && (
                   <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
