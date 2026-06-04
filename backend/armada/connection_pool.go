@@ -732,6 +732,7 @@ func (p *ConnectionPool) DiscoverAndConnect(ctx context.Context, seedServerAddre
 	if err != nil {
 		return nil, map[string]error{seedServerAddress: err}
 	}
+	defer func() { _ = seedConn.Close() }()
 	// Query the server for cluster membership.
 	resp, err := regattapb.NewClusterClient(seedConn).MemberList(ctx, &regattapb.MemberListRequest{})
 	if err != nil {
