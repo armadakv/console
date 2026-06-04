@@ -1,117 +1,177 @@
 # Contributing to ArmadaKV Console
 
-Thank you for your interest in contributing to ArmadaKV Console! This document provides guidelines and instructions for contributing to this project.
+Thank you for your interest in contributing to ArmadaKV Console!
+
+## Technology Stack
+
+### Backend
+- **Language**: Go 1.24+
+- **Web Framework**: [Chi](https://github.com/go-chi/chi) router
+- **Logging**: [Zap](https://github.com/uber-go/zap) (structured logging)
+- **Config**: [koanf v2](https://github.com/knadh/koanf)
+- **Communication**: gRPC client for ArmadaKV interaction
+
+### Frontend
+- **Framework**: React with TypeScript
+- **Build Tool**: Vite
+- **Package Manager**: pnpm 10.x
+- **Styling**: Tailwind CSS
+- **State / data-fetching**: React Query + React Router
+
+## Project Structure
+
+```
+console/
+├── main.go                  # Entry point; wires config, pool, and HTTP server
+├── backend/
+│   ├── api/                 # REST API handlers
+│   ├── armada/              # gRPC connection pool and client wrappers
+│   │   └── pb/              # Generated Protocol Buffers code
+│   ├── config/              # koanf-based config loading
+│   └── metrics/             # Embedded TSDB and scraping
+├── frontend/
+│   └── src/
+│       ├── components/      # Reusable React components
+│       ├── routes/          # Page-level components
+│       ├── hooks/           # Custom React hooks
+│       ├── api/             # Backend API client
+│       └── types/           # TypeScript type definitions
+├── proto/                   # Protocol Buffer definitions
+├── hack/                    # Dev scripts (proto generation, etc.)
+└── Dockerfile               # Multi-stage production build
+```
 
 ## Development Setup
 
 ### Prerequisites
 
 - Go 1.24+
-- Node.js (latest LTS)
-- pnpm
-- Docker (for container testing)
-- golangci-lint (for Go code linting)
+- Node.js 22 (latest LTS)
+- pnpm 10.x
+- Docker (optional, for container testing)
+- [golangci-lint](https://golangci-lint.run/welcome/install/) (for Go linting)
+- [Air](https://github.com/air-verse/air) and [goreman](https://github.com/mattn/goreman) (installed automatically by `make dev`)
 
-### Getting Started
+### First-time setup
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/armadakv/console.git
-   cd console
-   ```
+```bash
+git clone https://github.com/armadakv/console.git
+cd console
+go mod tidy
+cd frontend && pnpm install && cd ..
+```
 
-2. Install backend dependencies:
-   ```bash
-   go mod tidy
-   ```
+### Development mode (recommended)
 
-3. Install frontend dependencies:
-   ```bash
-   cd frontend
-   pnpm install
-   cd ..
-   ```
+```bash
+make dev
+```
 
-4. Start the development server:
-   ```bash
-   make dev
-   ```
+This uses goreman to run both processes from the `Procfile`:
+- **Backend**: Air watches Go files and rebuilds on change
+- **Frontend**: Vite dev server with HMR at http://localhost:3000 — API calls are proxied to the backend
 
-## Development Workflow
+### Backend only
 
-### Branching Model
+```bash
+go run .
+```
 
-- `main` - Main development branch
-- `feature/*` - Feature branches
-- `fix/*` - Bug fix branches
-- `release/*` - Release preparation branches
+### Frontend only
 
-### Making Changes
+```bash
+cd frontend
+pnpm run dev
+```
 
-1. Create a new branch from `main`:
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
+## Build Commands
 
-2. Make your changes
-3. Test your changes thoroughly
-4. Commit your changes with a meaningful commit message
-5. Push your branch and create a pull request
+| Command | Description |
+|---|---|
+| `make build` | Build frontend + backend binary |
+| `make run` | Build and run |
+| `make dev` | Hot-reload dev mode (Air + Vite) |
+| `make prod` | Production build (minified frontend, stripped binary) |
+| `make test` | Run all tests (backend + frontend) |
+| `make fmt` | Format all code |
+| `make lint` | Lint all code |
+| `make deps` | Tidy Go modules |
+| `make proto` | Re-generate Protocol Buffer code |
+| `make docker-build` | Build Docker image |
+| `make docker-run` | Run Docker image locally |
+| `make clean` | Remove all build artifacts |
 
-### Commit Messages
+## Code Quality
 
-Follow the [Conventional Commits](https://www.conventionalcommits.org/) specification for commit messages:
+### Backend
 
-- `feat: add new feature`
-- `fix: resolve bug`
-- `docs: update documentation`
-- `chore: update build scripts`
-- `refactor: improve code structure`
+```bash
+# Format (uses gofumpt via golangci-lint)
+make fmt
 
-## Pull Requests
+# Lint
+make lint
 
-When creating a pull request:
+# Test
+go test ./backend/...
+```
 
-1. Fill in the PR template completely
-2. Ensure CI passes for your branch
-3. Request a review from a maintainer
-4. Address any feedback or requested changes
+The linting configuration is in `.golangci.yml`. Notable linters: `bodyclose`, `govet`, `staticcheck`, `gosec`, `godot`.
 
-## Code Style
+### Frontend
 
-### Go
+```bash
+cd frontend
 
-- Follow the [Go Code Review Comments](https://github.com/golang/go/wiki/CodeReviewComments)
-- Run `go fmt` to format your code
-- Use `make lint` to run golangci-lint with project-specific configuration
-- Ensure tests pass with `go test ./...`
+# Type-check
+pnpm type-check
 
-The project uses golangci-lint with a configuration file (.golangci.yml) that enables specific linters:
-- bodyclose - Checks for unclosed HTTP response bodies
-- godot - Checks that comments end with a period
-- gosec - Inspects source code for security problems
-- staticcheck - Go static analysis tool
-- And many more defined in the configuration
+# Lint
+pnpm lint
+pnpm lint:fix  # auto-fix
 
-### TypeScript/React
+# Format
+pnpm format
+```
 
-- Follow the project's ESLint configuration
-- Run `pnpm lint` and `pnpm typecheck` to validate code
+### Protocol Buffers
 
-## Testing
+If you change `.proto` files, regenerate the Go client code:
 
-- Write tests for new features and bug fixes
-- Ensure existing tests pass
-- Test your changes across different browsers and screen sizes
+```bash
+make proto
+```
 
-## Documentation
+This runs `hack/generate-proto.sh`, which requires `protoc` and the gRPC Go plugins to be installed.
 
-- Update documentation when adding or changing features
-- Document public APIs and components
-- Include comments for complex code sections
+## Workflow
+
+### Branching
+
+- `main` — main development branch
+- `feature/*` — new features
+- `fix/*` — bug fixes
+- `release/*` — release preparation
+
+### Commit messages
+
+Follow [Conventional Commits](https://www.conventionalcommits.org/):
+
+```
+feat: add unix socket support
+fix: handle missing TLS key gracefully
+docs: document configuration options
+chore: update go dependencies
+refactor: extract TLS credential builder
+```
+
+### Pull requests
+
+1. Create a branch from `main`
+2. Make your changes and ensure `make lint` and `make test` pass
+3. Open a PR and fill in the template
+4. Request a review from a maintainer; address any feedback
 
 ## License
 
-By contributing to this project, you agree that your contributions will be licensed under the project's license.
-
-Thank you for contributing to ArmadaKV Console!
+By contributing to this project you agree that your contributions will be licensed under the project's MIT License.

@@ -3,7 +3,9 @@ package armada
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -11,6 +13,7 @@ import (
 	"google.golang.org/grpc/connectivity"
 
 	regattapb "github.com/armadakv/console/backend/armada/pb"
+	"github.com/armadakv/console/backend/config"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -45,6 +48,9 @@ type ConnectionPool struct {
 
 	// reconnectCfg holds configuration for reconnection attempts.
 	reconnectCfg reconnectConfig
+
+	// armadaCfg holds the Armada connection configuration (TLS, token, etc.).
+	armadaCfg config.ArmadaConfig
 }
 
 // ServerConnection holds a gRPC connection and its associated clients.
@@ -86,8 +92,40 @@ type ServerInfo struct {
 	ConnectionState string
 }
 
-// NewConnectionPool creates a new connection pool with default reconnect configuration.
-func NewConnectionPool(logger *zap.Logger) *ConnectionPool {
+// NewConnectionPool creates a new connection pool. It validates the provided
+// ArmadaConfig — including TLS settings and checking that cert files are readable —
+// and returns an error if the configuration is invalid.
+//
+// The URL scheme determines transport security: https:// and unixs:// activate
+// TLS; http:// and unix:// use plaintext. Combining TLS options with a plaintext
+// scheme is rejected by config.ArmadaConfig.Validate before this is called.
+//
+// When cfg.Token is set without TLS being active a warning is logged, but the
+// pool is still created (useful for local development).
+func NewConnectionPool(logger *zap.Logger, cfg config.ArmadaConfig) (*ConnectionPool, error) {
+	// Eagerly check that cert files are readable so we fail fast at startup
+	// rather than discovering a bad path on the first connection attempt.
+	if cfg.TLS.CACert != "" {
+		if _, err := os.ReadFile(cfg.TLS.CACert); err != nil {
+			return nil, fmt.Errorf("connection pool: reading CA cert %s: %w", cfg.TLS.CACert, err)
+		}
+	}
+	if cfg.TLS.ClientCert != "" {
+		if _, err := os.ReadFile(cfg.TLS.ClientCert); err != nil {
+			return nil, fmt.Errorf("connection pool: reading client cert %s: %w", cfg.TLS.ClientCert, err)
+		}
+	}
+	if cfg.TLS.ClientKey != "" {
+		if _, err := os.ReadFile(cfg.TLS.ClientKey); err != nil {
+			return nil, fmt.Errorf("connection pool: reading client key %s: %w", cfg.TLS.ClientKey, err)
+		}
+	}
+
+	tlsActive := strings.HasPrefix(cfg.URL, "https://") || strings.HasPrefix(cfg.URL, "unixs://")
+	if cfg.Token != "" && !tlsActive {
+		logger.Warn("Token is configured but TLS is not active; token will be sent in plaintext")
+	}
+
 	pool := &ConnectionPool{
 		logger:              logger,
 		addressToConnection: make(map[string]*ServerConnection),
@@ -97,60 +135,138 @@ func NewConnectionPool(logger *zap.Logger) *ConnectionPool {
 			baseDelay:  500 * time.Millisecond,
 			maxDelay:   30 * time.Second,
 		},
+		armadaCfg: cfg,
 	}
 
-	return pool
+	return pool, nil
+}
+
+// urlInfo holds the result of parsing an Armada URL.
+type urlInfo struct {
+	// grpcTarget is the string to pass directly to grpc.NewClient.
+	grpcTarget string
+	// useTLS indicates whether TLS transport credentials should be used.
+	useTLS bool
+}
+
+// parseURL parses an Armada URL into a gRPC dial target and TLS flag.
+//
+// Supported schemes:
+//   - http://host:port   — plaintext TCP
+//   - https://host:port  — TLS over TCP
+//   - unix:///path       — plaintext Unix domain socket
+//   - unixs:///path      — TLS over Unix domain socket
+func parseURL(rawURL string) (urlInfo, error) {
+	switch {
+	case strings.HasPrefix(rawURL, "http://"):
+		host := strings.TrimPrefix(rawURL, "http://")
+		return urlInfo{grpcTarget: normalizeHostTarget(host), useTLS: false}, nil
+	case strings.HasPrefix(rawURL, "https://"):
+		host := strings.TrimPrefix(rawURL, "https://")
+		return urlInfo{grpcTarget: normalizeHostTarget(host), useTLS: true}, nil
+	case strings.HasPrefix(rawURL, "unixs://"):
+		// Strip unixs:// and replace with unix:// — the socket path is preserved.
+		// e.g. unixs:///run/armada.sock → unix:///run/armada.sock (TLS over socket).
+		path := strings.TrimPrefix(rawURL, "unixs://")
+		return urlInfo{grpcTarget: "unix://" + path, useTLS: true}, nil
+	case strings.HasPrefix(rawURL, "unix://"):
+		path := strings.TrimPrefix(rawURL, "unix://")
+		return urlInfo{grpcTarget: "unix://" + path, useTLS: false}, nil
+	default:
+		return urlInfo{}, fmt.Errorf("unsupported URL scheme in %q: must be http://, https://, unix://, or unixs://", rawURL)
+	}
+}
+
+// normalizeHostTarget returns a gRPC target for a TCP host address.
+// Bare hostnames (no port, no dots) are prefixed with dns:/// so the
+// gRPC DNS resolver is used for look-up.
+func normalizeHostTarget(hostPort string) string {
+	if strings.Contains(hostPort, ":") || strings.Contains(hostPort, ".") {
+		return hostPort
+	}
+	return "dns:///" + hostPort
+}
+
+// buildTLSCredentials constructs gRPC transport credentials from TLSConfig.
+// The CA certificate (if set) is read once. The client certificate and key
+// are re-read on every TLS handshake via GetClientCertificate, so short-lived
+// certificates are picked up automatically without restarting the process.
+func buildTLSCredentials(cfg config.TLSConfig) (credentials.TransportCredentials, error) {
+	tlsCfg := &tls.Config{
+		InsecureSkipVerify: cfg.Insecure, //nolint:gosec
+		ServerName:         cfg.ServerName,
+	}
+
+	if cfg.CACert != "" {
+		caPEM, err := os.ReadFile(cfg.CACert)
+		if err != nil {
+			return nil, fmt.Errorf("reading CA cert %s: %w", cfg.CACert, err)
+		}
+		pool := x509.NewCertPool()
+		if !pool.AppendCertsFromPEM(caPEM) {
+			return nil, fmt.Errorf("failed to parse CA cert %s", cfg.CACert)
+		}
+		tlsCfg.RootCAs = pool
+	}
+
+	if cfg.ClientCert != "" {
+		clientCert, clientKey := cfg.ClientCert, cfg.ClientKey
+		tlsCfg.GetClientCertificate = func(*tls.CertificateRequestInfo) (*tls.Certificate, error) {
+			cert, err := tls.LoadX509KeyPair(clientCert, clientKey)
+			if err != nil {
+				return nil, fmt.Errorf("loading client cert %s: %w", clientCert, err)
+			}
+			return &cert, nil
+		}
+	}
+
+	return credentials.NewTLS(tlsCfg), nil
+}
+
+// tokenCredentials implements grpc/credentials.PerRPCCredentials for bearer tokens.
+type tokenCredentials struct {
+	token string
+}
+
+func (t tokenCredentials) GetRequestMetadata(_ context.Context, _ ...string) (map[string]string, error) {
+	return map[string]string{"authorization": "Bearer " + t.token}, nil
+}
+
+// RequireTransportSecurity returns false so that a token can be used with
+// plaintext transports during local development. A startup warning is logged
+// by NewConnectionPool when this situation is detected.
+func (t tokenCredentials) RequireTransportSecurity() bool {
+	return false
 }
 
 // createGRPCConnection creates a new gRPC connection to the specified address.
-// It handles the protocol detection and appropriate credential setup.
-//
-// Parameters:.
-//   - serverAddress: The address of the server to connect to.
-//   - logger: The logger for logging connection actions.
-//
-// Returns:.
-//   - A gRPC connection to the server.
-//   - An error if the connection could not be established.
-func createGRPCConnection(_ context.Context, serverAddress string, logger *zap.Logger) (*grpc.ClientConn, error) {
-	var creds credentials.TransportCredentials
-	var dialAddress string
-
-	// Check if address begins with http or https.
-	if strings.HasPrefix(serverAddress, "https://") {
-		// Use TLS for https.
-		creds = credentials.NewTLS(&tls.Config{})
-		// Remove https:// prefix.
-		dialAddress = strings.TrimPrefix(serverAddress, "https://")
-	} else if strings.HasPrefix(serverAddress, "http://") {
-		// Use insecure connection for http.
-		creds = insecure.NewCredentials()
-		// Remove http:// prefix.
-		dialAddress = strings.TrimPrefix(serverAddress, "http://")
-	} else {
-		// Default to insecure if no protocol specified.
-		creds = insecure.NewCredentials()
-		dialAddress = serverAddress
-	}
-
-	// Check if we need to apply a schema - only apply dns:/// if not an IP address and no port is specified.
-	var target string
-	if strings.Contains(dialAddress, ":") || strings.Contains(dialAddress, ".") {
-		// If it contains a colon (port) or periods (likely an IP), use as is.
-		target = dialAddress
-	} else {
-		// For hostnames without port, use dns resolver.
-		target = "dns:///" + dialAddress
-	}
-
-	logger.Info("Dialing Armada server",
-		zap.String("address", serverAddress),
-		zap.String("target", target))
-
-	// Using NewClient which is the correct approach for this project.
-	conn, err := grpc.NewClient(target, grpc.WithTransportCredentials(creds))
+// The address must include a supported scheme (http://, https://, unix://, unixs://).
+// Transport credentials and optional per-RPC token auth are derived from the
+// pool's ArmadaConfig.
+func (p *ConnectionPool) createGRPCConnection(serverAddress string) (*grpc.ClientConn, error) {
+	info, err := parseURL(serverAddress)
 	if err != nil {
-		logger.Error("Failed to connect to Armada server", zap.Error(err))
+		return nil, err
+	}
+
+	opts := make([]grpc.DialOption, 0, 2)
+
+	if info.useTLS {
+		creds, err := buildTLSCredentials(p.armadaCfg.TLS)
+		if err != nil {
+			return nil, fmt.Errorf("building TLS credentials for %s: %w", serverAddress, err)
+		}
+		opts = append(opts, grpc.WithTransportCredentials(creds))
+	} else {
+		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	}
+
+	if p.armadaCfg.Token != "" {
+		opts = append(opts, grpc.WithPerRPCCredentials(tokenCredentials{token: p.armadaCfg.Token}))
+	}
+
+	conn, err := grpc.NewClient(info.grpcTarget, opts...)
+	if err != nil {
 		return nil, err
 	}
 	return conn, nil
@@ -197,13 +313,15 @@ func (p *ConnectionPool) fetchNodeInfo(ctx context.Context, serverConn *ServerCo
 
 // extractHostname extracts the hostname part from a URL or address.
 func extractHostname(address string) string {
-	// Strip protocol prefix if present.
-	hostname := address
-	if strings.HasPrefix(hostname, "http://") {
-		hostname = strings.TrimPrefix(hostname, "http://")
-	} else if strings.HasPrefix(hostname, "https://") {
-		hostname = strings.TrimPrefix(hostname, "https://")
+	// Unix socket paths — return the path portion as the identity.
+	for _, scheme := range []string{"unixs://", "unix://"} {
+		if strings.HasPrefix(address, scheme) {
+			return strings.TrimPrefix(address, scheme)
+		}
 	}
+
+	// Strip TCP scheme prefix if present.
+	hostname := strings.TrimPrefix(strings.TrimPrefix(address, "https://"), "http://")
 
 	// Strip port if present.
 	if idx := strings.LastIndex(hostname, ":"); idx != -1 {
@@ -260,7 +378,7 @@ func (p *ConnectionPool) getHealthyConnectionLocked(serverAddress string) *Serve
 // The caller must hold the connection lock before calling this method.
 func (p *ConnectionPool) createNewConnection(ctx context.Context, serverAddress string) (*ServerConnection, error) {
 	// Create a new gRPC connection.
-	conn, err := createGRPCConnection(ctx, serverAddress, p.logger)
+	conn, err := p.createGRPCConnection(serverAddress)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create connection to %s: %w", serverAddress, err)
 	}
@@ -570,7 +688,7 @@ func (p *ConnectionPool) GetKnownServers() []ServerInfo {
 	return servers
 }
 
-// InitializeConnections initializes connections to a list of server addresses.
+// initializeConnections initializes connections to a list of server addresses.
 // This method eagerly establishes connections to the provided servers.
 //
 // Parameters:.
@@ -579,7 +697,7 @@ func (p *ConnectionPool) GetKnownServers() []ServerInfo {
 //
 // Returns:.
 //   - A map of server addresses to errors (if any occurred during connection initialization).
-func (p *ConnectionPool) InitializeConnections(ctx context.Context, serverAddresses []string) map[string]error {
+func (p *ConnectionPool) initializeConnections(ctx context.Context, serverAddresses []string) map[string]error {
 	p.logger.Info("Initializing connections to servers", zap.Int("count", len(serverAddresses)))
 
 	errors := make(map[string]error)
@@ -610,13 +728,13 @@ func (p *ConnectionPool) DiscoverAndConnect(ctx context.Context, seedServerAddre
 	p.logger.Info("Discovering cluster members from seed server", zap.String("seedServer", seedServerAddress))
 
 	// First, get a connection to the seed server.
-	seedConn, err := p.GetConnection(ctx, seedServerAddress)
+	seedConn, err := p.createGRPCConnection(seedServerAddress)
 	if err != nil {
 		return nil, map[string]error{seedServerAddress: err}
 	}
-
+	defer func() { _ = seedConn.Close() }()
 	// Query the server for cluster membership.
-	resp, err := seedConn.ClusterClient.MemberList(ctx, &regattapb.MemberListRequest{})
+	resp, err := regattapb.NewClusterClient(seedConn).MemberList(ctx, &regattapb.MemberListRequest{})
 	if err != nil {
 		return nil, map[string]error{seedServerAddress: fmt.Errorf("failed to list cluster members: %w", err)}
 	}
@@ -640,19 +758,16 @@ func (p *ConnectionPool) DiscoverAndConnect(ctx context.Context, seedServerAddre
 	// Skip the seed server as we already have a connection to it.
 	filteredAddresses := make([]string, 0, len(serverAddresses))
 	for _, addr := range serverAddresses {
-		if addr != seedServerAddress {
-			p.connectionLock.RLock()
-			_, exists := p.addressToConnection[addr]
-			p.connectionLock.RUnlock()
-
-			if !exists {
-				filteredAddresses = append(filteredAddresses, addr)
-			}
+		p.connectionLock.RLock()
+		_, exists := p.addressToConnection[addr]
+		p.connectionLock.RUnlock()
+		if !exists {
+			filteredAddresses = append(filteredAddresses, addr)
 		}
 	}
 
 	// Initialize connections to all other servers.
-	errors := p.InitializeConnections(ctx, filteredAddresses)
+	errors := p.initializeConnections(ctx, filteredAddresses)
 
 	// Return all found addresses, not just the ones we connected to.
 	return serverAddresses, errors

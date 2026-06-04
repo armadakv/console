@@ -7,6 +7,7 @@ import (
 	"time"
 
 	regattapb "github.com/armadakv/console/backend/armada/pb"
+	"github.com/armadakv/console/backend/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -70,7 +71,8 @@ func setupPoolTest(t *testing.T) (*ConnectionPool, *bufconn.Listener, func()) {
 
 	// Create connection pool.
 	logger := zap.NewNop()
-	pool := NewConnectionPool(logger)
+	pool, err := NewConnectionPool(logger, config.ArmadaConfig{URL: "http://localhost:0"})
+	require.NoError(t, err)
 
 	// Return pool, listener and cleanup function.
 	return pool, lis, func() {
@@ -93,8 +95,9 @@ func createTestConnection(t *testing.T, lis *bufconn.Listener) *grpc.ClientConn 
 
 func TestNewConnectionPool(t *testing.T) {
 	logger := zap.NewNop()
-	pool := NewConnectionPool(logger)
+	pool, err := NewConnectionPool(logger, config.ArmadaConfig{URL: "http://localhost:0"})
 
+	require.NoError(t, err)
 	assert.NotNil(t, pool)
 	assert.Equal(t, logger, pool.logger)
 	assert.NotNil(t, pool.addressToConnection)
@@ -104,42 +107,66 @@ func TestNewConnectionPool(t *testing.T) {
 	assert.Equal(t, 30*time.Second, pool.reconnectCfg.maxDelay)
 }
 
-func TestCreateGRPCConnection(t *testing.T) {
-	logger := zap.NewNop()
-	ctx := context.Background()
-
+func TestParseURL(t *testing.T) {
 	tests := []struct {
-		name        string
-		address     string
-		expectError bool
+		name       string
+		address    string
+		wantTarget string
+		wantTLS    bool
+		wantErr    bool
 	}{
 		{
-			name:        "http prefix",
-			address:     "http://localhost:8080",
-			expectError: true, // Will fail because there's no server
+			name:       "http",
+			address:    "http://localhost:8080",
+			wantTarget: "localhost:8080",
+			wantTLS:    false,
 		},
 		{
-			name:        "https prefix",
-			address:     "https://localhost:8080",
-			expectError: true, // Will fail because there's no server
+			name:       "https",
+			address:    "https://localhost:8080",
+			wantTarget: "localhost:8080",
+			wantTLS:    true,
 		},
 		{
-			name:        "no prefix",
-			address:     "localhost:8080",
-			expectError: true, // Will fail because there's no server
+			name:       "unix absolute path",
+			address:    "unix:///run/armada.sock",
+			wantTarget: "unix:///run/armada.sock",
+			wantTLS:    false,
+		},
+		{
+			name:       "unixs absolute path",
+			address:    "unixs:///run/armada.sock",
+			wantTarget: "unix:///run/armada.sock",
+			wantTLS:    true,
+		},
+		{
+			name:       "bare hostname uses dns resolver",
+			address:    "http://armada",
+			wantTarget: "dns:///armada",
+			wantTLS:    false,
+		},
+		{
+			name:    "no scheme is an error",
+			address: "localhost:8080",
+			wantErr: true,
+		},
+		{
+			name:    "unknown scheme is an error",
+			address: "grpc://localhost:8080",
+			wantErr: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			conn, err := createGRPCConnection(ctx, tt.address, logger)
-			if tt.expectError {
-				// We expect an error since there's no actual server.
-				// But we're testing the function logic, not actual connectivity.
-				if err == nil && conn != nil {
-					conn.Close()
-				}
+			info, err := parseURL(tt.address)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
 			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantTarget, info.grpcTarget)
+			assert.Equal(t, tt.wantTLS, info.useTLS)
 		})
 	}
 }
@@ -174,6 +201,16 @@ func TestExtractHostname(t *testing.T) {
 			name:     "IP address with port",
 			address:  "192.168.1.1:8080",
 			expected: "192.168.1.1",
+		},
+		{
+			name:     "unix socket path",
+			address:  "unix:///run/armada.sock",
+			expected: "/run/armada.sock",
+		},
+		{
+			name:     "unixs socket path",
+			address:  "unixs:///run/armada.sock",
+			expected: "/run/armada.sock",
 		},
 	}
 
@@ -296,25 +333,21 @@ func TestConnectionPoolGetKnownServers(t *testing.T) {
 }
 
 func TestConnectionPoolInitializeConnections(t *testing.T) {
-	pool, lis, cleanup := setupPoolTest(t)
+	pool, _, cleanup := setupPoolTest(t)
 	defer cleanup()
 
 	ctx := context.Background()
 
-	// Test with the actual server address (should succeed).
-	validAddress := lis.Addr().String()
-	addresses := []string{validAddress}
-	errors := pool.InitializeConnections(ctx, addresses)
+	// grpc.NewClient is lazy, so creating a connection to an unreachable address
+	// succeeds immediately. The fetchNodeInfo RPC will fail but is handled as a
+	// warning — the address must include a valid scheme per the new URL rules.
+	addresses := []string{"http://127.0.0.1:0"}
+	errs := pool.initializeConnections(ctx, addresses)
+	assert.Empty(t, errs, "should have no errors for a scheme-valid address")
 
-	// Should have no errors for valid address.
-	assert.Empty(t, errors, "should have no errors for valid address")
-
-	// Verify the connection was actually created.
-	conn, err := pool.GetConnection(ctx, validAddress)
+	conn, err := pool.GetConnection(ctx, "http://127.0.0.1:0")
 	require.NoError(t, err)
 	assert.NotNil(t, conn)
-
-	// Suppress unused variable warnings.
 }
 
 func TestReconnectConfig(t *testing.T) {

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -96,8 +95,8 @@ func (m *mockArmadaClient) GetKeyValue(ctx context.Context, table, key string) (
 		}, nil
 	}
 
-	// If key not found, return error.
-	return nil, fmt.Errorf("key not found: %s", key)
+	// If key not found, return nil.
+	return nil, nil
 }
 
 func (m *mockArmadaClient) PutKeyValue(ctx context.Context, table, key, value string) error {

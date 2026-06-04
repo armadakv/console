@@ -61,8 +61,9 @@ export const getKeyValuePairs = async (
   return handleApiError(response);
 };
 
-export const getKeyValue = async (table: string, key: string): Promise<KeyValuePair> => {
+export const getKeyValue = async (table: string, key: string): Promise<KeyValuePair | null> => {
   const response = await fetch(`${API_URL}/kv/${table}/${encodeURIComponent(key)}`);
+  if (response.status === 404) return null;
   return handleApiError(response);
 };
 
@@ -138,9 +139,10 @@ export interface TimedResult<T> {
 export const timedGetKeyValue = async (
   table: string,
   key: string,
-): Promise<TimedResult<KeyValuePair>> => {
+): Promise<TimedResult<KeyValuePair | null>> => {
   const response = await fetch(`${API_URL}/kv/${table}/${encodeURIComponent(key)}`);
   const queryDurationMs = parseQueryDuration(response);
+  if (response.status === 404) return { data: null, queryDurationMs };
   const data = await handleApiError(response);
   return { data, queryDurationMs };
 };

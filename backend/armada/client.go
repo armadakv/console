@@ -42,24 +42,13 @@ type Client struct {
 // Returns:
 //   - An ArmadaClient instance if successful.
 //   - An error if the connection could not be established.
-func NewClient(address string, pool Connections, logger *zap.Logger) (*Client, error) {
+func NewClient(address string, pool Connections, logger *zap.Logger) *Client {
 	logger.Info("Creating new Armada client", zap.String("address", address))
-
-	// Initialize the client
-	client := &Client{
+	return &Client{
 		address:        address,
 		logger:         logger,
 		connectionPool: pool,
 	}
-
-	// Try to establish the main connection to ensure it works
-	_, err := pool.GetConnection(context.Background(), address)
-	if err != nil {
-		_ = pool.Close()
-		return nil, fmt.Errorf("failed to establish initial connection: %w", err)
-	}
-
-	return client, nil
 }
 
 // GetStatus retrieves the current status of the Armada server.
@@ -521,7 +510,7 @@ func (c *Client) GetKeyValue(ctx context.Context, table, key string) (*KeyValueP
 
 	// Check if we got any results
 	if len(resp.Kvs) == 0 {
-		return nil, fmt.Errorf("key not found: %s", key)
+		return nil, nil
 	}
 
 	// Convert the response to our KeyValuePair type
