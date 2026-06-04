@@ -14,6 +14,7 @@ import (
 
 	"github.com/armadakv/console/backend/api"
 	"github.com/armadakv/console/backend/armada"
+	"github.com/armadakv/console/backend/config"
 	"github.com/armadakv/console/backend/metrics"
 	"github.com/armadakv/console/frontend"
 	"github.com/go-chi/chi/v5"
@@ -23,11 +24,10 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	defaultPort      = "8080"
-	staticDir        = "dist"
-	defaultArmadaURL = "http://localhost:5001"
-)
+const staticDir = "dist"
+
+// version is set at build time via -ldflags="-X main.version=<tag>".
+var version = "dev"
 
 type zapAdapter struct {
 	logger *zap.Logger
@@ -49,15 +49,15 @@ func main() {
 	}
 	defer logger.Sync() // flushes buffer, if any
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = defaultPort
+	cfg, err := config.Load()
+	if err != nil {
+		logger.Panic("Failed to load configuration", zap.Error(err))
 	}
-
-	armadaURL := os.Getenv("ARMADA_URL")
-	if armadaURL == "" {
-		armadaURL = defaultArmadaURL
-	}
+	logger.Info("Configuration loaded",
+		zap.String("version", version),
+		zap.String("armada.url", cfg.Armada.URL),
+		zap.String("port", cfg.Port),
+	)
 
 	// Get the frontend filesystem
 	frontendRoot, err := fs.Sub(frontend.FS, staticDir)
@@ -66,20 +66,13 @@ func main() {
 	}
 
 	// Create a new Chi router
-	// Chi is a lightweight, idiomatic and composable router for building Go HTTP services.
-	// It's built on top of the standard library's net/http package and provides a simple
-	// and elegant API for building HTTP services.
-	// See https://github.com/go-chi/chi for more information.
 	r := chi.NewRouter()
 
-	// Use Chi middleware
-	// Logger middleware logs the start and end of each request with the elapsed processing time
 	middleware.DefaultLogger = middleware.RequestLogger(&middleware.DefaultLogFormatter{
 		Logger: &zapAdapter{logger: logger}, NoColor: true,
 	},
 	)
 	r.Use(middleware.Logger)
-	// Recoverer middleware recovers from panics, logs the panic, and returns a 500 Internal Server Error response
 	r.Use(middleware.Recoverer)
 
 	r.Use(cors.Handler(cors.Options{
@@ -91,9 +84,12 @@ func main() {
 		MaxAge:           300,
 	}))
 
-	pool := armada.NewConnectionPool(logger.Named("connections"))
+	pool, err := armada.NewConnectionPool(logger.Named("connections"), cfg.Armada)
+	if err != nil {
+		logger.Panic("Failed to create connection pool", zap.Error(err))
+	}
 
-	discovered, errs := pool.DiscoverAndConnect(ctx, armadaURL)
+	discovered, errs := pool.DiscoverAndConnect(ctx, cfg.Armada.URL)
 	if len(errs) != 0 {
 		logger.Panic("Failed to create Armada client", zap.Error(fmt.Errorf("discovery errors: %v", errs)))
 	}
@@ -102,7 +98,7 @@ func main() {
 	}
 	logger.Info("Discovered Armada nodes", zap.Int("count", len(discovered)))
 
-	mm, err := metrics.NewMetricsManager(pool, 30*time.Second, "/tmp/tsdb", logger)
+	mm, err := metrics.NewMetricsManager(pool, cfg.Metrics.ScrapeInterval, cfg.Metrics.StoragePath, logger)
 	if err != nil {
 		logger.Panic("Failed to create metrics manager", zap.Error(err))
 	}
@@ -121,13 +117,11 @@ func main() {
 
 	// Serve frontend files and handle SPA routes
 	r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
-		// Try to serve the file directly
 		path := r.URL.Path
 		_, err := fs.Stat(frontendRoot, path[1:]) // Remove leading slash
 
 		// If path doesn't exist, serve index.html for SPA client-side routing
 		if os.IsNotExist(err) {
-			// Rewrite to index.html for client-side routing
 			r.URL.Path = "/"
 		}
 
@@ -135,20 +129,18 @@ func main() {
 	})
 
 	// Setup server with graceful shutdown
-	addr := ":" + port
+	addr := ":" + cfg.Port
 	server := &http.Server{
 		Addr:              addr,
 		Handler:           r,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
-	// Create a channel to listen for interrupt signals
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 
-	// Start the server in a goroutine
 	go func() {
-		logger.Info("Starting Armada Dashboard server", zap.String("port", port))
+		logger.Info("Starting Armada Dashboard server", zap.String("port", cfg.Port))
 		logger.Info("Server ready", zap.String("url", "http://localhost"+addr))
 
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -156,13 +148,11 @@ func main() {
 		}
 	}()
 
-	// Wait for interrupt signal
 	receivedSignal := <-sig
 	logger.Info("Received shutdown signal", zap.String("signal", receivedSignal.String()))
 
 	cancel()
 
-	// Attempt graceful shutdown
 	logger.Info("Shutting down server gracefully")
 	if err := server.Shutdown(ctx); err != nil {
 		logger.Error("Server forced to shutdown", zap.Error(err))

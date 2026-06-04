@@ -23,9 +23,6 @@ frontend/.env*
 frontend/.DS_Store
 frontend/.eslintcache
 
-# Ignore backend build artifacts
-backend/armada/pb/
-
 # Ignore Go specific files
 *.test
 *.out
