@@ -37,6 +37,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
       {/* Logo */}
       <div className="h-14 flex items-center px-4 gap-2.5 border-b border-slate-800 shrink-0">
         <svg
+          aria-hidden="true"
           xmlns="http://www.w3.org/2000/svg"
           viewBox="101.3 75.2 465.4 406.8"
           className="h-8 w-8 shrink-0"

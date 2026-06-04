@@ -13,9 +13,6 @@ const API_URL = '/api';
 // Helper function to handle API errors
 const handleApiError = async (response: Response) => {
   if (!response.ok) {
-    if (response.status === 404) {
-      return null;
-    }
     const errorData = await response.json().catch(() => ({}));
     throw {
       message: errorData.message || 'An error occurred',
@@ -66,6 +63,7 @@ export const getKeyValuePairs = async (
 
 export const getKeyValue = async (table: string, key: string): Promise<KeyValuePair | null> => {
   const response = await fetch(`${API_URL}/kv/${table}/${encodeURIComponent(key)}`);
+  if (response.status === 404) return null;
   return handleApiError(response);
 };
 
@@ -144,6 +142,7 @@ export const timedGetKeyValue = async (
 ): Promise<TimedResult<KeyValuePair | null>> => {
   const response = await fetch(`${API_URL}/kv/${table}/${encodeURIComponent(key)}`);
   const queryDurationMs = parseQueryDuration(response);
+  if (response.status === 404) return { data: null, queryDurationMs };
   const data = await handleApiError(response);
   return { data, queryDurationMs };
 };

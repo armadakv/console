@@ -151,10 +151,12 @@ func main() {
 	receivedSignal := <-sig
 	logger.Info("Received shutdown signal", zap.String("signal", receivedSignal.String()))
 
-	cancel()
+	cancel() // stop background services (metrics, pool)
 
 	logger.Info("Shutting down server gracefully")
-	if err := server.Shutdown(ctx); err != nil {
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownCancel()
+	if err := server.Shutdown(shutdownCtx); err != nil {
 		logger.Error("Server forced to shutdown", zap.Error(err))
 	}
 
