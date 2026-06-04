@@ -107,12 +107,11 @@ func NewConnectionPool(logger *zap.Logger) *ConnectionPool {
 //
 // Parameters:.
 //   - serverAddress: The address of the server to connect to.
-//   - logger: The logger for logging connection actions.
 //
 // Returns:.
 //   - A gRPC connection to the server.
 //   - An error if the connection could not be established.
-func createGRPCConnection(_ context.Context, serverAddress string, logger *zap.Logger) (*grpc.ClientConn, error) {
+func createGRPCConnection(serverAddress string) (*grpc.ClientConn, error) {
 	var creds credentials.TransportCredentials
 	var dialAddress string
 
@@ -143,14 +142,9 @@ func createGRPCConnection(_ context.Context, serverAddress string, logger *zap.L
 		target = "dns:///" + dialAddress
 	}
 
-	logger.Info("Dialing Armada server",
-		zap.String("address", serverAddress),
-		zap.String("target", target))
-
 	// Using NewClient which is the correct approach for this project.
 	conn, err := grpc.NewClient(target, grpc.WithTransportCredentials(creds))
 	if err != nil {
-		logger.Error("Failed to connect to Armada server", zap.Error(err))
 		return nil, err
 	}
 	return conn, nil
@@ -260,7 +254,7 @@ func (p *ConnectionPool) getHealthyConnectionLocked(serverAddress string) *Serve
 // The caller must hold the connection lock before calling this method.
 func (p *ConnectionPool) createNewConnection(ctx context.Context, serverAddress string) (*ServerConnection, error) {
 	// Create a new gRPC connection.
-	conn, err := createGRPCConnection(ctx, serverAddress, p.logger)
+	conn, err := createGRPCConnection(serverAddress)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create connection to %s: %w", serverAddress, err)
 	}
@@ -570,7 +564,7 @@ func (p *ConnectionPool) GetKnownServers() []ServerInfo {
 	return servers
 }
 
-// InitializeConnections initializes connections to a list of server addresses.
+// initializeConnections initializes connections to a list of server addresses.
 // This method eagerly establishes connections to the provided servers.
 //
 // Parameters:.
@@ -579,7 +573,7 @@ func (p *ConnectionPool) GetKnownServers() []ServerInfo {
 //
 // Returns:.
 //   - A map of server addresses to errors (if any occurred during connection initialization).
-func (p *ConnectionPool) InitializeConnections(ctx context.Context, serverAddresses []string) map[string]error {
+func (p *ConnectionPool) initializeConnections(ctx context.Context, serverAddresses []string) map[string]error {
 	p.logger.Info("Initializing connections to servers", zap.Int("count", len(serverAddresses)))
 
 	errors := make(map[string]error)
@@ -610,13 +604,12 @@ func (p *ConnectionPool) DiscoverAndConnect(ctx context.Context, seedServerAddre
 	p.logger.Info("Discovering cluster members from seed server", zap.String("seedServer", seedServerAddress))
 
 	// First, get a connection to the seed server.
-	seedConn, err := p.GetConnection(ctx, seedServerAddress)
+	seedConn, err := createGRPCConnection(seedServerAddress)
 	if err != nil {
 		return nil, map[string]error{seedServerAddress: err}
 	}
-
 	// Query the server for cluster membership.
-	resp, err := seedConn.ClusterClient.MemberList(ctx, &regattapb.MemberListRequest{})
+	resp, err := regattapb.NewClusterClient(seedConn).MemberList(ctx, &regattapb.MemberListRequest{})
 	if err != nil {
 		return nil, map[string]error{seedServerAddress: fmt.Errorf("failed to list cluster members: %w", err)}
 	}
@@ -640,19 +633,17 @@ func (p *ConnectionPool) DiscoverAndConnect(ctx context.Context, seedServerAddre
 	// Skip the seed server as we already have a connection to it.
 	filteredAddresses := make([]string, 0, len(serverAddresses))
 	for _, addr := range serverAddresses {
-		if addr != seedServerAddress {
-			p.connectionLock.RLock()
-			_, exists := p.addressToConnection[addr]
-			p.connectionLock.RUnlock()
-
-			if !exists {
-				filteredAddresses = append(filteredAddresses, addr)
-			}
+		p.connectionLock.RLock()
+		_, exists := p.addressToConnection[addr]
+		p.connectionLock.RUnlock()
+		if !exists {
+			filteredAddresses = append(filteredAddresses, addr)
 		}
+
 	}
 
 	// Initialize connections to all other servers.
-	errors := p.InitializeConnections(ctx, filteredAddresses)
+	errors := p.initializeConnections(ctx, filteredAddresses)
 
 	// Return all found addresses, not just the ones we connected to.
 	return serverAddresses, errors

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"math/rand"
 	"net/http"
 	"os"
 	"os/signal"
@@ -37,6 +38,9 @@ func (z zapAdapter) Print(v ...interface{}) {
 }
 
 func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	// Initialize zap logger
 	logger, err := zap.NewDevelopment()
 	if err != nil {
@@ -58,7 +62,7 @@ func main() {
 	// Get the frontend filesystem
 	frontendRoot, err := fs.Sub(frontend.FS, staticDir)
 	if err != nil {
-		logger.Fatal("Failed to get frontend filesystem", zap.Error(err))
+		logger.Panic("Failed to get frontend filesystem", zap.Error(err))
 	}
 
 	// Create a new Chi router
@@ -89,19 +93,23 @@ func main() {
 
 	pool := armada.NewConnectionPool(logger.Named("connections"))
 
+	discovered, errs := pool.DiscoverAndConnect(ctx, armadaURL)
+	if len(errs) != 0 {
+		logger.Panic("Failed to create Armada client", zap.Error(fmt.Errorf("discovery errors: %v", errs)))
+	}
+	if len(discovered) == 0 {
+		logger.Panic("No Armada nodes discovered")
+	}
+	logger.Info("Discovered Armada nodes", zap.Int("count", len(discovered)))
+
 	mm, err := metrics.NewMetricsManager(pool, 30*time.Second, "/tmp/tsdb", logger)
 	if err != nil {
-		logger.Fatal("Failed to create metrics manager", zap.Error(err))
+		logger.Panic("Failed to create metrics manager", zap.Error(err))
 	}
-	mm.Start(context.Background())
+	mm.Start(ctx)
 	defer mm.Stop()
 
-	client, err := armada.NewClient(armadaURL, pool, logger.Named("client"))
-	if err != nil {
-		logger.Fatal("Failed to create Armada client", zap.Error(err))
-	}
-
-	// Register API routes
+	client := armada.NewClient(discovered[rand.Intn(len(discovered))], pool, logger.Named("client"))
 	apiHandler := api.NewHandler(client, logger.Named("api-handler"))
 	apiHandler.RegisterRoutes(r)
 
@@ -141,11 +149,10 @@ func main() {
 	// Start the server in a goroutine
 	go func() {
 		logger.Info("Starting Armada Dashboard server", zap.String("port", port))
-		logger.Info("Connecting to Armada server", zap.String("url", armadaURL))
 		logger.Info("Server ready", zap.String("url", "http://localhost"+addr))
 
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Fatal("Server error", zap.Error(err))
+			logger.Panic("Server error", zap.Error(err))
 		}
 	}()
 
@@ -153,9 +160,7 @@ func main() {
 	receivedSignal := <-sig
 	logger.Info("Received shutdown signal", zap.String("signal", receivedSignal.String()))
 
-	// Create shutdown context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+	cancel()
 
 	// Attempt graceful shutdown
 	logger.Info("Shutting down server gracefully")

@@ -105,9 +105,6 @@ func TestNewConnectionPool(t *testing.T) {
 }
 
 func TestCreateGRPCConnection(t *testing.T) {
-	logger := zap.NewNop()
-	ctx := context.Background()
-
 	tests := []struct {
 		name        string
 		address     string
@@ -132,7 +129,7 @@ func TestCreateGRPCConnection(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			conn, err := createGRPCConnection(ctx, tt.address, logger)
+			conn, err := createGRPCConnection(tt.address)
 			if tt.expectError {
 				// We expect an error since there's no actual server.
 				// But we're testing the function logic, not actual connectivity.
@@ -304,7 +301,7 @@ func TestConnectionPoolInitializeConnections(t *testing.T) {
 	// Test with the actual server address (should succeed).
 	validAddress := lis.Addr().String()
 	addresses := []string{validAddress}
-	errors := pool.InitializeConnections(ctx, addresses)
+	errors := pool.initializeConnections(ctx, addresses)
 
 	// Should have no errors for valid address.
 	assert.Empty(t, errors, "should have no errors for valid address")
