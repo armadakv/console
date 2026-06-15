@@ -27,7 +27,7 @@ RUN cd frontend && pnpm build && cd .. && \
     go build -o console -v -ldflags="-s -w -X main.version=${VERSION}"
 
 # Final image
-FROM alpine:3.23
+FROM alpine:3.24
 WORKDIR /app
 
 # Add CA certificates for HTTPS
