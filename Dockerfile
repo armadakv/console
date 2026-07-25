@@ -9,7 +9,7 @@ WORKDIR /app/frontend
 RUN npm install -g pnpm
 
 # Install frontend deps with cache-friendly layering.
-COPY frontend/package.json frontend/pnpm-lock.yaml ./
+COPY frontend/package.json frontend/pnpm-lock.yaml frontend/.npmrc ./
 RUN --mount=type=cache,target=/pnpm/store \
     pnpm config set store-dir /pnpm/store && \
     pnpm install --frozen-lockfile --ignore-scripts
