@@ -45,7 +45,7 @@ jobs:
             && mv console dist/console \
             && tar -czvf console-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz -C dist/ .
       - name: Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: console-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz
 
