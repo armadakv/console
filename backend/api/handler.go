@@ -12,7 +12,7 @@ import (
 
 	"github.com/armadakv/console/backend/armada"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-rat/chix"
+	"github.com/libtnb/chix/v2"
 	"go.uber.org/zap"
 )
 
