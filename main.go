@@ -91,12 +91,14 @@ func main() {
 
 	discovered, errs := pool.DiscoverAndConnect(ctx, cfg.Armada.URL)
 	if len(errs) != 0 {
-		logger.Panic("Failed to create Armada client", zap.Error(fmt.Errorf("discovery errors: %v", errs)))
+		logger.Warn("Armada discovery/connect had errors; server will continue and retry on demand",
+			zap.Error(fmt.Errorf("discovery errors: %v", errs)))
 	}
 	if len(discovered) == 0 {
-		logger.Panic("No Armada nodes discovered")
+		logger.Warn("No Armada nodes discovered at startup; API will become ready once Armada is reachable")
+	} else {
+		logger.Info("Discovered Armada nodes", zap.Int("count", len(discovered)))
 	}
-	logger.Info("Discovered Armada nodes", zap.Int("count", len(discovered)))
 
 	mm, err := metrics.NewMetricsManager(pool, cfg.Metrics.ScrapeInterval, cfg.Metrics.StoragePath, logger)
 	if err != nil {
@@ -105,7 +107,11 @@ func main() {
 	mm.Start(ctx)
 	defer mm.Stop()
 
-	client := armada.NewClient(discovered[rand.Intn(len(discovered))], pool, logger.Named("client"))
+	clientAddr := cfg.Armada.URL
+	if len(discovered) > 0 {
+		clientAddr = discovered[rand.Intn(len(discovered))]
+	}
+	client := armada.NewClient(clientAddr, pool, logger.Named("client"))
 	apiHandler := api.NewHandler(client, logger.Named("api-handler"))
 	apiHandler.RegisterRoutes(r)
 

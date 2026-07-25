@@ -1,42 +1,48 @@
+# syntax=docker/dockerfile:1.7
 # Multi-stage build for ArmadaKV Console
-FROM golang:1.26-alpine AS builder
-WORKDIR /app
 
-ARG VERSION=dev
-
-# Install build dependencies
-RUN apk add --no-cache protoc protobuf-dev make bash nodejs npm
+# 1) Build frontend with a modern Node.js version.
+FROM node:22-bookworm-slim AS frontend-builder
+WORKDIR /app/frontend
 
 # Install pnpm
 RUN npm install -g pnpm
 
-# Copy frontend package files
-COPY frontend/package.json frontend/pnpm-lock.yaml frontend/
+# Install frontend deps with cache-friendly layering.
+COPY frontend/package.json frontend/pnpm-lock.yaml ./
+RUN --mount=type=cache,target=/pnpm/store \
+    pnpm config set store-dir /pnpm/store && \
+    pnpm install --frozen-lockfile --ignore-scripts
 
-# Install frontend dependencies
-RUN cd frontend && pnpm install --frozen-lockfile --ignore-scripts
+# Build frontend assets.
+COPY frontend/ ./
+RUN pnpm build
 
-# Copy Go module files
-COPY go.mod go.sum ./
-RUN go mod download
-
-COPY . ./
-
-# Build frontend then the Go binary with the injected version
-RUN cd frontend && pnpm build && cd .. && \
-    go build -o console -v -ldflags="-s -w -X main.version=${VERSION}"
-
-# Final image
-FROM alpine:3.23
+# 2) Build Go backend binary on Debian-based Golang image.
+FROM golang:1.26-bookworm AS go-builder
 WORKDIR /app
 
-# Add CA certificates for HTTPS
-RUN apk add --no-cache ca-certificates tzdata
+ARG VERSION=dev
 
-# Copy binary from builder
-COPY --from=builder /app/console /app/console
+# Download Go modules first for better layer caching.
+COPY go.mod go.sum ./
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
 
-# Expose default port
+# Copy full source, then inject built frontend assets.
+COPY . ./
+COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
+
+# Build Go binary with injected version metadata.
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    go build -o console -v -ldflags="-s -w -X main.version=${VERSION}"
+
+# 3) Final distroless runtime image.
+FROM gcr.io/distroless/base-debian12:nonroot
+WORKDIR /app
+
+COPY --from=go-builder /app/console /app/console
+
 EXPOSE 8080
-
 ENTRYPOINT ["/app/console"]

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/armadakv/console/backend/armada"
@@ -39,6 +40,7 @@ type MetricsCollector struct {
 	manager     *MetricsManager
 	logger      *zap.Logger
 	pool        ClusterPool
+	collecting  atomic.Bool
 }
 
 // NewMetricsManager creates a new metrics manager that periodically collects metrics.
@@ -187,6 +189,12 @@ func (m *MetricsManager) removeCluster(addr string) {
 
 // collect gathers metrics from a single Armada cluster and stores them in TSDB.
 func (c *MetricsCollector) collect(ctx context.Context) {
+	if !c.collecting.CompareAndSwap(false, true) {
+		c.logger.Debug("Skipping metrics collection: previous scrape still in progress")
+		return
+	}
+	defer c.collecting.Store(false)
+
 	c.logger.Debug("Collecting metrics")
 
 	// Set a timeout for metrics collection.
@@ -221,6 +229,7 @@ func (c *MetricsCollector) collect(ctx context.Context) {
 func (c *MetricsCollector) storeMetricsInTSDB(ctx context.Context, metrics *armada.MetricsData) error {
 	// Create an appender to add samples to the TSDB.
 	appender := c.manager.storage.Appender(ctx)
+	defer appender.Rollback()
 
 	// Parse metrics using Prometheus text parser.
 	parser := textparse.NewPromParser([]byte(metrics.Data), nil, false)
@@ -317,11 +326,18 @@ func (c *MetricsCollector) storeMetricsInTSDB(ctx context.Context, metrics *arma
 		return fmt.Errorf("failed to commit metrics: %w", err)
 	}
 
+	nodeID := ""
+	nodeName := ""
+	if conn != nil {
+		nodeID = conn.NodeID
+		nodeName = conn.NodeName
+	}
+
 	c.logger.Debug("Successfully stored metrics in TSDB",
 		zap.Int("samples", metricCount),
 		zap.String("cluster", c.clusterAddr),
-		zap.String("nodeID", conn.NodeID),
-		zap.String("nodeName", conn.NodeName))
+		zap.String("nodeID", nodeID),
+		zap.String("nodeName", nodeName))
 
 	return nil
 }
