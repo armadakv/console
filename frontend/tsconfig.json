@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es5",
+    "target": "es2022",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
@@ -10,22 +10,21 @@
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "module": "esnext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
     "types": ["vitest/globals", "@testing-library/jest-dom"],
     "jsx": "react-jsx",
-    "baseUrl": ".",
     "paths": {
-      "@/shared": ["src/components/shared"],
-      "@/shared/*": ["src/components/shared/*"],
-      "@/ui": ["src/components/ui/index.ts"],
-      "@/ui/*": ["src/components/ui/*"],
-      "@/types/*": ["src/types/*"],
-      "@/hooks/*": ["src/hooks/*"],
-      "@/context/*": ["src/context/*"],
-      "@/*": ["src/*"]
+      "@/shared": ["./src/components/shared"],
+      "@/shared/*": ["./src/components/shared/*"],
+      "@/ui": ["./src/components/ui/index.ts"],
+      "@/ui/*": ["./src/components/ui/*"],
+      "@/types/*": ["./src/types/*"],
+      "@/hooks/*": ["./src/hooks/*"],
+      "@/context/*": ["./src/context/*"],
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src"]
