@@ -19,7 +19,7 @@ COPY frontend/ ./
 RUN pnpm build
 
 # 2) Build Go backend binary on Debian-based Golang image.
-FROM golang:1.26-bookworm AS go-builder
+FROM golang:1.27-bookworm AS go-builder
 WORKDIR /app
 
 ARG VERSION=dev
