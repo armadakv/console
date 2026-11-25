@@ -49,6 +49,10 @@ type ArmadaConfig struct {
 	// TLS holds optional TLS settings. Only valid with https:// URLs; combining
 	// any TLS option with an http:// URL is a configuration error.
 	TLS TLSConfig `koanf:"tls"`
+	// DiscoveryInterval is how often cluster membership is re-read through the
+	// seed URL, so that nodes that moved (for example after a rollout) are found
+	// again and stale addresses are dropped. Zero disables periodic discovery.
+	DiscoveryInterval time.Duration `koanf:"discoveryinterval"`
 }
 
 // Validate checks the ArmadaConfig for consistency.
@@ -128,10 +132,11 @@ func Load() (*Config, error) {
 
 	// 1. Defaults.
 	defaults := map[string]any{
-		"port":                   "8080",
-		"armada.url":             "http://localhost:5001",
-		"metrics.storagepath":    "/tmp/tsdb",
-		"metrics.scrapeinterval": "30s",
+		"port":                     "8080",
+		"armada.url":               "http://localhost:5001",
+		"armada.discoveryinterval": "30s",
+		"metrics.storagepath":      "/tmp/tsdb",
+		"metrics.scrapeinterval":   "30s",
 	}
 	if err := k.Load(confmap.Provider(defaults, "."), nil); err != nil {
 		return nil, fmt.Errorf("config: loading defaults: %w", err)

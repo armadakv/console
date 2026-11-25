@@ -171,6 +171,9 @@ func TestLoad_Defaults(t *testing.T) {
 	if cfg.Metrics.ScrapeInterval != 30*time.Second {
 		t.Errorf("Metrics.ScrapeInterval = %v, want %v", cfg.Metrics.ScrapeInterval, 30*time.Second)
 	}
+	if cfg.Armada.DiscoveryInterval != 30*time.Second {
+		t.Errorf("Armada.DiscoveryInterval = %v, want %v", cfg.Armada.DiscoveryInterval, 30*time.Second)
+	}
 }
 
 func TestLoad_EnvOverridesDefault(t *testing.T) {

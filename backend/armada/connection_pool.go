@@ -772,3 +772,130 @@ func (p *ConnectionPool) DiscoverAndConnect(ctx context.Context, seedServerAddre
 	// Return all found addresses, not just the ones we connected to.
 	return serverAddresses, errors
 }
+
+// refreshTimeout bounds a single membership refresh.
+const refreshTimeout = 10 * time.Second
+
+// memberAddresses returns the set of client addresses advertised by the cluster
+// members, falling back to peer URLs when a member does not publish client URLs.
+func memberAddresses(resp *regattapb.MemberListResponse) map[string]struct{} {
+	addresses := make(map[string]struct{})
+	for _, member := range resp.GetMembers() {
+		urls := member.GetClientURLs()
+		if len(urls) == 0 {
+			urls = member.GetPeerURLs()
+		}
+		for _, url := range urls {
+			if url != "" {
+				addresses[url] = struct{}{}
+			}
+		}
+	}
+	return addresses
+}
+
+// Refresh re-reads the cluster membership and reconciles the pool with it.
+//
+// It always dials the seed address afresh, so a seed given as a host name is
+// resolved again rather than relying on a cached connection that may point at a
+// pod that no longer exists. New members are connected and addresses that are
+// no longer advertised by any member (for example the old IP of a restarted pod)
+// are removed and their connections closed.
+func (p *ConnectionPool) Refresh(ctx context.Context, seedAddress string) error {
+	seedConn, err := p.createGRPCConnection(seedAddress)
+	if err != nil {
+		return fmt.Errorf("failed to create connection to seed %s: %w", seedAddress, err)
+	}
+	defer func() { _ = seedConn.Close() }()
+
+	resp, err := regattapb.NewClusterClient(seedConn).MemberList(ctx, &regattapb.MemberListRequest{})
+	if err != nil {
+		return fmt.Errorf("failed to list cluster members from %s: %w", seedAddress, err)
+	}
+
+	current := memberAddresses(resp)
+	if len(current) == 0 {
+		// Never prune the whole pool on an empty answer.
+		return fmt.Errorf("member list from %s returned no addresses", seedAddress)
+	}
+
+	p.pruneStaleAddresses(seedAddress, current)
+
+	for addr := range current {
+		if _, err := p.GetConnection(ctx, addr); err != nil {
+			p.logger.Warn("Failed to connect to cluster member",
+				zap.String("address", addr),
+				zap.Error(err))
+		}
+	}
+	return nil
+}
+
+// pruneStaleAddresses removes every address that is not in current, except the
+// seed. A connection is closed once no remaining address uses it. A seed mapped
+// to a removed connection is dropped too, so the next call dials the seed again.
+func (p *ConnectionPool) pruneStaleAddresses(seedAddress string, current map[string]struct{}) {
+	p.connectionLock.Lock()
+	defer p.connectionLock.Unlock()
+
+	stale := make(map[*ServerConnection]struct{})
+	for addr, serverConn := range p.addressToConnection {
+		if addr == seedAddress {
+			continue
+		}
+		if _, ok := current[addr]; ok {
+			continue
+		}
+		p.logger.Info("Removing address that is no longer a cluster member", zap.String("address", addr))
+		delete(p.addressToConnection, addr)
+		stale[serverConn] = struct{}{}
+	}
+
+	if seedConn, ok := p.addressToConnection[seedAddress]; ok {
+		if _, isStale := stale[seedConn]; isStale {
+			delete(p.addressToConnection, seedAddress)
+		}
+	}
+
+	// Keep connections still referenced by a live address.
+	for _, serverConn := range p.addressToConnection {
+		delete(stale, serverConn)
+	}
+
+	for serverConn := range stale {
+		if serverConn != nil && serverConn.conn != nil {
+			_ = serverConn.conn.Close()
+		}
+		for id, c := range p.idToConnection {
+			if c == serverConn {
+				delete(p.idToConnection, id)
+			}
+		}
+	}
+}
+
+// StartRefresh calls Refresh every interval until ctx is cancelled.
+// A non-positive interval disables periodic refresh.
+func (p *ConnectionPool) StartRefresh(ctx context.Context, seedAddress string, interval time.Duration) {
+	if interval <= 0 {
+		return
+	}
+	go func() {
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				refreshCtx, cancel := context.WithTimeout(ctx, refreshTimeout)
+				if err := p.Refresh(refreshCtx, seedAddress); err != nil {
+					p.logger.Warn("Failed to refresh cluster membership",
+						zap.String("seedAddress", seedAddress),
+						zap.Error(err))
+				}
+				cancel()
+			}
+		}
+	}()
+}

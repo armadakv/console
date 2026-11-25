@@ -103,6 +103,7 @@ armada:
     clientkey: ""    # path to PEM private key (mTLS)
     servername: ""   # override TLS SNI / certificate hostname
     insecure: false  # disable cert verification (dev only)
+  discoveryinterval: 30s  # re-read cluster membership via the seed URL (0 disables)
 
 metrics:
   storagepath: /tmp/tsdb
@@ -125,6 +126,7 @@ All settings can also be set via environment variables. The prefix is `ARMADA_CO
 | `ARMADA_CONSOLE_ARMADA__TLS__CLIENTKEY` | `armada.tls.clientkey` | _(none)_ |
 | `ARMADA_CONSOLE_ARMADA__TLS__SERVERNAME` | `armada.tls.servername` | _(none)_ |
 | `ARMADA_CONSOLE_ARMADA__TLS__INSECURE` | `armada.tls.insecure` | `false` |
+| `ARMADA_CONSOLE_ARMADA__DISCOVERYINTERVAL` | `armada.discoveryinterval` | `30s` |
 | `ARMADA_CONSOLE_METRICS__STORAGEPATH` | `metrics.storagepath` | `/tmp/tsdb` |
 | `ARMADA_CONSOLE_METRICS__SCRAPEINTERVAL` | `metrics.scrapeinterval` | `30s` |
 
