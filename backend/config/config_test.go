@@ -178,8 +178,8 @@ func TestLoad_Defaults(t *testing.T) {
 
 func TestLoad_EnvOverridesDefault(t *testing.T) {
 	t.Chdir(t.TempDir())
-	t.Setenv("ARMADA_CONSOLE_PORT", "9090")
-	t.Setenv("ARMADA_CONSOLE_ARMADA__URL", "https://armada.example.com:5001")
+	t.Setenv("ARMADACONSOLE_PORT", "9090")
+	t.Setenv("ARMADACONSOLE_ARMADA__URL", "https://armada.example.com:5001")
 
 	cfg, err := Load()
 	if err != nil {
@@ -190,6 +190,21 @@ func TestLoad_EnvOverridesDefault(t *testing.T) {
 	}
 	if cfg.Armada.URL != "https://armada.example.com:5001" {
 		t.Errorf("Armada.URL = %q, want %q", cfg.Armada.URL, "https://armada.example.com:5001")
+	}
+}
+
+func TestLoad_IgnoresKubernetesServiceLinks(t *testing.T) {
+	t.Chdir(t.TempDir())
+	// Kubernetes injects these for a Service named "armada-console".
+	t.Setenv("ARMADA_CONSOLE_PORT", "tcp://10.27.62.108:8080")
+	t.Setenv("ARMADA_CONSOLE_SERVICE_HOST", "10.27.62.108")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+	if cfg.Port != "8080" {
+		t.Errorf("Port = %q, want %q: service-link variables must not be read as configuration", cfg.Port, "8080")
 	}
 }
 
@@ -220,7 +235,7 @@ armada:
 
 func TestLoad_ExplicitConfigEnvMissing(t *testing.T) {
 	t.Chdir(t.TempDir())
-	t.Setenv("ARMADA_CONSOLE_CONFIG", "/nonexistent/console.yaml")
+	t.Setenv("ARMADACONSOLE_CONFIG", "/nonexistent/console.yaml")
 
 	_, err := Load()
 	if err == nil {
@@ -240,7 +255,7 @@ armada:
 	if err := os.WriteFile(cfgPath, []byte(yaml), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("ARMADA_CONSOLE_CONFIG", cfgPath)
+	t.Setenv("ARMADACONSOLE_CONFIG", cfgPath)
 
 	cfg, err := Load()
 	if err != nil {
@@ -262,7 +277,7 @@ armada:
 	if err := os.WriteFile(filepath.Join(dir, "console.yaml"), []byte(yaml), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("ARMADA_CONSOLE_PORT", "8888")
+	t.Setenv("ARMADACONSOLE_PORT", "8888")
 
 	cfg, err := Load()
 	if err != nil {
@@ -275,7 +290,7 @@ armada:
 
 func TestLoad_InvalidSchemeFromEnv(t *testing.T) {
 	t.Chdir(t.TempDir())
-	t.Setenv("ARMADA_CONSOLE_ARMADA__URL", "grpc://armada.example.com:5001")
+	t.Setenv("ARMADACONSOLE_ARMADA__URL", "grpc://armada.example.com:5001")
 
 	_, err := Load()
 	if err == nil {
@@ -285,8 +300,8 @@ func TestLoad_InvalidSchemeFromEnv(t *testing.T) {
 
 func TestLoad_TLSWithHTTPFromEnv(t *testing.T) {
 	t.Chdir(t.TempDir())
-	t.Setenv("ARMADA_CONSOLE_ARMADA__URL", "http://armada.example.com:5001")
-	t.Setenv("ARMADA_CONSOLE_ARMADA__TLS__CACERT", "/etc/ca.pem")
+	t.Setenv("ARMADACONSOLE_ARMADA__URL", "http://armada.example.com:5001")
+	t.Setenv("ARMADACONSOLE_ARMADA__TLS__CACERT", "/etc/ca.pem")
 
 	_, err := Load()
 	if err == nil {
