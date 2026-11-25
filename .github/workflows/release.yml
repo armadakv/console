@@ -13,6 +13,8 @@ env:
 jobs:
   release-binary:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     strategy:
       matrix:
         goos: [linux, darwin]
@@ -48,6 +50,7 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           files: console-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz
+          prerelease: ${{ contains(github.ref_name, '-') }}
 
   build-docker-image:
     runs-on: ubuntu-latest
