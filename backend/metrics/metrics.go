@@ -19,7 +19,7 @@ import (
 
 type ClusterPool interface {
 	GetConnection(context.Context, string) (*armada.ServerConnection, error)
-	GetKnownAddresses() []string
+	GetNodeAddresses() []string
 }
 
 // MetricsManager manages metrics collection and storage for multiple Armada clusters.
@@ -160,11 +160,10 @@ func (m *MetricsManager) collectFromAllClusters(ctx context.Context) {
 	}
 }
 
-// discoverClusters returns a list of all Armada cluster addresses.
+// discoverClusters returns one scrape address per known Armada node, so a node
+// reachable through several addresses (such as the seed URL alias) is scraped once.
 func (m *MetricsManager) discoverClusters(_ context.Context) []string {
-	// This needs to be implemented based on how clusters are discovered in the console.
-	// For now, we'll just use the known clusters from the connection pool.
-	return m.clusterPool.GetKnownAddresses()
+	return m.clusterPool.GetNodeAddresses()
 }
 
 // addCluster creates a new metrics collector for a cluster.

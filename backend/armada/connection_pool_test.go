@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"strings"
 	"testing"
 	"time"
 
@@ -25,9 +26,15 @@ type mockPoolServer struct {
 	regattapb.UnimplementedClusterServer
 	memberResponse *regattapb.MemberListResponse
 	nodeID         string
+	// blockStatus, when set, makes Status wait until the caller gives up.
+	blockStatus bool
 }
 
 func (s *mockPoolServer) Status(ctx context.Context, req *regattapb.StatusRequest) (*regattapb.StatusResponse, error) {
+	if s.blockStatus {
+		<-ctx.Done()
+		return nil, ctx.Err()
+	}
 	id := s.nodeID
 	if id == "" {
 		id = "node1"
@@ -497,4 +504,57 @@ func TestConnectionPoolRefresh(t *testing.T) {
 		assert.Equal(t, []string{"http://10.0.0.1:8443"}, pool.GetKnownAddresses())
 		require.NoError(t, pool.Close())
 	})
+}
+
+func TestConnectionPoolRefreshStopsAtDeadline(t *testing.T) {
+	// The slow member sorts first (127.0.0.1 < localhost) and its Status call
+	// consumes the whole refresh deadline.
+	slow := startTCPPoolServer(t, &mockPoolServer{nodeID: "slow", blockStatus: true})
+	fastSrv := &mockPoolServer{nodeID: "fast"}
+	fast := startTCPPoolServer(t, fastSrv)
+	fast = strings.Replace(fast, "127.0.0.1", "localhost", 1)
+	fastSrv.memberResponse = memberList(slow, fast)
+
+	pool, _, cleanup := setupPoolTest(t)
+	defer cleanup()
+	defer func() { _ = pool.Close() }()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	err := pool.Refresh(ctx, fast)
+	require.ErrorIs(t, err, context.DeadlineExceeded)
+	assert.NotContains(t, pool.GetKnownAddresses(), fast,
+		"members after the deadline must be left for the next refresh, not dialled with an expired context")
+}
+
+func TestConnectionPoolGetNodeAddresses(t *testing.T) {
+	pool, lis, cleanup := setupPoolTest(t)
+	defer cleanup()
+	seed := pool.armadaCfg.URL
+
+	node1 := createServerConnection(createTestConnection(t, lis))
+	node1.NodeID = "node1"
+	node2 := createServerConnection(createTestConnection(t, lis))
+	node2.NodeID = "node2"
+	seedOnly := createServerConnection(createTestConnection(t, lis))
+	defer func() { _ = pool.Close() }()
+
+	pool.connectionLock.Lock()
+	// The seed resolves to node1, which is also reachable by its advertised address.
+	pool.addressToConnection[seed] = node1
+	pool.addressToConnection["http://10.0.0.1:8443"] = node1
+	pool.addressToConnection["http://10.0.0.2:8443"] = node2
+	pool.connectionLock.Unlock()
+
+	assert.Equal(t, []string{"http://10.0.0.1:8443", "http://10.0.0.2:8443"}, pool.GetNodeAddresses(),
+		"each node is reported once and the seed alias is not used when an advertised address exists")
+	assert.Len(t, pool.GetKnownAddresses(), 3)
+
+	// A node known only through the seed is still reported.
+	pool.connectionLock.Lock()
+	delete(pool.addressToConnection, "http://10.0.0.1:8443")
+	delete(pool.addressToConnection, "http://10.0.0.2:8443")
+	pool.addressToConnection[seed] = seedOnly
+	pool.connectionLock.Unlock()
+	assert.Equal(t, []string{seed}, pool.GetNodeAddresses())
 }

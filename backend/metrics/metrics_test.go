@@ -26,7 +26,7 @@ func (m *mockClusterPool) GetConnection(ctx context.Context, address string) (*a
 	return args.Get(0).(*armada.ServerConnection), args.Error(1)
 }
 
-func (m *mockClusterPool) GetKnownAddresses() []string {
+func (m *mockClusterPool) GetNodeAddresses() []string {
 	args := m.Called()
 	return args.Get(0).([]string)
 }
@@ -141,7 +141,7 @@ func TestMetricsManagerStop(t *testing.T) {
 
 func TestMetricsManagerStartAndStop(t *testing.T) {
 	mockPool := &mockClusterPool{}
-	mockPool.On("GetKnownAddresses").Return([]string{})
+	mockPool.On("GetNodeAddresses").Return([]string{})
 
 	tempDir := createTempDir(t)
 	logger := zap.NewNop()
@@ -268,7 +268,7 @@ func TestMetricsCollectorConnectionError(t *testing.T) {
 func TestMetricsManagerWithMultipleClusters(t *testing.T) {
 	mockPool := &mockClusterPool{}
 	addresses := []string{"cluster1:8080", "cluster2:8080"}
-	mockPool.On("GetKnownAddresses").Return(addresses)
+	mockPool.On("GetNodeAddresses").Return(addresses)
 
 	// Create mock connections for each cluster.
 	for _, addr := range addresses {
@@ -312,9 +312,9 @@ func TestClusterPoolInterface(t *testing.T) {
 	var _ ClusterPool = &mockClusterPool{}
 
 	mockPool := &mockClusterPool{}
-	mockPool.On("GetKnownAddresses").Return([]string{"test"})
+	mockPool.On("GetNodeAddresses").Return([]string{"test"})
 
-	addresses := mockPool.GetKnownAddresses()
+	addresses := mockPool.GetNodeAddresses()
 	assert.Equal(t, []string{"test"}, addresses)
 
 	mockPool.AssertExpectations(t)
@@ -339,7 +339,7 @@ func TestMetricsDataStructure(t *testing.T) {
 
 func TestMetricsManagerConcurrency(t *testing.T) {
 	mockPool := &mockClusterPool{}
-	mockPool.On("GetKnownAddresses").Return([]string{})
+	mockPool.On("GetNodeAddresses").Return([]string{})
 
 	tempDir := createTempDir(t)
 	logger := zap.NewNop()

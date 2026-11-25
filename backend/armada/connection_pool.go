@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -628,6 +629,50 @@ func (p *ConnectionPool) GetKnownAddresses() []string {
 	return addresses
 }
 
+// GetNodeAddresses returns exactly one address per known node, for callers such
+// as metrics scraping that must not see a node twice. A node reachable through
+// several addresses (for example the configured seed URL, which is only an alias
+// for whichever node it currently resolves to, plus the node's advertised
+// address) is reported once, preferring an advertised address over the seed.
+func (p *ConnectionPool) GetNodeAddresses() []string {
+	p.connectionLock.RLock()
+	defer p.connectionLock.RUnlock()
+
+	seed := p.armadaCfg.URL
+	chosen := make(map[string]string)
+	for addr, serverConn := range p.addressToConnection {
+		key := fmt.Sprintf("conn:%p", serverConn)
+		if serverConn != nil && serverConn.NodeID != "" {
+			key = "node:" + serverConn.NodeID
+		}
+		current, ok := chosen[key]
+		if !ok || preferNodeAddress(addr, current, seed) {
+			chosen[key] = addr
+		}
+	}
+
+	addresses := make([]string, 0, len(chosen))
+	for _, addr := range chosen {
+		addresses = append(addresses, addr)
+	}
+	sort.Strings(addresses)
+	return addresses
+}
+
+// preferNodeAddress reports whether candidate should replace current as the
+// address reported for a node: anything beats the seed alias, otherwise the
+// lexically smaller address wins so the choice is stable between calls.
+func preferNodeAddress(candidate, current, seed string) bool {
+	switch {
+	case current == seed && candidate != seed:
+		return true
+	case candidate == seed && current != seed:
+		return false
+	default:
+		return candidate < current
+	}
+}
+
 // GetKnownServers returns information about all unique servers in the connection pool.
 // This is useful for getting a deduplicated list of servers for monitoring or UI display.
 //
@@ -821,7 +866,19 @@ func (p *ConnectionPool) Refresh(ctx context.Context, seedAddress string) error 
 
 	p.pruneStaleAddresses(seedAddress, current)
 
+	members := make([]string, 0, len(current))
 	for addr := range current {
+		members = append(members, addr)
+	}
+	sort.Strings(members)
+
+	for _, addr := range members {
+		// Stop once the refresh deadline is spent: dialling with an expired
+		// context would cache connections without a node identity. Members not
+		// reached here are connected on the next refresh.
+		if err := ctx.Err(); err != nil {
+			return fmt.Errorf("refresh stopped before connecting to all members: %w", err)
+		}
 		if _, err := p.GetConnection(ctx, addr); err != nil {
 			p.logger.Warn("Failed to connect to cluster member",
 				zap.String("address", addr),
