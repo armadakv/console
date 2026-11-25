@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -628,6 +629,50 @@ func (p *ConnectionPool) GetKnownAddresses() []string {
 	return addresses
 }
 
+// GetNodeAddresses returns exactly one address per known node, for callers such
+// as metrics scraping that must not see a node twice. A node reachable through
+// several addresses (for example the configured seed URL, which is only an alias
+// for whichever node it currently resolves to, plus the node's advertised
+// address) is reported once, preferring an advertised address over the seed.
+func (p *ConnectionPool) GetNodeAddresses() []string {
+	p.connectionLock.RLock()
+	defer p.connectionLock.RUnlock()
+
+	seed := p.armadaCfg.URL
+	chosen := make(map[string]string)
+	for addr, serverConn := range p.addressToConnection {
+		key := fmt.Sprintf("conn:%p", serverConn)
+		if serverConn != nil && serverConn.NodeID != "" {
+			key = "node:" + serverConn.NodeID
+		}
+		current, ok := chosen[key]
+		if !ok || preferNodeAddress(addr, current, seed) {
+			chosen[key] = addr
+		}
+	}
+
+	addresses := make([]string, 0, len(chosen))
+	for _, addr := range chosen {
+		addresses = append(addresses, addr)
+	}
+	sort.Strings(addresses)
+	return addresses
+}
+
+// preferNodeAddress reports whether candidate should replace current as the
+// address reported for a node: anything beats the seed alias, otherwise the
+// lexically smaller address wins so the choice is stable between calls.
+func preferNodeAddress(candidate, current, seed string) bool {
+	switch {
+	case current == seed && candidate != seed:
+		return true
+	case candidate == seed && current != seed:
+		return false
+	default:
+		return candidate < current
+	}
+}
+
 // GetKnownServers returns information about all unique servers in the connection pool.
 // This is useful for getting a deduplicated list of servers for monitoring or UI display.
 //
@@ -771,4 +816,143 @@ func (p *ConnectionPool) DiscoverAndConnect(ctx context.Context, seedServerAddre
 
 	// Return all found addresses, not just the ones we connected to.
 	return serverAddresses, errors
+}
+
+// refreshTimeout bounds a single membership refresh.
+const refreshTimeout = 10 * time.Second
+
+// memberAddresses returns the set of client addresses advertised by the cluster
+// members, falling back to peer URLs when a member does not publish client URLs.
+func memberAddresses(resp *regattapb.MemberListResponse) map[string]struct{} {
+	addresses := make(map[string]struct{})
+	for _, member := range resp.GetMembers() {
+		urls := member.GetClientURLs()
+		if len(urls) == 0 {
+			urls = member.GetPeerURLs()
+		}
+		for _, url := range urls {
+			if url != "" {
+				addresses[url] = struct{}{}
+			}
+		}
+	}
+	return addresses
+}
+
+// Refresh re-reads the cluster membership and reconciles the pool with it.
+//
+// It always dials the seed address afresh, so a seed given as a host name is
+// resolved again rather than relying on a cached connection that may point at a
+// pod that no longer exists. New members are connected and addresses that are
+// no longer advertised by any member (for example the old IP of a restarted pod)
+// are removed and their connections closed.
+func (p *ConnectionPool) Refresh(ctx context.Context, seedAddress string) error {
+	seedConn, err := p.createGRPCConnection(seedAddress)
+	if err != nil {
+		return fmt.Errorf("failed to create connection to seed %s: %w", seedAddress, err)
+	}
+	defer func() { _ = seedConn.Close() }()
+
+	resp, err := regattapb.NewClusterClient(seedConn).MemberList(ctx, &regattapb.MemberListRequest{})
+	if err != nil {
+		return fmt.Errorf("failed to list cluster members from %s: %w", seedAddress, err)
+	}
+
+	current := memberAddresses(resp)
+	if len(current) == 0 {
+		// Never prune the whole pool on an empty answer.
+		return fmt.Errorf("member list from %s returned no addresses", seedAddress)
+	}
+
+	p.pruneStaleAddresses(seedAddress, current)
+
+	members := make([]string, 0, len(current))
+	for addr := range current {
+		members = append(members, addr)
+	}
+	sort.Strings(members)
+
+	for _, addr := range members {
+		// Stop once the refresh deadline is spent: dialling with an expired
+		// context would cache connections without a node identity. Members not
+		// reached here are connected on the next refresh.
+		if err := ctx.Err(); err != nil {
+			return fmt.Errorf("refresh stopped before connecting to all members: %w", err)
+		}
+		if _, err := p.GetConnection(ctx, addr); err != nil {
+			p.logger.Warn("Failed to connect to cluster member",
+				zap.String("address", addr),
+				zap.Error(err))
+		}
+	}
+	return nil
+}
+
+// pruneStaleAddresses removes every address that is not in current, except the
+// seed. A connection is closed once no remaining address uses it. A seed mapped
+// to a removed connection is dropped too, so the next call dials the seed again.
+func (p *ConnectionPool) pruneStaleAddresses(seedAddress string, current map[string]struct{}) {
+	p.connectionLock.Lock()
+	defer p.connectionLock.Unlock()
+
+	stale := make(map[*ServerConnection]struct{})
+	for addr, serverConn := range p.addressToConnection {
+		if addr == seedAddress {
+			continue
+		}
+		if _, ok := current[addr]; ok {
+			continue
+		}
+		p.logger.Info("Removing address that is no longer a cluster member", zap.String("address", addr))
+		delete(p.addressToConnection, addr)
+		stale[serverConn] = struct{}{}
+	}
+
+	if seedConn, ok := p.addressToConnection[seedAddress]; ok {
+		if _, isStale := stale[seedConn]; isStale {
+			delete(p.addressToConnection, seedAddress)
+		}
+	}
+
+	// Keep connections still referenced by a live address.
+	for _, serverConn := range p.addressToConnection {
+		delete(stale, serverConn)
+	}
+
+	for serverConn := range stale {
+		if serverConn != nil && serverConn.conn != nil {
+			_ = serverConn.conn.Close()
+		}
+		for id, c := range p.idToConnection {
+			if c == serverConn {
+				delete(p.idToConnection, id)
+			}
+		}
+	}
+}
+
+// StartRefresh calls Refresh every interval until ctx is cancelled.
+// A non-positive interval disables periodic refresh.
+func (p *ConnectionPool) StartRefresh(ctx context.Context, seedAddress string, interval time.Duration) {
+	if interval <= 0 {
+		return
+	}
+	go func() {
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				refreshCtx, cancel := context.WithTimeout(ctx, refreshTimeout)
+				if err := p.Refresh(refreshCtx, seedAddress); err != nil {
+					p.logger.Warn("Failed to refresh cluster membership",
+						zap.String("seedAddress", seedAddress),
+						zap.Error(err))
+				}
+				cancel()
+			}
+		}
+	}()
 }

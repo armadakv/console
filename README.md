@@ -26,14 +26,14 @@ Open [http://localhost:8080](http://localhost:8080). By default the console conn
 Point it at your server:
 
 ```bash
-ARMADA_CONSOLE_ARMADA__URL=https://armada.example.com:5001 ./console
+ARMADACONSOLE_ARMADA__URL=https://armada.example.com:5001 ./console
 ```
 
 ### Run with Docker
 
 ```bash
 docker run -p 8080:8080 \
-  -e ARMADA_CONSOLE_ARMADA__URL=https://armada.example.com:5001 \
+  -e ARMADACONSOLE_ARMADA__URL=https://armada.example.com:5001 \
   ghcr.io/armadakv/console:main
 ```
 
@@ -52,7 +52,7 @@ Or place the file anywhere and point to it:
 ```bash
 docker run -p 8080:8080 \
   -v /etc/armada/console.yaml:/etc/armada/console.yaml \
-  -e ARMADA_CONSOLE_CONFIG=/etc/armada/console.yaml \
+  -e ARMADACONSOLE_CONFIG=/etc/armada/console.yaml \
   ghcr.io/armadakv/console:main
 ```
 
@@ -61,10 +61,10 @@ docker run -p 8080:8080 \
 ```bash
 docker run -p 8080:8080 \
   -v /etc/armada/certs:/certs:ro \
-  -e ARMADA_CONSOLE_ARMADA__URL=https://armada.example.com:5001 \
-  -e ARMADA_CONSOLE_ARMADA__TLS__CACERT=/certs/ca.pem \
-  -e ARMADA_CONSOLE_ARMADA__TLS__CLIENTCERT=/certs/client.pem \
-  -e ARMADA_CONSOLE_ARMADA__TLS__CLIENTKEY=/certs/client.key \
+  -e ARMADACONSOLE_ARMADA__URL=https://armada.example.com:5001 \
+  -e ARMADACONSOLE_ARMADA__TLS__CACERT=/certs/ca.pem \
+  -e ARMADACONSOLE_ARMADA__TLS__CLIENTCERT=/certs/client.pem \
+  -e ARMADACONSOLE_ARMADA__TLS__CLIENTKEY=/certs/client.key \
   ghcr.io/armadakv/console:main
 ```
 
@@ -84,12 +84,12 @@ docker run -p 8080:8080 \
 Configuration is loaded in order (later sources override earlier ones):
 
 1. Built-in defaults
-2. YAML config file (`console.yaml` in the working directory, or the path in `ARMADA_CONSOLE_CONFIG`)
-3. Environment variables with the `ARMADA_CONSOLE_` prefix
+2. YAML config file (`console.yaml` in the working directory, or the path in `ARMADACONSOLE_CONFIG`)
+3. Environment variables with the `ARMADACONSOLE_` prefix
 
 ### Config file
 
-Place a `console.yaml` file next to the binary (or point `ARMADA_CONSOLE_CONFIG` to it):
+Place a `console.yaml` file next to the binary (or point `ARMADACONSOLE_CONFIG` to it):
 
 ```yaml
 port: "8080"
@@ -103,30 +103,34 @@ armada:
     clientkey: ""    # path to PEM private key (mTLS)
     servername: ""   # override TLS SNI / certificate hostname
     insecure: false  # disable cert verification (dev only)
+  discoveryinterval: 30s  # re-read cluster membership via the seed URL (0 disables)
 
 metrics:
   storagepath: /tmp/tsdb
   scrapeinterval: 30s
 ```
 
-If `ARMADA_CONSOLE_CONFIG` is set, the file **must** exist; otherwise `console.yaml` is loaded if present and silently skipped if absent.
+If `ARMADACONSOLE_CONFIG` is set, the file **must** exist; otherwise `console.yaml` is loaded if present and silently skipped if absent.
 
 ### Environment variables
 
-All settings can also be set via environment variables. The prefix is `ARMADA_CONSOLE_` and path segments are separated by `__` (double underscore):
+All settings can also be set via environment variables. The prefix is `ARMADACONSOLE_` and path segments are separated by `__` (double underscore).
+The prefix has no separator on purpose: Kubernetes injects variables such as `ARMADA_CONSOLE_PORT` for a Service named
+`armada-console`, which the previous `ARMADA_CONSOLE_` prefix would have read as configuration.
 
 | Environment variable | Config key | Default |
 |---|---|---|
-| `ARMADA_CONSOLE_PORT` | `port` | `8080` |
-| `ARMADA_CONSOLE_ARMADA__URL` | `armada.url` | `http://localhost:5001` |
-| `ARMADA_CONSOLE_ARMADA__TOKEN` | `armada.token` | _(none)_ |
-| `ARMADA_CONSOLE_ARMADA__TLS__CACERT` | `armada.tls.cacert` | _(none)_ |
-| `ARMADA_CONSOLE_ARMADA__TLS__CLIENTCERT` | `armada.tls.clientcert` | _(none)_ |
-| `ARMADA_CONSOLE_ARMADA__TLS__CLIENTKEY` | `armada.tls.clientkey` | _(none)_ |
-| `ARMADA_CONSOLE_ARMADA__TLS__SERVERNAME` | `armada.tls.servername` | _(none)_ |
-| `ARMADA_CONSOLE_ARMADA__TLS__INSECURE` | `armada.tls.insecure` | `false` |
-| `ARMADA_CONSOLE_METRICS__STORAGEPATH` | `metrics.storagepath` | `/tmp/tsdb` |
-| `ARMADA_CONSOLE_METRICS__SCRAPEINTERVAL` | `metrics.scrapeinterval` | `30s` |
+| `ARMADACONSOLE_PORT` | `port` | `8080` |
+| `ARMADACONSOLE_ARMADA__URL` | `armada.url` | `http://localhost:5001` |
+| `ARMADACONSOLE_ARMADA__TOKEN` | `armada.token` | _(none)_ |
+| `ARMADACONSOLE_ARMADA__TLS__CACERT` | `armada.tls.cacert` | _(none)_ |
+| `ARMADACONSOLE_ARMADA__TLS__CLIENTCERT` | `armada.tls.clientcert` | _(none)_ |
+| `ARMADACONSOLE_ARMADA__TLS__CLIENTKEY` | `armada.tls.clientkey` | _(none)_ |
+| `ARMADACONSOLE_ARMADA__TLS__SERVERNAME` | `armada.tls.servername` | _(none)_ |
+| `ARMADACONSOLE_ARMADA__TLS__INSECURE` | `armada.tls.insecure` | `false` |
+| `ARMADACONSOLE_ARMADA__DISCOVERYINTERVAL` | `armada.discoveryinterval` | `30s` |
+| `ARMADACONSOLE_METRICS__STORAGEPATH` | `metrics.storagepath` | `/tmp/tsdb` |
+| `ARMADACONSOLE_METRICS__SCRAPEINTERVAL` | `metrics.scrapeinterval` | `30s` |
 
 ### URL schemes
 

@@ -2,7 +2,9 @@ package armada
 
 import (
 	"context"
+	"fmt"
 	"net"
+	"strings"
 	"testing"
 	"time"
 
@@ -24,9 +26,15 @@ type mockPoolServer struct {
 	regattapb.UnimplementedClusterServer
 	memberResponse *regattapb.MemberListResponse
 	nodeID         string
+	// blockStatus, when set, makes Status wait until the caller gives up.
+	blockStatus bool
 }
 
 func (s *mockPoolServer) Status(ctx context.Context, req *regattapb.StatusRequest) (*regattapb.StatusResponse, error) {
+	if s.blockStatus {
+		<-ctx.Done()
+		return nil, ctx.Err()
+	}
 	id := s.nodeID
 	if id == "" {
 		id = "node1"
@@ -386,4 +394,167 @@ func TestServerInfo(t *testing.T) {
 	assert.Len(t, serverInfo.Addresses, 2)
 	assert.Equal(t, "addr1", serverInfo.PrimaryAddress)
 	assert.Equal(t, connectivity.Ready.String(), serverInfo.ConnectionState)
+}
+
+// startTCPPoolServer starts a mock cluster server on a loopback TCP port, so a
+// pool can dial it by URL exactly like it dials a real Armada node.
+func startTCPPoolServer(t *testing.T, srv *mockPoolServer) string {
+	t.Helper()
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	s := grpc.NewServer()
+	regattapb.RegisterClusterServer(s, srv)
+	go func() { _ = s.Serve(lis) }()
+	t.Cleanup(s.Stop)
+	return "http://" + lis.Addr().String()
+}
+
+func memberList(addresses ...string) *regattapb.MemberListResponse {
+	resp := &regattapb.MemberListResponse{Cluster: "test-cluster"}
+	for i, addr := range addresses {
+		resp.Members = append(resp.Members, &regattapb.Member{
+			Id:         fmt.Sprintf("node%d", i+1),
+			Name:       fmt.Sprintf("node%d", i+1),
+			ClientURLs: []string{addr},
+		})
+	}
+	return resp
+}
+
+func TestConnectionPoolRefresh(t *testing.T) {
+	t.Run("drops addresses that are no longer members and connects to current ones", func(t *testing.T) {
+		srv := &mockPoolServer{nodeID: "node1"}
+		seed := startTCPPoolServer(t, srv)
+		srv.memberResponse = memberList(seed)
+
+		pool, lis, cleanup := setupPoolTest(t)
+		defer cleanup()
+
+		// A pod that restarted on a new IP leaves its old address behind.
+		staleConn := createServerConnection(createTestConnection(t, lis))
+		staleConn.NodeID = "old-node"
+		pool.connectionLock.Lock()
+		pool.addressToConnection["http://10.0.0.1:8443"] = staleConn
+		pool.idToConnection["old-node"] = staleConn
+		pool.connectionLock.Unlock()
+
+		require.NoError(t, pool.Refresh(context.Background(), seed))
+
+		assert.ElementsMatch(t, []string{seed}, pool.GetKnownAddresses())
+		pool.connectionLock.RLock()
+		_, oldIDKept := pool.idToConnection["old-node"]
+		pool.connectionLock.RUnlock()
+		assert.False(t, oldIDKept, "the stale node ID must be forgotten")
+		assert.Equal(t, connectivity.Shutdown, staleConn.conn.GetState(), "the stale connection must be closed")
+		require.NoError(t, pool.Close())
+	})
+
+	t.Run("a seed mapped to a dropped connection is re-dialled", func(t *testing.T) {
+		srv := &mockPoolServer{nodeID: "node1"}
+		member := startTCPPoolServer(t, srv)
+		srv.memberResponse = memberList(member)
+
+		pool, lis, cleanup := setupPoolTest(t)
+		defer cleanup()
+
+		// The seed host name used to resolve to a pod that is now gone.
+		const seed = "http://armada-api.example:8443"
+		staleConn := createServerConnection(createTestConnection(t, lis))
+		pool.connectionLock.Lock()
+		pool.addressToConnection["http://10.0.0.1:8443"] = staleConn
+		pool.addressToConnection[seed] = staleConn
+		pool.connectionLock.Unlock()
+
+		pool.pruneStaleAddresses(seed, map[string]struct{}{member: {}})
+
+		assert.Empty(t, pool.GetKnownAddresses(), "the seed must not keep a connection to a removed node")
+		assert.Equal(t, connectivity.Shutdown, staleConn.conn.GetState())
+	})
+
+	t.Run("an empty member list prunes nothing", func(t *testing.T) {
+		srv := &mockPoolServer{memberResponse: &regattapb.MemberListResponse{Cluster: "test-cluster"}}
+		seed := startTCPPoolServer(t, srv)
+
+		pool, lis, cleanup := setupPoolTest(t)
+		defer cleanup()
+
+		known := createServerConnection(createTestConnection(t, lis))
+		pool.connectionLock.Lock()
+		pool.addressToConnection["http://10.0.0.1:8443"] = known
+		pool.connectionLock.Unlock()
+
+		require.Error(t, pool.Refresh(context.Background(), seed))
+		assert.Equal(t, []string{"http://10.0.0.1:8443"}, pool.GetKnownAddresses())
+		assert.NotEqual(t, connectivity.Shutdown, known.conn.GetState())
+		require.NoError(t, pool.Close())
+	})
+
+	t.Run("an unreachable seed leaves the pool untouched", func(t *testing.T) {
+		pool, lis, cleanup := setupPoolTest(t)
+		defer cleanup()
+
+		known := createServerConnection(createTestConnection(t, lis))
+		pool.connectionLock.Lock()
+		pool.addressToConnection["http://10.0.0.1:8443"] = known
+		pool.connectionLock.Unlock()
+
+		ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+		defer cancel()
+		require.Error(t, pool.Refresh(ctx, "http://127.0.0.1:1"))
+		assert.Equal(t, []string{"http://10.0.0.1:8443"}, pool.GetKnownAddresses())
+		require.NoError(t, pool.Close())
+	})
+}
+
+func TestConnectionPoolRefreshStopsAtDeadline(t *testing.T) {
+	// The slow member sorts first (127.0.0.1 < localhost) and its Status call
+	// consumes the whole refresh deadline.
+	slow := startTCPPoolServer(t, &mockPoolServer{nodeID: "slow", blockStatus: true})
+	fastSrv := &mockPoolServer{nodeID: "fast"}
+	fast := startTCPPoolServer(t, fastSrv)
+	fast = strings.Replace(fast, "127.0.0.1", "localhost", 1)
+	fastSrv.memberResponse = memberList(slow, fast)
+
+	pool, _, cleanup := setupPoolTest(t)
+	defer cleanup()
+	defer func() { _ = pool.Close() }()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	err := pool.Refresh(ctx, fast)
+	require.ErrorIs(t, err, context.DeadlineExceeded)
+	assert.NotContains(t, pool.GetKnownAddresses(), fast,
+		"members after the deadline must be left for the next refresh, not dialled with an expired context")
+}
+
+func TestConnectionPoolGetNodeAddresses(t *testing.T) {
+	pool, lis, cleanup := setupPoolTest(t)
+	defer cleanup()
+	seed := pool.armadaCfg.URL
+
+	node1 := createServerConnection(createTestConnection(t, lis))
+	node1.NodeID = "node1"
+	node2 := createServerConnection(createTestConnection(t, lis))
+	node2.NodeID = "node2"
+	seedOnly := createServerConnection(createTestConnection(t, lis))
+	defer func() { _ = pool.Close() }()
+
+	pool.connectionLock.Lock()
+	// The seed resolves to node1, which is also reachable by its advertised address.
+	pool.addressToConnection[seed] = node1
+	pool.addressToConnection["http://10.0.0.1:8443"] = node1
+	pool.addressToConnection["http://10.0.0.2:8443"] = node2
+	pool.connectionLock.Unlock()
+
+	assert.Equal(t, []string{"http://10.0.0.1:8443", "http://10.0.0.2:8443"}, pool.GetNodeAddresses(),
+		"each node is reported once and the seed alias is not used when an advertised address exists")
+	assert.Len(t, pool.GetKnownAddresses(), 3)
+
+	// A node known only through the seed is still reported.
+	pool.connectionLock.Lock()
+	delete(pool.addressToConnection, "http://10.0.0.1:8443")
+	delete(pool.addressToConnection, "http://10.0.0.2:8443")
+	pool.addressToConnection[seed] = seedOnly
+	pool.connectionLock.Unlock()
+	assert.Equal(t, []string{seed}, pool.GetNodeAddresses())
 }

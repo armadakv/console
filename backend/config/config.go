@@ -1,15 +1,15 @@
 // Package config provides koanf-based configuration loading for the Armada Console.
 // Configuration is loaded in order (each layer overrides the previous):
 //  1. Built-in defaults
-//  2. YAML config file — optional unless ARMADA_CONSOLE_CONFIG is explicitly set
-//  3. Environment variables with the ARMADA_CONSOLE_ prefix
+//  2. YAML config file — optional unless ARMADACONSOLE_CONFIG is explicitly set
+//  3. Environment variables with the ARMADACONSOLE_ prefix
 //
 // Environment variable naming uses __ as the path delimiter, e.g.:
 //
-//	ARMADA_CONSOLE_ARMADA__URL=https://armada:5001
-//	ARMADA_CONSOLE_ARMADA__TLS__CACERT=/etc/certs/ca.pem
-//	ARMADA_CONSOLE_ARMADA__TLS__CLIENTCERT=/etc/certs/client.pem
-//	ARMADA_CONSOLE_ARMADA__TLS__CLIENTKEY=/etc/certs/client.key
+//	ARMADACONSOLE_ARMADA__URL=https://armada:5001
+//	ARMADACONSOLE_ARMADA__TLS__CACERT=/etc/certs/ca.pem
+//	ARMADACONSOLE_ARMADA__TLS__CLIENTCERT=/etc/certs/client.pem
+//	ARMADACONSOLE_ARMADA__TLS__CLIENTKEY=/etc/certs/client.key
 package config
 
 import (
@@ -26,9 +26,9 @@ import (
 )
 
 const (
-	envPrefix     = "ARMADA_CONSOLE_"
+	envPrefix     = "ARMADACONSOLE_"
 	envPathDelim  = "__"
-	configFileEnv = "ARMADA_CONSOLE_CONFIG"
+	configFileEnv = "ARMADACONSOLE_CONFIG"
 )
 
 // Config holds the full application configuration.
@@ -49,6 +49,10 @@ type ArmadaConfig struct {
 	// TLS holds optional TLS settings. Only valid with https:// URLs; combining
 	// any TLS option with an http:// URL is a configuration error.
 	TLS TLSConfig `koanf:"tls"`
+	// DiscoveryInterval is how often cluster membership is re-read through the
+	// seed URL, so that nodes that moved (for example after a rollout) are found
+	// again and stale addresses are dropped. Zero disables periodic discovery.
+	DiscoveryInterval time.Duration `koanf:"discoveryinterval"`
 }
 
 // Validate checks the ArmadaConfig for consistency.
@@ -120,7 +124,7 @@ type MetricsConfig struct {
 }
 
 // Load loads configuration from defaults, an optional YAML file, and environment
-// variables. The config file path is read from ARMADA_CONSOLE_CONFIG; if that env
+// variables. The config file path is read from ARMADACONSOLE_CONFIG; if that env
 // var is set the file must exist. If it is not set, "console.yaml" in the current
 // directory is loaded if present and silently skipped otherwise.
 func Load() (*Config, error) {
@@ -128,10 +132,11 @@ func Load() (*Config, error) {
 
 	// 1. Defaults.
 	defaults := map[string]any{
-		"port":                   "8080",
-		"armada.url":             "http://localhost:5001",
-		"metrics.storagepath":    "/tmp/tsdb",
-		"metrics.scrapeinterval": "30s",
+		"port":                     "8080",
+		"armada.url":               "http://localhost:5001",
+		"armada.discoveryinterval": "30s",
+		"metrics.storagepath":      "/tmp/tsdb",
+		"metrics.scrapeinterval":   "30s",
 	}
 	if err := k.Load(confmap.Provider(defaults, "."), nil); err != nil {
 		return nil, fmt.Errorf("config: loading defaults: %w", err)
@@ -156,7 +161,7 @@ func Load() (*Config, error) {
 		}
 	}
 
-	// 3. Environment variables (ARMADA_CONSOLE_ prefix, __ as path delimiter).
+	// 3. Environment variables (ARMADACONSOLE_ prefix, __ as path delimiter).
 	if err := k.Load(env.Provider(envPrefix, ".", func(s string) string {
 		key := strings.TrimPrefix(s, envPrefix)
 		key = strings.ToLower(key)

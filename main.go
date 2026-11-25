@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"math/rand"
 	"net/http"
 	"os"
 	"os/signal"
@@ -107,11 +106,14 @@ func main() {
 	mm.Start(ctx)
 	defer mm.Stop()
 
-	clientAddr := cfg.Armada.URL
-	if len(discovered) > 0 {
-		clientAddr = discovered[rand.Intn(len(discovered))]
-	}
-	client := armada.NewClient(clientAddr, pool, logger.Named("client"))
+	// Keep re-reading membership through the seed URL so nodes that moved, for
+	// example to new pod IPs after a rollout, are found again.
+	pool.StartRefresh(ctx, cfg.Armada.URL, cfg.Armada.DiscoveryInterval)
+
+	// Talk to the cluster through the seed URL rather than one discovered node
+	// address: the seed is re-resolved when its connection fails, while a pinned
+	// node address stays dead once that node moves.
+	client := armada.NewClient(cfg.Armada.URL, pool, logger.Named("client"))
 	apiHandler := api.NewHandler(client, logger.Named("api-handler"))
 	apiHandler.RegisterRoutes(r)
 
